@@ -34,6 +34,7 @@ namespace POS36.Api
                 });
 
             builder.Services.AddControllers();
+            builder.Services.AddSignalR();
 
             // 3. (SỬA Ở ĐÂY) Cấu hình Swagger thay vì OpenApi của .NET 9
             builder.Services.AddEndpointsApiExplorer();
@@ -73,7 +74,17 @@ namespace POS36.Api
         }
                 });
             });
-
+            builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowVueApp",
+        builder =>
+        {
+            builder.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173") // Cổng mặc định của Vite
+                   .AllowAnyHeader()
+                   .AllowAnyMethod()
+                   .AllowCredentials(); // Rất quan trọng: Bắt buộc phải có dòng này thì SignalR mới chạy được
+        });
+});
             var app = builder.Build();
 
             // 4. (SỬA Ở ĐÂY) Kích hoạt giao diện Swagger UI
@@ -86,9 +97,12 @@ namespace POS36.Api
             // Authentication phải nằm trên Authorization
             app.UseAuthentication();
             app.UseAuthorization();
+            app.UseCors("AllowVueApp");
+
+            // Đăng ký đường dẫn cho ống nước SignalR
+            app.MapHub<POS36.Api.Hubs.KitchenHub>("/kitchenHub");
 
             app.MapControllers();
-
             app.Run();
         }
     }
