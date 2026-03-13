@@ -156,3 +156,4 @@ D:\C#\ASP.NET\POS36\POS36.Api\POS36.Api\bin\Debug\net9.0\Microsoft.AspNetCore.Au
 D:\C#\ASP.NET\POS36\POS36.Api\POS36.Api\bin\Debug\net9.0\Swashbuckle.AspNetCore.Swagger.dll
 D:\C#\ASP.NET\POS36\POS36.Api\POS36.Api\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
 D:\C#\ASP.NET\POS36\POS36.Api\POS36.Api\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll
+D:\C#\ASP.NET\POS36\POS36.Api\POS36.Api\obj\Debug\net9.0\POS36.Api.sourcelink.json

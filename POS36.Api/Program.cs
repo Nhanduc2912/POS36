@@ -3,6 +3,7 @@ using POS36.Api.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.OpenApi.Models;
 
 namespace POS36.Api
 {
@@ -36,7 +37,42 @@ namespace POS36.Api
 
             // 3. (SỬA Ở ĐÂY) Cấu hình Swagger thay vì OpenApi của .NET 9
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            // Thêm thư viện này ở đầu file Program.cs
+            //
+
+            builder.Services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "POS36 API", Version = "v1" });
+
+                // 1. Cấu hình tạo nút "Authorize" (Ổ khóa) trên Swagger
+                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Description = "JWT Authorization header sử dụng scheme Bearer. \r\n\r\n Nhập 'Bearer' [khoảng trắng] và dán Token của bạn vào.\r\n\r\nVí dụ: 'Bearer eyJhbGci...'",
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer"
+                });
+
+                // 2. Yêu cầu Swagger tự động nhét Token vào Header mỗi khi gọi API
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement()
+                {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                },
+                Scheme = "oauth2",
+                Name = "Bearer",
+                In = ParameterLocation.Header,
+            },
+            new List<string>()
+        }
+                });
+            });
 
             var app = builder.Build();
 
