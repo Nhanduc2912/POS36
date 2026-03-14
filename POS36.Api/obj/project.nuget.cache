@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "n4WkMBThG9M=",
+  "dgSpecHash": "nvCTDAsMrJM=",
   "success": true,
-  "projectFilePath": "D:\\C#\\ASP.NET\\POS36\\POS36.Api\\POS36.Api\\POS36.Api.csproj",
+  "projectFilePath": "D:\\CSharp\\ASP.NET\\POS36\\POS36.Api\\POS36.Api\\POS36.Api.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\admin\\.nuget\\packages\\azure.core\\1.38.0\\azure.core.1.38.0.nupkg.sha512",
     "C:\\Users\\admin\\.nuget\\packages\\azure.identity\\1.11.4\\azure.identity.1.11.4.nupkg.sha512",
