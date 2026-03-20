@@ -1,20 +1,21 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace POS36.Api.DTOs
 {
+    // DTO hứng dữ liệu của cả 1 Phiếu Nhập
     public class TaoPhieuNhapDto
     {
-        [Required] public int ChiNhanhId { get; set; }
+        public int ChiNhanhId { get; set; } // Bắt buộc phải biết nhập cho chi nhánh nào
         public string GhiChu { get; set; } = string.Empty;
+        public decimal TongTien { get; set; }
 
-        [Required]
-        public List<ChiTietNhapDto> DanhSachNhap { get; set; } = new List<ChiTietNhapDto>();
+        // Danh sách các mặt hàng được nhập
+        public List<ChiTietPhieuNhapDto> ChiTiets { get; set; } = new();
     }
 
-    public class ChiTietNhapDto
+    // DTO cho từng dòng sản phẩm trong phiếu nhập
+    public class ChiTietPhieuNhapDto
     {
-        [Required] public int SanPhamId { get; set; }
-        [Required] public int SoLuong { get; set; }
-        [Required] public decimal DonGiaNhap { get; set; }
+        public int SanPhamId { get; set; }
+        public int SoLuong { get; set; }
+        public decimal DonGiaNhap { get; set; } // Giá gốc lúc nhập vào
     }
 }

@@ -316,3 +316,4 @@ D:\CSharp\ASP.NET\POS36\POS36.Api\POS36.Api\obj\Debug\net9.0\staticwebassets.bui
 D:\CSharp\ASP.NET\POS36\POS36.Api\POS36.Api\obj\Debug\net9.0\POS36.Api.csproj.Up2Date
 D:\CSharp\ASP.NET\POS36\POS36.Api\POS36.Api\obj\Debug\net9.0\POS36.Api.genruntimeconfig.cache
 D:\CSharp\ASP.NET\POS36\POS36.Api\POS36.Api\obj\Debug\net9.0\ref\POS36.Api.dll
+D:\CSharp\ASP.NET\POS36\POS36.Api\POS36.Api\bin\Debug\net9.0\POS36.Api.staticwebassets.runtime.json

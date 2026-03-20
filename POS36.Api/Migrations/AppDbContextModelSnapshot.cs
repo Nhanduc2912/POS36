@@ -182,6 +182,9 @@ namespace POS36.Api.Migrations
                     b.Property<int>("CuaHangId")
                         .HasColumnType("int");
 
+                    b.Property<string>("HinhAnh")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("TenDanhMuc")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -395,6 +398,9 @@ namespace POS36.Api.Migrations
 
                     b.Property<decimal>("GiaBan")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("HinhAnh")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TenSanPham")
                         .IsRequired()

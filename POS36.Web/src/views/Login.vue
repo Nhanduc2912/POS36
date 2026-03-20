@@ -1,46 +1,94 @@
 <script setup>
-import { ref } from "vue";
+import { ref, inject } from "vue";
+import { useRouter } from "vue-router";
 import axios from "axios";
-// Lát nữa mình setup Router sau, tạm thời dùng console.log để test
-// import { useRouter } from 'vue-router'
+import PublicNavbar from "../components/PublicNavbar.vue";
 
-const username = ref("");
-const password = ref("");
-const errorMessage = ref("");
+const router = useRouter();
+const swal = inject("$swal");
+
+const form = ref({
+  tenDangNhap: "",
+  matKhau: "",
+});
+
+const errors = ref({});
 const isLoading = ref(false);
 
-const handleLogin = async () => {
-  if (!username.value || !password.value) {
-    errorMessage.value = "Vui lòng nhập đầy đủ thông tin!";
-    return;
+const validateForm = () => {
+  errors.value = {};
+  let isValid = true;
+
+  if (!form.value.tenDangNhap.trim()) {
+    errors.value.tenDangNhap = "Vui lòng nhập tên đăng nhập!";
+    isValid = false;
   }
 
-  isLoading.value = true;
-  errorMessage.value = "";
+  if (!form.value.matKhau) {
+    errors.value.matKhau = "Vui lòng nhập mật khẩu!";
+    isValid = false;
+  }
 
+  return isValid;
+};
+
+const handleLogin = async () => {
+  if (!validateForm()) return;
+
+  isLoading.value = true;
   try {
-    // Gọi API Đăng nhập của Backend
-    const response = await axios.post("http://localhost:5198/api/Auth/login", {
-      tenDangNhap: username.value,
-      matKhau: password.value,
+    const res = await axios.post(
+      "http://localhost:5198/api/Auth/login",
+      form.value,
+    );
+
+    const data = res.data;
+
+    // 1. LƯU THÔNG TIN VÀO LOCALSTORAGE
+    // (Giữ nguyên key pos36_token của em để không hỏng cấu hình cũ)
+    localStorage.setItem("pos36_token", data.token);
+    localStorage.setItem("pos36_role", data.role);
+
+    // Lưu thêm Tên nhân viên và ID cửa hàng để các màn hình khác dùng
+    localStorage.setItem(
+      "tenNhanVien",
+      data.tenNhanVien || form.value.tenDangNhap,
+    );
+    if (data.cuaHangId) localStorage.setItem("cuaHangId", data.cuaHangId);
+
+    // 2. THÔNG BÁO ĐĂNG NHẬP THÀNH CÔNG
+    swal.fire({
+      icon: "success",
+      title: "Đăng nhập thành công!",
+      text: `Xin chào ${data.tenNhanVien || form.value.tenDangNhap}`,
+      timer: 1500,
+      showConfirmButton: false,
     });
 
-    // Lấy Token từ Server trả về và lưu vào LocalStorage (Két sắt của trình duyệt)
-    const token = response.data.token;
-    localStorage.setItem("pos36_token", token);
+    // 3. CHIA LUỒNG THEO VAI TRÒ (ROLE-BASED ROUTING)
+    const role = data.role;
 
-    alert("Đăng nhập thành công! Đã lấy được Token.");
-    console.log("Token của bạn:", token);
-
-    // Chỗ này sau sẽ chuyển hướng sang trang Dashboard
-    // router.push('/')
-  } catch (error) {
-    if (error.response && error.response.status === 400) {
-      errorMessage.value = "Sai tên đăng nhập hoặc mật khẩu!";
+    if (role === "Admin" || role === "QuanLy") {
+      // Quản lý/Chủ quán thì vào trang quản trị tổng
+      router.push("/admin");
+    } else if (role === "ThuNgan") {
+      // Thu ngân hoặc Order thì bay thẳng ra mặt trận Bán hàng
+      router.push("/pos");
+    } else if (role === "Order") {
+      router.push("/order");
+    } else if (role === "Bep") {
+      // Bếp thì bay thẳng vào màn hình làm món
+      router.push("/kitchen");
     } else {
-      errorMessage.value =
-        "Không thể kết nối đến Server (Nhớ bật Backend nhé!)";
+      // Mặc định nếu chưa rõ quyền
+      router.push("/admin");
     }
+  } catch (error) {
+    swal.fire(
+      "Đăng nhập thất bại",
+      error.response?.data?.message || "Sai tên đăng nhập hoặc mật khẩu!",
+      "error",
+    );
   } finally {
     isLoading.value = false;
   }
@@ -48,112 +96,79 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div class="login-container">
-    <div class="login-box">
-      <h2>POS36 LOGIN</h2>
-      <p class="subtitle">Hệ thống quản lý bán hàng</p>
+  <div class="login-wrapper">
+    <PublicNavbar />
 
-      <form @submit.prevent="handleLogin">
-        <div class="input-group">
-          <label>Tên đăng nhập</label>
-          <input
-            type="text"
-            v-model="username"
-            placeholder="Nhập tài khoản (VD: admin_lauduc)"
-          />
+    <div
+      class="d-flex align-items-center justify-content-center min-vh-100 py-5"
+    >
+      <div
+        class="card shadow-lg border-0 rounded-4"
+        style="width: 100%; max-width: 400px"
+      >
+        <div class="card-body p-5">
+          <div class="text-center mb-4">
+            <h2 class="fw-bold text-primary">
+              <i class="bi bi-shop"></i> POS36
+            </h2>
+            <p class="text-muted">Quản lý cửa hàng</p>
+          </div>
+
+          <form @submit.prevent="handleLogin">
+            <div class="mb-3">
+              <label class="form-label fw-bold">Tên đăng nhập</label>
+              <input
+                type="text"
+                class="form-control form-control-lg rounded-3"
+                :class="{ 'is-invalid': errors.tenDangNhap }"
+                v-model="form.tenDangNhap"
+                placeholder="Nhập tài khoản Admin hoặc Nhân viên"
+              />
+              <div class="invalid-feedback">{{ errors.tenDangNhap }}</div>
+            </div>
+
+            <div class="mb-4">
+              <label class="form-label fw-bold">Mật khẩu</label>
+              <input
+                type="password"
+                class="form-control form-control-lg rounded-3"
+                :class="{ 'is-invalid': errors.matKhau }"
+                v-model="form.matKhau"
+                placeholder="Nhập mật khẩu"
+              />
+              <div class="invalid-feedback">{{ errors.matKhau }}</div>
+            </div>
+
+            <button
+              type="submit"
+              class="btn btn-primary btn-lg w-100 py-3 rounded-3 fw-bold fs-5 shadow-sm"
+              :disabled="isLoading"
+            >
+              <span
+                v-if="isLoading"
+                class="spinner-border spinner-border-sm me-2"
+              ></span>
+              {{ isLoading ? "Đang xác thực..." : "ĐĂNG NHẬP" }}
+            </button>
+          </form>
+
+          <div class="text-center mt-4 pt-3 border-top">
+            <span class="text-muted">Chưa có cửa hàng?</span>
+            <router-link
+              to="/register"
+              class="text-decoration-none fw-bold ms-1"
+              >Đăng ký mới</router-link
+            >
+          </div>
         </div>
-
-        <div class="input-group">
-          <label>Mật khẩu</label>
-          <input
-            type="password"
-            v-model="password"
-            placeholder="Nhập mật khẩu (VD: 123456)"
-          />
-        </div>
-
-        <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
-
-        <button type="submit" :disabled="isLoading">
-          {{ isLoading ? "Đang kiểm tra..." : "ĐĂNG NHẬP" }}
-        </button>
-      </form>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.login-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  background-color: #f0f2f5;
-  font-family: Arial, sans-serif;
-}
-
-.login-box {
-  background: white;
-  padding: 40px;
-  border-radius: 10px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  max-width: 350px;
-  text-align: center;
-}
-
-h2 {
-  margin-bottom: 5px;
-  color: #333;
-}
-.subtitle {
-  color: #888;
-  margin-bottom: 25px;
-  font-size: 14px;
-}
-
-.input-group {
-  text-align: left;
-  margin-bottom: 15px;
-}
-
-.input-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-size: 14px;
-  color: #555;
-  font-weight: bold;
-}
-
-.input-group input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  box-sizing: border-box;
-}
-
-button {
-  width: 100%;
-  padding: 12px;
-  background-color: #1890ff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  font-size: 16px;
-  font-weight: bold;
-  cursor: pointer;
-  margin-top: 10px;
-}
-
-button:disabled {
-  background-color: #91caff;
-  cursor: not-allowed;
-}
-
-.error {
-  color: #ff4d4f;
-  font-size: 14px;
-  margin-bottom: 15px;
+.login-wrapper {
+  background-color: #f8f9fa;
+  min-height: 100vh;
 }
 </style>

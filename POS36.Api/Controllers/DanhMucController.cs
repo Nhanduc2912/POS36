@@ -20,6 +20,8 @@ namespace POS36.Api.Controllers
             _context = context;
         }
 
+
+
         // Hàm hỗ trợ: Lấy CuaHangId từ Token đang đăng nhập
         private int GetCuaHangId()
         {
@@ -33,25 +35,56 @@ namespace POS36.Api.Controllers
         public async Task<IActionResult> GetDanhMucs()
         {
             int cuaHangId = GetCuaHangId();
-            // Chỉ query ra danh mục của đúng cửa hàng đang đăng nhập
+
             var danhMucs = await _context.DanhMucs
                 .Where(d => d.CuaHangId == cuaHangId)
-                .Select(d => new { d.Id, d.TenDanhMuc }) // Ẩn bớt thông tin thừa
+                .Select(d => new
+                {
+                    d.Id,
+                    d.TenDanhMuc,
+
+                    d.HinhAnh // <--- THÊM ĐÚNG CHỮ NÀY VÀO ĐÂY NỮA LÀ XONG
+
+                })
                 .ToListAsync();
 
             return Ok(danhMucs);
         }
-
         // 2. THÊM MỚI DANH MỤC
+        // DTO nhận dữ liệu Form của Danh mục
+        public class CreateDanhMucDto
+        {
+            public string TenDanhMuc { get; set; } = string.Empty;
+            public IFormFile? HinhAnhFile { get; set; }
+        }
+
+        // Copy lại hàm UploadImageAsync (giống bên SanPhamController) để dùng
+        private async Task<string?> UploadImageAsync(IFormFile? file)
+        {
+            if (file == null || file.Length == 0) return null;
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+            var uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(fileStream);
+            }
+            return "/images/" + uniqueFileName;
+        }
+
+        // 2. THÊM MỚI DANH MỤC (Có Up Ảnh)
         [HttpPost]
-        public async Task<IActionResult> CreateDanhMuc(DanhMucDto request)
+        public async Task<IActionResult> CreateDanhMuc([FromForm] CreateDanhMucDto request)
         {
             int cuaHangId = GetCuaHangId();
+            string? hinhAnhPath = await UploadImageAsync(request.HinhAnhFile);
 
             var newDanhMuc = new DanhMuc
             {
-                CuaHangId = cuaHangId, // Tự động gán cho chủ quán đang thao tác
-                TenDanhMuc = request.TenDanhMuc
+                CuaHangId = cuaHangId,
+                TenDanhMuc = request.TenDanhMuc,
+                HinhAnh = hinhAnhPath // Gắn ảnh vào Database
             };
 
             _context.DanhMucs.Add(newDanhMuc);

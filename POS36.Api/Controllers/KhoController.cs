@@ -13,45 +13,41 @@ namespace POS36.Api.Controllers
     public class KhoController : ControllerBase
     {
         private readonly AppDbContext _context;
+        public KhoController(AppDbContext context) { _context = context; }
 
-        public KhoController(AppDbContext context)
+        [HttpPost("nhap-hang")]
+        public async Task<IActionResult> NhapHang([FromBody] TaoPhieuNhapDto request)
         {
-            _context = context;
-        }
+            // 1. Kiểm tra quyền sở hữu Chi Nhánh
+            var cuaHangId = int.Parse(User.FindFirst("CuaHangId")!.Value);
+            var validBranch = await _context.ChiNhanhs.AnyAsync(c => c.Id == request.ChiNhanhId && c.CuaHangId == cuaHangId);
+            if (!validBranch) return BadRequest("Chi nhánh không hợp lệ!");
 
-        private int GetTaiKhoanId()
-        {
-            var claim = User.FindFirst("Id"); // Lấy ID của người đang đăng nhập
-            if (claim == null) throw new UnauthorizedAccessException("Token không hợp lệ");
-            return int.Parse(claim.Value);
-        }
+            if (request.ChiTiets == null || !request.ChiTiets.Any())
+                return BadRequest("Phiếu nhập phải có ít nhất 1 mặt hàng!");
 
-        // ==========================================
-        // 1. TẠO PHIẾU NHẬP KHO
-        // ==========================================
-        [HttpPost("nhapkho")]
-        public async Task<IActionResult> NhapKho(TaoPhieuNhapDto request)
-        {
+            // Lấy ID Tài khoản đang thao tác (Tạm thời fix cứng hoặc lấy từ Token nếu em có)
+            var taiKhoanId = int.Parse(User.FindFirst("Id")?.Value ?? "1");
+
+            // BẮT ĐẦU TRANSACTION ĐỂ ĐẢM BẢO AN TOÀN DỮ LIỆU
             using var transaction = await _context.Database.BeginTransactionAsync();
-
             try
             {
-                // 1. Tạo Phiếu Nhập
+                // 2. Tạo Phiếu Nhập
                 var phieuNhap = new PhieuNhap
                 {
                     ChiNhanhId = request.ChiNhanhId,
-                    TaiKhoanId = GetTaiKhoanId(),
+                    TaiKhoanId = taiKhoanId, // Ai là người nhập
                     NgayNhap = DateTime.Now,
                     GhiChu = request.GhiChu
                 };
-
                 _context.PhieuNhaps.Add(phieuNhap);
-                await _context.SaveChangesAsync(); // Lưu để lấy ID Phiếu
+                await _context.SaveChangesAsync(); // Lưu để lấy ID Phiếu Nhập
 
-                // 2. Duyệt qua từng món hàng để Lưu chi tiết, Cộng Tồn kho & Ghi Lịch sử
-                foreach (var item in request.DanhSachNhap)
+                // 3. Xử lý từng mặt hàng: Lưu Chi Tiết + Cộng Tồn Kho
+                foreach (var item in request.ChiTiets)
                 {
-                    // Lưu chi tiết
+                    // Thêm Chi tiết phiếu nhập
                     var chiTiet = new ChiTietPhieuNhap
                     {
                         PhieuNhapId = phieuNhap.Id,
@@ -61,67 +57,38 @@ namespace POS36.Api.Controllers
                     };
                     _context.ChiTietPhieuNhaps.Add(chiTiet);
 
-                    // Cập nhật Tồn Kho (Nếu có rồi thì cộng dồn, chưa có thì tạo dòng mới)
+                    // XỬ LÝ TỒN KHO RIÊNG BIỆT CHO CHI NHÁNH NÀY
                     var tonKho = await _context.TonKhos
-                        .FirstOrDefaultAsync(t => t.ChiNhanhId == request.ChiNhanhId && t.SanPhamId == item.SanPhamId);
+                        .FirstOrDefaultAsync(t => t.SanPhamId == item.SanPhamId && t.ChiNhanhId == request.ChiNhanhId);
 
                     if (tonKho != null)
                     {
+                        // Đã có trong kho chi nhánh này -> Cộng dồn
                         tonKho.SoLuong += item.SoLuong;
                     }
                     else
                     {
-                        tonKho = new TonKho
+                        // Chưa từng có trong kho chi nhánh này -> Tạo mới
+                        var newTonKho = new TonKho
                         {
                             ChiNhanhId = request.ChiNhanhId,
                             SanPhamId = item.SanPhamId,
                             SoLuong = item.SoLuong
                         };
-                        _context.TonKhos.Add(tonKho);
+                        _context.TonKhos.Add(newTonKho);
                     }
-
-                    // Ghi Lịch Sử Kho (Thẻ kho để truy vết)
-                    var lichSu = new LichSuKho
-                    {
-                        ChiNhanhId = request.ChiNhanhId,
-                        SanPhamId = item.SanPhamId,
-                        LoaiGiaoDich = "Nhập kho",
-                        SoLuong = item.SoLuong,
-                        NgayThucHien = DateTime.Now,
-                        GhiChu = $"Nhập theo Phiếu #{phieuNhap.Id}"
-                    };
-                    _context.LichSuKhos.Add(lichSu);
                 }
 
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                await transaction.CommitAsync(); // Xác nhận thành công toàn bộ
 
-                return Ok(new { message = "Nhập kho thành công!", phieuNhapId = phieuNhap.Id });
+                return Ok(new { message = "Nhập hàng thành công!", phieuNhapId = phieuNhap.Id });
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
-                return StatusCode(500, $"Lỗi hệ thống: {ex.Message}");
+                await transaction.RollbackAsync(); // Nếu lỗi ở bất kỳ bước nào, hoàn tác toàn bộ!
+                return StatusCode(500, new { message = "Lỗi xử lý nhập hàng", error = ex.Message });
             }
-        }
-
-        // ==========================================
-        // 2. XEM SỐ LƯỢNG TỒN KHO HIỆN TẠI
-        // ==========================================
-        [HttpGet("tonkho/{chiNhanhId}")]
-        public async Task<IActionResult> GetTonKho(int chiNhanhId)
-        {
-            var tonKho = await _context.TonKhos
-                .Include(t => t.SanPham)
-                .Where(t => t.ChiNhanhId == chiNhanhId)
-                .Select(t => new
-                {
-                    t.SanPhamId,
-                    TenSanPham = t.SanPham!.TenSanPham,
-                    t.SoLuong
-                }).ToListAsync();
-
-            return Ok(tonKho);
         }
     }
 }

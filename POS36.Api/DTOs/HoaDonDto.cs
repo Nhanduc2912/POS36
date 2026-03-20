@@ -16,4 +16,16 @@ namespace POS36.Api.DTOs
         [Required] public int SoLuong { get; set; }
         public string GhiChu { get; set; } = string.Empty; // VD: "Ít đá, nhiều đường"
     }
+
+    public class ChuyenBanDto
+    {
+        [Required] public int TuBanId { get; set; }
+        [Required] public int DenBanId { get; set; }
+    }
+
+    public class GhepBanDto
+    {
+        [Required] public int TuBanId { get; set; }
+        [Required] public int DenBanId { get; set; }
+    }
 }

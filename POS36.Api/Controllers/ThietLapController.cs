@@ -46,6 +46,21 @@ namespace POS36.Api.Controllers
         }
 
         // ==========================================
+        // 1.5 LẤY DANH SÁCH CHI NHÁNH CỦA CHỦ QUÁN
+        // ==========================================
+        [HttpGet("chinhanh")]
+        public async Task<IActionResult> GetChiNhanhs()
+        {
+            int cuaHangId = GetCuaHangId();
+            var branches = await _context.ChiNhanhs
+                .Where(c => c.CuaHangId == cuaHangId)
+                .Select(c => new { c.Id, c.TenChiNhanh, c.DiaChi })
+                .ToListAsync();
+            
+            return Ok(branches);
+        }
+
+        // ==========================================
         // 2. THÊM KHU VỰC VÀO CHI NHÁNH
         // ==========================================
         [HttpPost("khuvuc")]
