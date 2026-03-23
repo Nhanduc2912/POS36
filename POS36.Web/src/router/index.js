@@ -47,9 +47,14 @@ const routes = [
         component: () => import("../views/PriceSetup.vue"),
       },
       {
-        path: "import-stock",
+        path: "import-stock", // Trang Danh sách
         name: "ImportStock",
         component: () => import("../views/ImportStock.vue"),
+      },
+      {
+        path: "import-create", // Trang Thêm mới
+        name: "ImportStockCreate",
+        component: () => import("../views/CreateStock.vue"),
       },
       {
         path: "employees",

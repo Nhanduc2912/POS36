@@ -474,7 +474,9 @@ onMounted(async () => {
 
   try {
     await connection.start();
-    connection.on("CoDonHangMoi", () => fetchStructure());
+    connection.on("CoDonHangMoi", () =>
+      fetchStructure(globalState.value.activeBranchId),
+    );
 
     connection.on("MonAnDaXong", (data) => {
       if (!notifications.value.includes(data.banId))
@@ -495,14 +497,13 @@ onMounted(async () => {
         showConfirmButton: false,
         timer: 4000,
       });
-      fetchStructure();
+      fetchStructure(globalState.value.activeBranchId); // SỬA Ở ĐÂY NỮA
     });
   } catch (err) {
     console.error("SignalR Lỗi: ", err);
   }
 
-  await fetchStructure();
-  await fetchProducts();
+  await getBranchIdAndFetch();
 
   setInterval(() => {
     tables.value = [...tables.value];
@@ -541,11 +542,12 @@ const filteredProducts = computed(() => {
 
 const getBranchId = () => globalState.value.activeBranchId || 1;
 
-const fetchStructure = async () => {
+const fetchStructure = async (branchId) => {
   loadingTables.value = true;
   try {
+    // Không dùng getBranchId() nữa mà dùng branchId truyền vào
     const response = await axios.get(
-      `/api/Ban/danh-sach-pos?chiNhanhId=${getBranchId()}`,
+      `/api/Ban/danh-sach-pos?chiNhanhId=${branchId}`,
     );
     tables.value = response.data;
   } catch (err) {
@@ -555,10 +557,11 @@ const fetchStructure = async () => {
   }
 };
 
-const fetchProducts = async () => {
+// 3. Sửa lại hàm fetchProducts nhận ID động
+const fetchProducts = async (branchId) => {
   try {
     const response = await axios.get(
-      `/api/SanPham/danh-sach?chiNhanhId=${getBranchId()}`,
+      `/api/SanPham/danh-sach?chiNhanhId=${branchId}`,
     );
     products.value = response.data.filter((p) => p.trangThai === true);
   } catch (err) {
@@ -639,7 +642,7 @@ const submitOrder = async () => {
     });
     cart.value = [];
     menuOffcanvas.hide();
-    fetchStructure();
+    fetchStructure(globalState.value.activeBranchId);
   } catch (err) {
     swal.fire("Lỗi", err.response?.data || "Có lỗi xảy ra", "error");
   } finally {
@@ -686,8 +689,43 @@ const toggleNotifications = () => {
 };
 
 const logout = () => {
+  // 1. Quét sạch toàn bộ Token và ID Chi nhánh cũ lưu trong máy
   localStorage.clear();
-  router.push("/login");
+
+  // 2. DÙNG window.location.href THAY VÌ router.push('/login')
+  // Lý do: Việc tải lại trang web sẽ quét sạch mọi dữ liệu cũ còn kẹt trong RAM (globalState) của Vue
+  window.location.href = "/login";
+};
+
+// --- BẮT ĐẦU ĐOẠN CODE MỚI ---
+
+// 1. Hàm tự động tìm đúng Chi nhánh đang làm việc
+const getBranchIdAndFetch = async () => {
+  let branchId =
+    globalState.value.activeBranchId ||
+    localStorage.getItem("pos36_active_branch");
+
+  // Nếu chưa có chi nhánh nào trong RAM (Vừa login xong) -> Tự gọi API lấy chi nhánh
+  if (!branchId || branchId === "null") {
+    try {
+      const res = await axios.get("/api/ChiNhanh");
+      if (res.data && res.data.length > 0) {
+        branchId = res.data[0].id;
+        globalState.value.activeBranchId = branchId;
+        localStorage.setItem("pos36_active_branch", branchId);
+      }
+    } catch (e) {
+      console.error("Lỗi lấy chi nhánh", e);
+    }
+  }
+
+  // Sau khi chắc chắn có branchId đúng của tài khoản này rồi mới gọi API lấy bàn và món
+  if (branchId) {
+    // Đảm bảo RAM Vue được đồng bộ
+    globalState.value.activeBranchId = branchId;
+    await fetchStructure(branchId);
+    await fetchProducts(branchId);
+  }
 };
 </script>
 

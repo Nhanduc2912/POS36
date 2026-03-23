@@ -53,7 +53,7 @@ namespace POS36.Api.Controllers
                         PhieuNhapId = phieuNhap.Id,
                         SanPhamId = item.SanPhamId,
                         SoLuong = item.SoLuong,
-                        DonGiaNhap = item.DonGiaNhap
+                        DonGiaNhap = item.GiaNhap
                     };
                     _context.ChiTietPhieuNhaps.Add(chiTiet);
 

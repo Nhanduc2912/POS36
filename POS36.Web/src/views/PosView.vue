@@ -65,11 +65,11 @@ onMounted(async () => {
       });
     }
   });
-  fetchTables();
+  fetchTables(globalState.value.activeBranchId);
   // Lắng nghe sự kiện Bếp báo lại hoặc máy khác gọi món để cập nhật màn hình
   connection.on("CoDonHangMoi", (data) => {
     // Có thể thêm logic popup thông báo ở đây nếu cần
-    fetchTables(); // Tải lại danh sách bàn để cập nhật trạng thái mới nhất
+    fetchTables(globalState.value.activeBranchId);
   });
 
   await getBranchIdAndFetch();

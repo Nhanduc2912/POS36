@@ -161,6 +161,7 @@ import { ref, onMounted, onUnmounted, inject } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 import * as signalR from "@microsoft/signalr";
+import { globalState } from "../store";
 
 const router = useRouter();
 const swal = inject("$swal");
@@ -168,7 +169,7 @@ const backendUrl = "http://localhost:5198";
 
 const activeTab = ref("pending");
 const pendingItems = ref([]);
-const historyItems = ref([]); // Mảng lưu lịch sử trên RAM
+const historyItems = ref([]);
 const loading = ref(true);
 const currentTime = ref("");
 
@@ -180,6 +181,48 @@ const connection = new signalR.HubConnectionBuilder()
   .withUrl(`${backendUrl}/kitchenHub`)
   .withAutomaticReconnect()
   .build();
+
+// --- 1. SỬA HÀM LẤY MÓN ĐỂ NHẬN ID CHI NHÁNH ---
+const fetchPendingItems = async (branchId) => {
+  loading.value = true;
+  try {
+    const res = await axios.get(
+      `/api/HoaDon/bep/danh-sach?chiNhanhId=${branchId}`,
+    );
+    pendingItems.value = res.data;
+  } catch (e) {
+    console.error(e);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// --- 2. HÀM TỰ ĐỘNG TÌM ĐÚNG CHI NHÁNH ---
+const getBranchIdAndFetch = async () => {
+  let branchId =
+    globalState.value.activeBranchId ||
+    localStorage.getItem("pos36_active_branch");
+
+  if (!branchId || branchId === "null") {
+    try {
+      const res = await axios.get("/api/ChiNhanh");
+      if (res.data && res.data.length > 0) {
+        branchId = res.data[0].id;
+        globalState.value.activeBranchId = branchId;
+        localStorage.setItem("pos36_active_branch", branchId);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  if (branchId) {
+    globalState.value.activeBranchId = branchId;
+    await fetchPendingItems(branchId); // Gọi đúng tên hàm fetchPendingItems
+  } else {
+    loading.value = false;
+  }
+};
 
 onMounted(async () => {
   try {
@@ -194,40 +237,34 @@ onMounted(async () => {
         showConfirmButton: false,
         timer: 2000,
       });
-      fetchPendingItems();
+      // Gọi đúng hàm kèm ID
+      if (globalState.value.activeBranchId) {
+        fetchPendingItems(globalState.value.activeBranchId);
+      }
     });
   } catch (err) {
     console.error(err);
   }
 
-  await fetchPendingItems();
-  setInterval(fetchPendingItems, 30000);
+  // --- 3. CHẠY HÀM NÀY LÚC VỪA MỞ TRANG BẾP LÊN ---
+  await getBranchIdAndFetch();
+
+  // Load lại đều đặn mỗi 30s
+  setInterval(() => {
+    if (globalState.value.activeBranchId) {
+      fetchPendingItems(globalState.value.activeBranchId);
+    }
+  }, 30000);
 });
 
 onUnmounted(() => {
   connection.stop();
 });
 
-const getBranchId = () => localStorage.getItem("pos36_active_branch") || 1;
-
-const fetchPendingItems = async () => {
-  try {
-    const res = await axios.get(
-      `/api/HoaDon/bep/danh-sach?chiNhanhId=${getBranchId()}`,
-    );
-    pendingItems.value = res.data;
-  } catch (e) {
-    console.error(e);
-  } finally {
-    loading.value = false;
-  }
-};
-
 const markAsDone = async (item) => {
   try {
     await axios.put(`/api/HoaDon/bep/xong/${item.chiTietId}`);
 
-    // Cập nhật giao diện: Rút món khỏi Đang chờ -> Đẩy vào Lịch sử
     item.thoiGianXong = new Date().toLocaleTimeString("vi-VN");
     historyItems.value.unshift(item);
     pendingItems.value = pendingItems.value.filter(
@@ -240,7 +277,7 @@ const markAsDone = async (item) => {
 
 const logout = () => {
   localStorage.clear();
-  router.push("/login");
+  window.location.href = "/login"; // Dùng window.location.href để xóa sạch RAM Vue
 };
 </script>
 
