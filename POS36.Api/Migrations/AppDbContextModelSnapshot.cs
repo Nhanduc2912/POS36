@@ -118,6 +118,35 @@ namespace POS36.Api.Migrations
                     b.ToTable("ChiTietHoaDons");
                 });
 
+            modelBuilder.Entity("POS36.Api.Models.ChiTietKiemKe", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("PhieuKiemKeId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SanPhamId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SoLuongKiemKe")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TonKhoHienTai")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PhieuKiemKeId");
+
+                    b.HasIndex("SanPhamId");
+
+                    b.ToTable("ChiTietKiemKes");
+                });
+
             modelBuilder.Entity("POS36.Api.Models.ChiTietPhieuNhap", b =>
                 {
                     b.Property<int>("Id")
@@ -337,6 +366,9 @@ namespace POS36.Api.Migrations
                     b.Property<int>("CuaHangId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Email")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("MaNhanVien")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -354,6 +386,40 @@ namespace POS36.Api.Migrations
                     b.HasIndex("ChiNhanhId");
 
                     b.ToTable("NhanViens");
+                });
+
+            modelBuilder.Entity("POS36.Api.Models.PhieuKiemKe", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChiNhanhId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CuaHangId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("GhiChu")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MaChungTu")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("NgayTao")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TrangThai")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PhieuKiemKes");
                 });
 
             modelBuilder.Entity("POS36.Api.Models.PhieuNhap", b =>
@@ -380,6 +446,59 @@ namespace POS36.Api.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("PhieuNhaps");
+                });
+
+            modelBuilder.Entity("POS36.Api.Models.PhieuThuChi", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ChiNhanhId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CuaHangId")
+                        .HasColumnType("int");
+
+                    b.Property<double>("GiaTri")
+                        .HasColumnType("float");
+
+                    b.Property<string>("HangMuc")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LoaiPhieu")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LyDo")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MaChungTu")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("NgayGiaoDich")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("NguoiNopNhan")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NguoiTao")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhuongThuc")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PhieuThuChis");
                 });
 
             modelBuilder.Entity("POS36.Api.Models.SanPham", b =>
@@ -551,6 +670,25 @@ namespace POS36.Api.Migrations
                     b.Navigation("SanPham");
                 });
 
+            modelBuilder.Entity("POS36.Api.Models.ChiTietKiemKe", b =>
+                {
+                    b.HasOne("POS36.Api.Models.PhieuKiemKe", "PhieuKiemKe")
+                        .WithMany("ChiTiets")
+                        .HasForeignKey("PhieuKiemKeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("POS36.Api.Models.SanPham", "SanPham")
+                        .WithMany()
+                        .HasForeignKey("SanPhamId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PhieuKiemKe");
+
+                    b.Navigation("SanPham");
+                });
+
             modelBuilder.Entity("POS36.Api.Models.ChiTietPhieuNhap", b =>
                 {
                     b.HasOne("POS36.Api.Models.PhieuNhap", "PhieuNhap")
@@ -707,6 +845,11 @@ namespace POS36.Api.Migrations
             modelBuilder.Entity("POS36.Api.Models.KhuVuc", b =>
                 {
                     b.Navigation("Bans");
+                });
+
+            modelBuilder.Entity("POS36.Api.Models.PhieuKiemKe", b =>
+                {
+                    b.Navigation("ChiTiets");
                 });
 #pragma warning restore 612, 618
         }

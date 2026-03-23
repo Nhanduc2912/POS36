@@ -56,6 +56,26 @@ const routes = [
         name: "EmployeeSetup",
         component: () => import("../views/EmployeeSetup.vue"),
       },
+      {
+        path: "orders", // Thêm đường dẫn này
+        name: "admin-orders",
+        component: () => import("../views/OrderList.vue"), // Trỏ đến file vừa tạo
+      },
+      {
+        path: "inventory",
+        name: "admin-inventory",
+        component: () => import("../views/InventoryCheck.vue"),
+      },
+      {
+        path: "inventory-create",
+        name: "admin-inventory-create",
+        component: () => import("../views/InventoryCreate.vue"),
+      },
+      {
+        path: "cashbook",
+        name: "admin-cashbook",
+        component: () => import("../views/Cashbook.vue"),
+      },
     ],
   },
 
@@ -88,23 +108,32 @@ const router = createRouter({
 });
 
 // Vệ sĩ kiểm tra quyền truy cập (Chuẩn Vue Router 4 mới nhất)
-router.beforeEach((to, from) => {
+// NGƯỜI GÁC CỔNG (ROUTER GUARD) CHỐNG VƯỢT QUYỀN
+router.beforeEach((to, from, next) => {
   const token = localStorage.getItem("pos36_token");
+  const role = localStorage.getItem("pos36_role");
 
-  // Nếu vào trang cần Auth mà không có Token -> Trả về Login
-  if (to.meta.requiresAuth && !token) {
-    return { name: "Login" };
+  // 1. Nếu trang cần bảo mật (tất cả trừ Login/Register) mà chưa có Token -> Đuổi ra Login
+  if (to.path !== "/login" && to.path !== "/register" && !token) {
+    return next("/login");
   }
-  // Nếu đã có Token mà lại vào Login, Register, Landing -> Trả về Admin
-  if (
-    (to.name === "Login" ||
-      to.name === "Register" ||
-      to.name === "LandingPage") &&
-    token
-  ) {
-    return { name: "AdminOverview" };
+
+  // 2. CHẶN VƯỢT QUYỀN VÀO ADMIN
+  if (to.path.startsWith("/admin")) {
+    // 2. CHẶN VƯỢT QUYỀN VÀO ADMIN
+    if (to.path.startsWith("/admin")) {
+      // NẾU KHÔNG PHẢI LÀ Admin, QuanLy, HOẶC ChuCuaHang THÌ BỊ ĐUỔI
+      if (role !== "Admin" && role !== "QuanLy" && role !== "ChuCuaHang") {
+        if (role === "ThuNgan") return next("/pos");
+        if (role === "Order") return next("/order");
+        if (role === "Bep") return next("/kitchen");
+        return next("/login"); // Không có quyền rõ ràng thì đuổi ra
+      }
+    }
   }
-  // Hợp lệ thì tự động cho qua (Không cần viết gì thêm)
+
+  // Cho phép đi tiếp
+  next();
 });
 
 export default router;

@@ -7,14 +7,25 @@ import { globalState } from "../store";
 const router = useRouter();
 
 // Hàm kéo danh sách Chi nhánh từ API gắn vào thanh Navbar
+// Hàm kéo danh sách Chi nhánh từ API
 const fetchBranches = async () => {
   try {
     const res = await axios.get("/api/ChiNhanh");
     globalState.value.branches = res.data;
 
-    // Nếu chưa có chi nhánh nào được chọn, tự động lấy cái đầu tiên
-    if (!globalState.value.activeBranchId && res.data.length > 0) {
-      globalState.value.activeBranchId = res.data[0].id;
+    if (res.data.length > 0) {
+      // KIỂM TRA CHỐNG LỖI NHỚ NHẦM TÀI KHOẢN CŨ
+      const currentId = globalState.value.activeBranchId;
+      // Kiểm tra xem currentId có nằm trong danh sách chi nhánh của User này không
+      const isValid = res.data.some((b) => b.id === currentId);
+
+      if (!currentId || !isValid) {
+        // Nếu không hợp lệ hoặc chưa có, tự động lấy chi nhánh đầu tiên
+        globalState.value.activeBranchId = res.data[0].id;
+        localStorage.setItem("pos36_active_branch", res.data[0].id);
+      }
+    } else {
+      globalState.value.activeBranchId = null;
     }
   } catch (error) {
     console.error("Lỗi tải danh sách chi nhánh", error);
@@ -22,9 +33,8 @@ const fetchBranches = async () => {
 };
 
 const handleLogout = () => {
-  localStorage.removeItem("pos36_token");
-  localStorage.removeItem("pos36_active_branch");
-  router.push("/login");
+  localStorage.clear(); // CHỐT HẠ: Quét sạch bộ nhớ không chừa một thứ gì
+  window.location.href = "/login";
 };
 
 onMounted(() => {
@@ -63,7 +73,14 @@ onMounted(() => {
                     giá</router-link
                   >
                 </li>
-                <li><a class="dropdown-item" href="#">Kiểm kê</a></li>
+                <li>
+                  <router-link
+                    class="dropdown-item fw-bold"
+                    to="/admin/inventory"
+                  >
+                    <i class="bi bi-clipboard-check"></i> Kiểm kê
+                  </router-link>
+                </li>
               </ul>
             </li>
             <li class="nav-item dropdown me-2">
@@ -116,7 +133,9 @@ onMounted(() => {
               >
               <ul class="dropdown-menu shadow-sm border-0">
                 <li>
-                  <a class="dropdown-item" href="#">Danh sách đơn hàng</a>
+                  <router-link class="dropdown-item" to="/admin/orders"
+                    >Danh sách đơn hàng</router-link
+                  >
                 </li>
                 <li>
                   <router-link
@@ -146,9 +165,9 @@ onMounted(() => {
               </ul>
             </li>
             <li class="nav-item me-2">
-              <a class="nav-link" href="#"
-                ><i class="bi bi-wallet2 me-1"></i> Thu & Chi</a
-              >
+              <router-link class="nav-link" to="/admin/cashbook">
+                <i class="bi bi-wallet2 me-1"></i> Thu & Chi
+              </router-link>
             </li>
             <li class="nav-item dropdown me-2">
               <a

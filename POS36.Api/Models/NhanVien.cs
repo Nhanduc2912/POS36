@@ -11,6 +11,8 @@ namespace POS36.Api.Models
         public string MaNhanVien { get; set; } = string.Empty;
         public string TenNhanVien { get; set; } = string.Empty;
         public string SoDienThoai { get; set; } = string.Empty;
+        // Dấu chấm hỏi (?) đằng sau chữ string báo cho C# và SQL biết: Cột này ĐƯỢC PHÉP NULL
+        public string? Email { get; set; }
 
         public ChiNhanh? ChiNhanh { get; set; }
     }

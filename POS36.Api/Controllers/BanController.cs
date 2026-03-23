@@ -59,5 +59,35 @@ namespace POS36.Api.Controllers
 
             return Ok(bans);
         }
+        // Nhớ thêm class DTO này ở đầu file hoặc file DTO riêng
+        public class TaoBanNhanhDto
+        {
+            public int KhuVucId { get; set; }
+            public int SoLuong { get; set; }
+        }
+
+        // Thêm API này vào BanController
+        [HttpPost("tao-nhanh")]
+        public async Task<IActionResult> TaoBanNhanh([FromBody] TaoBanNhanhDto request)
+        {
+            int cuaHangId = int.Parse(User.FindFirst("CuaHangId")?.Value ?? "0");
+
+            // Đếm xem khu vực này đang có bao nhiêu bàn rồi
+            int soBanHienTai = await _context.Bans.CountAsync(b => b.KhuVucId == request.KhuVucId && b.CuaHangId == cuaHangId);
+
+            for (int i = 1; i <= request.SoLuong; i++)
+            {
+                _context.Bans.Add(new Ban
+                {
+                    CuaHangId = cuaHangId,
+                    KhuVucId = request.KhuVucId,
+                    TenBan = $"Bàn {soBanHienTai + i}", // Tự động tăng số
+                    TrangThai = "Trống"
+                });
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = $"Đã tạo thành công {request.SoLuong} bàn!" });
+        }
     }
 }

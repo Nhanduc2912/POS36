@@ -37,6 +37,7 @@ const handleAddEmployee = async () => {
       <div class="text-start mb-2 fw-bold text-primary">1. Hồ sơ nhân sự</div>
       <input id="swal-ma" class="form-control mb-2" placeholder="Mã NV (VD: NV001)">
       <input id="swal-ten" class="form-control mb-2" placeholder="Tên nhân viên">
+      <input id="swal-email" class="form-control mb-2" type="email" placeholder="Email (Không bắt buộc)">
       <input id="swal-sdt" class="form-control mb-4" placeholder="Số điện thoại">
       
       <div class="text-start mb-2 fw-bold text-danger">2. Cấp quyền phần mềm</div>
@@ -54,6 +55,7 @@ const handleAddEmployee = async () => {
     preConfirm: () => {
       const ma = document.getElementById("swal-ma").value;
       const ten = document.getElementById("swal-ten").value;
+      const email = document.getElementById("swal-email").value;
       const sdt = document.getElementById("swal-sdt").value;
 
       const vaitro = document.getElementById("swal-vaitro").value;
@@ -61,7 +63,7 @@ const handleAddEmployee = async () => {
       const pass = document.getElementById("swal-pass").value;
 
       if (!ma || !ten || !sdt) {
-        swal.showValidationMessage("Vui lòng nhập đủ Hồ sơ nhân sự!");
+        swal.showValidationMessage("Vui lòng nhập đủ Mã, Tên và SĐT!");
         return false;
       }
       if (vaitro !== "" && (!user || !pass)) {
@@ -75,6 +77,7 @@ const handleAddEmployee = async () => {
         chiNhanhId: globalState.value.activeBranchId,
         maNhanVien: ma,
         tenNhanVien: ten,
+        email: email ? email : null, // Xử lý cho phép null
         soDienThoai: sdt,
         taoTaiKhoan: vaitro !== "",
         vaiTro: vaitro,
@@ -108,24 +111,28 @@ const handleEditEmployee = async (emp) => {
   const { value: formValues } = await swal.fire({
     title: "Sửa Thông Tin Nhân Viên",
     html: `
-      <input id="swal-ma-edit" class="form-control mb-3" value="${emp.maNhanVien}">
-      <input id="swal-ten-edit" class="form-control mb-3" value="${emp.tenNhanVien}">
-      <input id="swal-sdt-edit" class="form-control" value="${emp.soDienThoai}">
+      <input id="swal-ma-edit" class="form-control mb-3" value="${emp.maNhanVien}" placeholder="Mã NV">
+      <input id="swal-ten-edit" class="form-control mb-3" value="${emp.tenNhanVien}" placeholder="Tên nhân viên">
+      <input id="swal-email-edit" class="form-control mb-3" type="email" value="${emp.email || ""}" placeholder="Email (Không bắt buộc)">
+      <input id="swal-sdt-edit" class="form-control" value="${emp.soDienThoai}" placeholder="Số điện thoại">
     `,
     showCancelButton: true,
     confirmButtonText: "Cập nhật",
     preConfirm: () => {
       const ma = document.getElementById("swal-ma-edit").value;
       const ten = document.getElementById("swal-ten-edit").value;
+      const email = document.getElementById("swal-email-edit").value;
       const sdt = document.getElementById("swal-sdt-edit").value;
+
       if (!ma || !ten || !sdt) {
-        swal.showValidationMessage("Vui lòng nhập đủ thông tin!");
+        swal.showValidationMessage("Vui lòng nhập đủ Mã, Tên và SĐT!");
         return false;
       }
       return {
         chiNhanhId: globalState.value.activeBranchId,
         maNhanVien: ma,
         tenNhanVien: ten,
+        email: email ? email : null, // Xử lý cho phép null
         soDienThoai: sdt,
       };
     },
@@ -194,6 +201,7 @@ const handleDeleteEmployee = (id) => {
               <th class="ps-4" style="width: 50px">#</th>
               <th>Mã NV</th>
               <th>Tên nhân viên</th>
+              <th>Email</th>
               <th>Số điện thoại</th>
               <th>Tên đăng nhập</th>
               <th>Vai trò phần mềm</th>
@@ -205,6 +213,7 @@ const handleDeleteEmployee = (id) => {
               <td class="ps-4 fw-bold text-muted">{{ index + 1 }}</td>
               <td class="fw-bold text-primary">{{ emp.maNhanVien }}</td>
               <td class="fw-bold text-dark">{{ emp.tenNhanVien }}</td>
+              <td class="text-secondary">{{ emp.email || "---" }}</td>
               <td>{{ emp.soDienThoai }}</td>
 
               <td class="fw-bold text-secondary">
@@ -248,7 +257,7 @@ const handleDeleteEmployee = (id) => {
               </td>
             </tr>
             <tr v-if="employees.length === 0">
-              <td colspan="7" class="text-center py-5 text-muted">
+              <td colspan="8" class="text-center py-5 text-muted">
                 <i class="bi bi-inbox fs-1 d-block mb-2"></i> Chi nhánh này chưa
                 có nhân viên nào.
               </td>

@@ -130,6 +130,51 @@ const handleAddTable = async () => {
     }
   }
 };
+
+const handleTaoBanNhanh = async () => {
+  // Kiểm tra xem đã chọn khu vực chưa bằng biến selectedAreaId
+  if (!selectedAreaId.value) {
+    return swal.fire(
+      "Nhắc nhở",
+      "Vui lòng chọn hoặc tạo một Khu Vực trước (VD: Tầng 1) để chứa bàn!",
+      "warning",
+    );
+  }
+
+  const { value: soLuong } = await swal.fire({
+    title: "Tạo Bàn Nhanh",
+    input: "number",
+    inputLabel: "Nhập số lượng bàn muốn tạo tự động",
+    inputPlaceholder: "Ví dụ: 10",
+    inputAttributes: { min: 1, max: 50 },
+    showCancelButton: true,
+    confirmButtonText: "Tạo ngay",
+    confirmButtonColor: "#ffc107",
+  });
+
+  if (soLuong) {
+    try {
+      await axios.post("/api/Ban/tao-nhanh", {
+        khuVucId: selectedAreaId.value, // Đã đổi tên biến ở đây
+        soLuong: parseInt(soLuong),
+      });
+
+      swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: `Đã tạo ${soLuong} bàn!`,
+        timer: 1500,
+        showConfirmButton: false,
+      });
+
+      // Load lại danh sách bàn để hiển thị (Dùng biến selectedAreaId)
+      fetchTables(selectedAreaId.value);
+    } catch (e) {
+      swal.fire("Lỗi", "Không thể tạo bàn nhanh", "error");
+    }
+  }
+};
 </script>
 
 <template>
@@ -192,12 +237,26 @@ const handleAddTable = async () => {
       <div class="col-lg-9">
         <div class="card border-0 shadow-sm h-100">
           <div
-            class="card-header bg-white border-0 pt-4 pb-2 d-flex justify-content-between align-items-center border-bottom"
+            class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center"
           >
-            <h6 class="fw-bold text-secondary mb-0">DANH SÁCH BÀN</h6>
-            <button @click="handleAddTable" class="btn btn-sm btn-primary">
-              <i class="bi bi-plus"></i> Thêm Bàn mới
-            </button>
+            <h6 class="fw-bold text-secondary mb-0 text-uppercase">
+              Danh sách bàn
+            </h6>
+            <div>
+              <button
+                @click="handleTaoBanNhanh"
+                class="btn btn-warning btn-sm fw-bold text-white me-2 px-3"
+              >
+                <i class="bi bi-lightning-charge-fill me-1"></i> Tạo Nhanh
+              </button>
+
+              <button
+                @click="openTableModal()"
+                class="btn btn-primary btn-sm fw-bold px-3"
+              >
+                + Thêm Bàn mới
+              </button>
+            </div>
           </div>
           <div class="card-body bg-light">
             <div class="row g-3">

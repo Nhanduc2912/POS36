@@ -72,8 +72,7 @@ onMounted(async () => {
     fetchTables(); // Tải lại danh sách bàn để cập nhật trạng thái mới nhất
   });
 
-  fetchTables();
-  fetchProducts();
+  await getBranchIdAndFetch();
 
   // Cập nhật đồng hồ đếm giờ mỗi phút
   setInterval(() => {
@@ -84,22 +83,45 @@ onMounted(async () => {
 onUnmounted(() => {
   connection.stop();
 });
+// THÊM HÀM NÀY VÀO DƯỚI CÁC KHAI BÁO BIẾN
+const getBranchIdAndFetch = async () => {
+  let branchId =
+    globalState.value.activeBranchId ||
+    localStorage.getItem("pos36_active_branch");
 
-// --- HÀM FETCH DỮ LIỆU ---
-const fetchTables = async () => {
-  if (!globalState.value.activeBranchId) return;
-  try {
-    const res = await axios.get(
-      `/api/Ban/danh-sach-pos?chiNhanhId=${globalState.value.activeBranchId}`,
-    );
-    tables.value = res.data;
-  } catch (e) {
-    console.error(e);
+  // Nếu chưa có chi nhánh nào trong RAM (Vừa login xong) -> Tự gọi API lấy chi nhánh
+  if (!branchId || branchId === "null") {
+    try {
+      const res = await axios.get("/api/ChiNhanh");
+      if (res.data && res.data.length > 0) {
+        branchId = res.data[0].id;
+        globalState.value.activeBranchId = branchId;
+        localStorage.setItem("pos36_active_branch", branchId);
+      }
+    } catch (e) {
+      console.error("Lỗi lấy chi nhánh", e);
+    }
+  }
+
+  // Sau khi chắc chắn có branchId rồi mới gọi API lấy bàn và món
+  if (branchId) {
+    await fetchTables(branchId);
+    await fetchProducts(branchId);
   }
 };
+// --- HÀM FETCH DỮ LIỆU ---
+// SỬA LẠI HÀM fetchTables và fetchProducts để nhận tham số
+const fetchTables = async (branchId) => {
+  try {
+    const res = await axios.get(
+      `/api/Ban/danh-sach-pos?chiNhanhId=${branchId}`,
+    );
+    tables.value = res.data;
+  } catch (e) {}
+};
 
-const fetchProducts = async () => {
-  if (!globalState.value.activeBranchId) return;
+const fetchProducts = async (branchId) => {
+  if (!branchId) return;
   try {
     const res = await axios.get(
       `/api/SanPham/danh-sach?chiNhanhId=${globalState.value.activeBranchId}`,

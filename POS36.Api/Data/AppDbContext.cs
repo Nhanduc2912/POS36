@@ -31,6 +31,13 @@ namespace POS36.Api.Data
         public DbSet<ChiTietPhieuNhap> ChiTietPhieuNhaps { get; set; } // Mới
         public DbSet<LichSuKho> LichSuKhos { get; set; } // Mới
 
+
+        // 5. Phân hệ Kiểm kê (THÊM 2 DÒNG NÀY VÀO ĐÂY)
+        public DbSet<PhieuKiemKe> PhieuKiemKes { get; set; }
+        public DbSet<ChiTietKiemKe> ChiTietKiemKes { get; set; }
+
+        // 6. Phân hệ Sổ Quỹ (Thu Chi)
+        public DbSet<PhieuThuChi> PhieuThuChis { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -38,8 +45,9 @@ namespace POS36.Api.Data
             // Xử lý chống lỗi Cascade Delete (Giữ nguyên, rất quan trọng)
             foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
             {
-                relationship.DeleteBehavior = DeleteBehavior.Restrict; 
+                relationship.DeleteBehavior = DeleteBehavior.Restrict;
             }
         }
+
     }
 }

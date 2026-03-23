@@ -6,6 +6,7 @@ const savedBranchId = localStorage.getItem("pos36_active_branch");
 export const globalState = ref({
   activeBranchId: savedBranchId ? parseInt(savedBranchId) : null,
   branches: [], // Danh sách chi nhánh tải từ API
+  isLoading: false, // THÊM DÒNG NÀY ĐỂ ĐIỀU KHIỂN LOADER
 });
 
 // Tự động lưu vào LocalStorage mỗi khi đổi chi nhánh
