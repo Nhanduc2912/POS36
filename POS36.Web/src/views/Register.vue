@@ -2,10 +2,9 @@
 import { ref, inject } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
-import PublicNavbar from "../components/PublicNavbar.vue";
 
 const router = useRouter();
-const swal = inject("$swal"); // Dùng SweetAlert2 đã cấu hình ở main.js
+const swal = inject("$swal");
 
 const form = ref({
   tenCuaHang: "",
@@ -14,11 +13,10 @@ const form = ref({
   matKhau: "",
 });
 
-// Biến lưu trữ lỗi cho từng trường
+const agreeTerms = ref(false); // Biến check đồng ý điều khoản
 const errors = ref({});
 const isLoading = ref(false);
 
-// Hàm kiểm tra Validation (Hợp lệ hóa dữ liệu)
 const validateForm = () => {
   errors.value = {};
   let isValid = true;
@@ -49,6 +47,11 @@ const validateForm = () => {
     isValid = false;
   }
 
+  if (!agreeTerms.value) {
+    swal.fire("Chú ý", "Bạn cần đồng ý với Điều khoản dịch vụ!", "warning");
+    isValid = false;
+  }
+
   return isValid;
 };
 
@@ -57,26 +60,24 @@ const handleRegister = async () => {
 
   isLoading.value = true;
   try {
-    // Gọi API Đăng ký Cửa hàng & Tài khoản thật
-    await axios.post("http://localhost:5198/api/Auth/register", form.value);
+    // Dùng đường dẫn tương đối vì đã cấu hình Axios baseURL ở main.js
+    await axios.post("/api/Auth/register", form.value);
 
-    // Thông báo thành công rực rỡ
     swal
       .fire({
         icon: "success",
         title: "Tuyệt vời!",
         text: "Đăng ký cửa hàng thành công. Vui lòng đăng nhập!",
         confirmButtonText: "Đăng nhập ngay",
+        confirmButtonColor: "#e65c00",
       })
       .then(() => {
-        // Chuyển sang trang Đăng nhập
         router.push("/login");
       });
   } catch (error) {
-    // Thông báo lỗi bay ra như POS365
     let msg = "Không thể kết nối máy chủ!";
     if (error.response && error.response.data) {
-      msg = error.response.data; // Lấy câu báo lỗi từ Backend C#
+      msg = error.response.data;
     }
     swal.fire("Đăng ký thất bại", msg, "error");
   } finally {
@@ -86,91 +87,228 @@ const handleRegister = async () => {
 </script>
 
 <template>
-  <div class="register-wrapper">
-    <PublicNavbar />
+  <div class="container-fluid p-0 register-container">
+    <div class="row g-0 min-vh-100">
+      <div class="col-lg-5 d-none d-lg-flex position-relative left-panel">
+        <div
+          class="overlay d-flex flex-column justify-content-between p-5 w-100 h-100 text-white"
+        >
+          <div class="logo-box">
+            <h2 class="fw-bold tracking-tight">POS36</h2>
+          </div>
 
-    <div
-      class="d-flex align-items-center justify-content-center min-vh-100 py-5"
-    >
+          <div class="content-box pe-4 mb-4">
+            <h1 class="display-5 fw-bolder mb-4 lh-sm text-shadow">
+              Nâng tầm quản lý <br />
+              <span class="text-white-50">Cửa hàng của bạn</span>
+            </h1>
+            <p class="fs-6 opacity-90 lh-lg pe-3">
+              Tham gia cùng 5,000+ chủ nhà hàng đã tối ưu hóa dịch vụ và tăng
+              trưởng doanh thu với hệ thống quản lý thông minh của POS36.
+            </p>
+
+            <div
+              class="mt-5 bg-white bg-opacity-10 p-4 rounded-4 border border-light border-opacity-25 backdrop-blur"
+            >
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <img
+                  src="https://images.unsplash.com/photo-1583394838336-acd977736f90?q=80&w=100&auto=format&fit=crop"
+                  class="rounded-circle border border-2 border-white"
+                  width="45"
+                  height="45"
+                  alt="Avatar"
+                />
+                <div>
+                  <div class="fw-bold fs-6">Anh Hoàng</div>
+                  <div class="small text-white-50">Chủ chuỗi Le Café</div>
+                </div>
+              </div>
+              <p class="small fst-italic mb-0 opacity-75">
+                "POS36 không chỉ là một phần mềm, đó là người bạn đồng hành giúp
+                tối ưu hóa mọi quy trình từ bếp đến bàn."
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div
-        class="card shadow-lg border-0 rounded-4"
-        style="width: 100%; max-width: 450px"
+        class="col-12 col-lg-7 d-flex align-items-center justify-content-center bg-white right-panel"
       >
-        <div class="card-body p-5">
-          <div class="text-center mb-4">
-            <h2 class="fw-bold text-primary">Tạo Cửa Hàng Mới</h2>
-            <p class="text-muted">Dùng thử POS36 miễn phí</p>
+        <div class="form-wrapper w-100" style="max-width: 500px; padding: 2rem">
+          <div class="d-lg-none mb-4 text-center">
+            <h2 class="fw-bold text-orange">POS36</h2>
+          </div>
+
+          <div class="mb-5 text-center text-lg-start">
+            <h2 class="fw-bold text-dark mb-2">Bắt đầu ngay hôm nay</h2>
+            <p class="text-muted small">
+              Thiết lập tài khoản quản lý của bạn trong 60 giây.
+            </p>
           </div>
 
           <form @submit.prevent="handleRegister">
-            <div class="mb-3">
-              <label class="form-label fw-bold"
-                >Tên cửa hàng (Quán ăn/Cafe)</label
+            <div class="mb-4">
+              <label class="form-label fw-semibold small text-muted mb-2"
+                >Tên cửa hàng</label
               >
-              <input
-                type="text"
-                class="form-control form-control-lg rounded-3"
-                :class="{ 'is-invalid': errors.tenCuaHang }"
-                v-model="form.tenCuaHang"
-                placeholder="VD: Lẩu Đức"
-              />
-              <div class="invalid-feedback">{{ errors.tenCuaHang }}</div>
+              <div
+                class="input-group custom-input-group"
+                :class="{ 'border-danger': errors.tenCuaHang }"
+              >
+                <span
+                  class="input-group-text bg-transparent border-0 text-muted ps-3"
+                  ><i class="bi bi-shop"></i
+                ></span>
+                <input
+                  type="text"
+                  class="form-control border-0 bg-transparent shadow-none py-2.5"
+                  v-model="form.tenCuaHang"
+                  placeholder="Ví dụ: Highland Coffee"
+                />
+              </div>
+              <div
+                class="text-danger small mt-1 fw-bold"
+                v-if="errors.tenCuaHang"
+              >
+                {{ errors.tenCuaHang }}
+              </div>
             </div>
 
-            <div class="mb-3">
-              <label class="form-label fw-bold">Số điện thoại liên hệ</label>
-              <input
-                type="text"
-                class="form-control form-control-lg rounded-3"
-                :class="{ 'is-invalid': errors.soDienThoai }"
-                v-model="form.soDienThoai"
-                placeholder="VD: 0987654321"
-              />
-              <div class="invalid-feedback">{{ errors.soDienThoai }}</div>
-            </div>
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold small text-muted mb-2"
+                  >Tên đăng nhập</label
+                >
+                <div
+                  class="input-group custom-input-group"
+                  :class="{ 'border-danger': errors.tenDangNhap }"
+                >
+                  <span
+                    class="input-group-text bg-transparent border-0 text-muted ps-3"
+                    ><i class="bi bi-person"></i
+                  ></span>
+                  <input
+                    type="text"
+                    class="form-control border-0 bg-transparent shadow-none py-2.5"
+                    v-model="form.tenDangNhap"
+                    placeholder="admin123"
+                  />
+                </div>
+                <div
+                  class="text-danger small mt-1 fw-bold"
+                  v-if="errors.tenDangNhap"
+                >
+                  {{ errors.tenDangNhap }}
+                </div>
+              </div>
 
-            <div class="mb-3">
-              <label class="form-label fw-bold">Tên đăng nhập (Admin)</label>
-              <input
-                type="text"
-                class="form-control form-control-lg rounded-3"
-                :class="{ 'is-invalid': errors.tenDangNhap }"
-                v-model="form.tenDangNhap"
-                placeholder="VD: admin_ duc"
-              />
-              <div class="invalid-feedback">{{ errors.tenDangNhap }}</div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold small text-muted mb-2"
+                  >Số điện thoại</label
+                >
+                <div
+                  class="input-group custom-input-group"
+                  :class="{ 'border-danger': errors.soDienThoai }"
+                >
+                  <span
+                    class="input-group-text bg-transparent border-0 text-muted ps-3"
+                    ><i class="bi bi-telephone"></i
+                  ></span>
+                  <input
+                    type="tel"
+                    class="form-control border-0 bg-transparent shadow-none py-2.5"
+                    v-model="form.soDienThoai"
+                    placeholder="0987xxxxxx"
+                  />
+                </div>
+                <div
+                  class="text-danger small mt-1 fw-bold"
+                  v-if="errors.soDienThoai"
+                >
+                  {{ errors.soDienThoai }}
+                </div>
+              </div>
             </div>
 
             <div class="mb-4">
-              <label class="form-label fw-bold">Mật khẩu</label>
+              <label class="form-label fw-semibold small text-muted mb-2"
+                >Mật khẩu</label
+              >
+              <div
+                class="input-group custom-input-group"
+                :class="{ 'border-danger': errors.matKhau }"
+              >
+                <span
+                  class="input-group-text bg-transparent border-0 text-muted ps-3"
+                  ><i class="bi bi-lock"></i
+                ></span>
+                <input
+                  type="password"
+                  class="form-control border-0 bg-transparent shadow-none py-2.5"
+                  v-model="form.matKhau"
+                  placeholder="••••••••"
+                />
+              </div>
+              <div class="text-danger small mt-1 fw-bold" v-if="errors.matKhau">
+                {{ errors.matKhau }}
+              </div>
+            </div>
+
+            <div class="form-check mb-4 mt-2">
               <input
-                type="password"
-                class="form-control form-control-lg rounded-3"
-                :class="{ 'is-invalid': errors.matKhau }"
-                v-model="form.matKhau"
-                placeholder="Mật khẩu từ 6 ký tự"
+                class="form-check-input cursor-pointer"
+                type="checkbox"
+                id="terms"
+                v-model="agreeTerms"
               />
-              <div class="invalid-feedback">{{ errors.matKhau }}</div>
+              <label
+                class="form-check-label small text-muted cursor-pointer"
+                for="terms"
+              >
+                Tôi đồng ý với
+                <a href="#" class="text-orange fw-bold text-decoration-none"
+                  >Điều khoản dịch vụ</a
+                >
+                và
+                <a href="#" class="text-orange fw-bold text-decoration-none"
+                  >Chính sách bảo mật</a
+                >
+                của POS36.
+              </label>
             </div>
 
             <button
               type="submit"
-              class="btn btn-primary btn-lg w-100 py-3 rounded-3 fw-bold fs-5 shadow-sm"
+              class="btn btn-orange w-100 py-3 fw-bold d-flex justify-content-center align-items-center gap-2 mb-4"
               :disabled="isLoading"
             >
               <span
                 v-if="isLoading"
-                class="spinner-border spinner-border-sm me-2"
+                class="spinner-border spinner-border-sm"
               ></span>
-              {{ isLoading ? "Đang khởi tạo cửa hàng..." : "ĐĂNG KÝ NGAY" }}
+              {{ isLoading ? "ĐANG KHỞI TẠO CỬA HÀNG..." : "Đăng ký ngay" }}
             </button>
+
+            <div class="text-center">
+              <span class="text-muted small fw-medium">Đã có tài khoản? </span>
+              <router-link
+                to="/login"
+                class="text-orange fw-bold text-decoration-none small"
+                >Đăng nhập</router-link
+              >
+            </div>
           </form>
 
-          <div class="text-center mt-4 pt-3 border-top">
-            <span class="text-muted">Đã có cửa hàng?</span>
-            <router-link to="/login" class="text-decoration-none fw-bold ms-1"
-              >Đăng nhập</router-link
-            >
+          <div
+            class="mt-5 pt-4 border-top d-flex justify-content-center gap-4 opacity-50"
+          >
+            <div class="d-flex align-items-center gap-1 small fw-bold">
+              <i class="bi bi-shield-check fs-5"></i> BẢO MẬT SSL
+            </div>
+            <div class="d-flex align-items-center gap-1 small fw-bold">
+              <i class="bi bi-headset fs-5"></i> HỖ TRỢ 24/7
+            </div>
           </div>
         </div>
       </div>
@@ -179,8 +317,82 @@ const handleRegister = async () => {
 </template>
 
 <style scoped>
-.register-wrapper {
-  background-color: #f8f9fa;
-  min-height: 100vh;
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");
+
+.register-container {
+  font-family: "Plus Jakarta Sans", sans-serif;
+  background-color: #ffffff;
+}
+
+/* Background ảnh bên trái */
+.left-panel {
+  background-image: url("https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1974&auto=format&fit=crop");
+  background-size: cover;
+  background-position: center;
+}
+
+/* Phủ lớp màu cam Gradient lồng lên ảnh */
+.overlay {
+  background: linear-gradient(
+    135deg,
+    rgba(200, 80, 0, 0.6) 0%,
+    rgba(204, 85, 0, 0.95) 100%
+  );
+  z-index: 1;
+}
+
+.text-shadow {
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.backdrop-blur {
+  backdrop-filter: blur(10px);
+}
+
+/* Khung Input xám nhạt bo tròn */
+.custom-input-group {
+  background-color: #f7f7f9;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease-in-out;
+}
+
+.custom-input-group:focus-within {
+  border-color: #e65c00;
+  background-color: #fff;
+  box-shadow: 0 0 0 3px rgba(230, 92, 0, 0.1);
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Nút cam */
+.btn-orange {
+  background: linear-gradient(135deg, #994700 0%, #ff7a00 100%);
+  color: white;
+  border-radius: 10px;
+  border: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 20px -10px rgba(255, 122, 0, 0.5);
+}
+
+.btn-orange:hover {
+  opacity: 0.9;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.btn-orange:active {
+  transform: scale(0.98);
+}
+
+.text-orange {
+  color: #e65c00;
+}
+
+.text-orange:hover {
+  color: #cc5200;
+  text-decoration: underline !important;
 }
 </style>
