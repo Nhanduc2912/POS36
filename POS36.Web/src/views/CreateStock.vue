@@ -44,9 +44,6 @@
               </li>
             </ul>
           </div>
-          <button class="btn btn-warning text-white fw-bold">
-            <i class="bi bi-plus"></i> Hàng mới
-          </button>
           <button
             class="btn btn-warning text-white fw-bold"
             @click="addByGroup"
@@ -64,7 +61,7 @@
               <tr>
                 <th class="ps-3" style="width: 15%">Mã hàng</th>
                 <th style="width: 35%">Tên hàng hóa</th>
-                <th class="text-center" style="width: 15%">SL</th>
+                <th class="text-center" style="width: 15%">Số lượng</th>
                 <th class="text-end" style="width: 15%">Giá nhập</th>
                 <th class="text-end" style="width: 15%">Thành tiền</th>
                 <th class="text-center" style="width: 5%"></th>
@@ -76,15 +73,20 @@
                   Vui lòng tìm kiếm mặt hàng hoặc thêm theo nhóm để nhập...
                 </td>
               </tr>
-              <tr v-for="(item, index) in importList" :key="item.id">
+              <tr
+                v-for="(item, index) in importList"
+                :key="item.id"
+                :class="{ 'bg-light': item.soLuong === 0 }"
+              >
                 <td class="ps-3 text-muted">{{ item.maSanPham || "SP" }}</td>
                 <td class="fw-bold text-dark">{{ item.tenSanPham }}</td>
                 <td class="text-center p-1">
                   <input
                     type="number"
                     class="form-control form-control-sm text-center fw-bold"
+                    :class="{ 'border-danger text-danger': item.soLuong === 0 }"
                     v-model="item.soLuong"
-                    min="1"
+                    min="0"
                   />
                 </td>
                 <td class="text-end p-1">
@@ -95,7 +97,10 @@
                     min="0"
                   />
                 </td>
-                <td class="text-end fw-bold text-danger">
+                <td
+                  class="text-end fw-bold"
+                  :class="item.soLuong > 0 ? 'text-danger' : 'text-muted'"
+                >
                   {{ formatPrice(item.soLuong * item.giaNhap) }}
                 </td>
                 <td
@@ -142,14 +147,26 @@
             </div>
           </div>
 
+          <div class="mb-3 mt-3">
+            <label class="form-label small text-secondary fw-bold"
+              >Ghi chú phiếu nhập</label
+            >
+            <textarea
+              class="form-control form-control-sm shadow-none"
+              rows="2"
+              placeholder="VD: Nhập hàng nước giải khát tuần 1..."
+              v-model="form.ghiChu"
+            ></textarea>
+          </div>
+
           <div class="bg-white p-3 rounded-4 border shadow-sm mt-4">
             <div
               class="d-flex justify-content-between mb-2 border-bottom pb-2 align-items-center"
             >
-              <span class="fw-bold text-secondary"
-                >Tổng số lượng ({{ importList.length }} món)</span
-              >
-              <span class="badge bg-primary fs-6 px-3">{{ totalQty }}</span>
+              <span class="fw-bold text-secondary">Tổng mặt hàng nhập</span>
+              <span class="badge bg-primary fs-6 px-3">{{
+                importList.filter((i) => i.soLuong > 0).length
+              }}</span>
             </div>
             <div class="d-flex justify-content-between mb-3 align-items-center">
               <span class="fw-bold fs-6 text-dark">Tổng tiền hàng</span>
@@ -158,18 +175,14 @@
               }}</span>
             </div>
             <div class="d-flex justify-content-between align-items-center mb-3">
-              <span class="fw-bold text-secondary">Thanh toán cho NCC</span>
+              <span class="fw-bold text-secondary"
+                >Thanh toán (Chi tiền mặt)</span
+              >
               <input
                 type="number"
                 class="form-control form-control-sm text-end fw-bold text-primary w-50"
                 v-model="form.tienThanhToan"
               />
-            </div>
-            <div class="d-flex justify-content-between border-top pt-2">
-              <span class="fw-bold text-secondary">Tài khoản trả</span>
-              <span class="text-success fw-bold text-uppercase"
-                ><i class="bi bi-cash"></i> Tiền mặt</span
-              >
             </div>
           </div>
         </div>
@@ -189,7 +202,7 @@
               <i class="bi bi-save"></i> LƯU NHÁP
             </button>
             <router-link
-              to="/admin/import"
+              to="/admin/import-stock"
               class="btn btn-secondary fw-bold btn-sm"
               ><i class="bi bi-x-lg"></i> HỦY</router-link
             >
@@ -209,18 +222,17 @@ import { globalState } from "../store";
 const router = useRouter();
 const swal = inject("$swal");
 
-const products = ref([]); // Danh sách SP để tìm kiếm
+const products = ref([]);
 const searchQuery = ref("");
 const showDropdown = ref(false);
 
-const importList = ref([]); // Giỏ hàng nhập
-const form = ref({ nhaCungCap: "", tienThanhToan: 0 });
+const importList = ref([]);
+const form = ref({ ghiChu: "", tienThanhToan: 0 });
 
 const currentDate = new Date().toLocaleString("vi-VN");
 const formatPrice = (price) =>
   new Intl.NumberFormat("vi-VN").format(price || 0);
 
-// Tính toán tổng cộng
 const totalQty = computed(() =>
   importList.value.reduce((sum, item) => sum + item.soLuong, 0),
 );
@@ -228,7 +240,6 @@ const totalAmount = computed(() =>
   importList.value.reduce((sum, item) => sum + item.soLuong * item.giaNhap, 0),
 );
 
-// Logic tìm kiếm sản phẩm
 const filteredProducts = computed(() => {
   if (!searchQuery.value) return [];
   return products.value.filter((p) =>
@@ -236,10 +247,8 @@ const filteredProducts = computed(() => {
   );
 });
 
-// Load danh sách sản phẩm để làm data tìm kiếm
 const fetchProducts = async () => {
   try {
-    // ĐÃ SỬA LẠI ĐÚNG ĐƯỜNG DẪN API
     const res = await axios.get(
       `/api/KiemKe/san-pham-ton-kho?chiNhanhId=${globalState.value.activeBranchId || 0}`,
     );
@@ -250,19 +259,19 @@ const fetchProducts = async () => {
 };
 onMounted(fetchProducts);
 
-// Chọn SP từ dropdown đưa vào bảng
+// ==========================================
+// ĐÃ SỬA: SET MẶC ĐỊNH SỐ LƯỢNG VÀ GIÁ LÀ 0
+// ==========================================
 const addToCart = (prod) => {
   const exist = importList.value.find((c) => c.id === prod.id);
-  if (exist) {
-    exist.soLuong++;
-  } else {
+  if (!exist) {
     importList.value.unshift({
       id: prod.id,
       maSanPham: prod.maSanPham,
       tenSanPham: prod.tenSanPham,
       tenDanhMuc: prod.tenDanhMuc,
-      soLuong: 1,
-      giaNhap: prod.giaVon || 0, // Default giá nhập = Giá vốn hiện tại
+      soLuong: 0, // Set về 0
+      giaNhap: 0, // Set về 0
     });
   }
   searchQuery.value = "";
@@ -272,24 +281,16 @@ const addToCart = (prod) => {
 const removeItem = (index) => {
   importList.value.splice(index, 1);
 };
-
-// Đóng dropdown tìm kiếm sau 1 chút (để kịp nhận sự kiện click)
 const hideDropdownDelay = () => {
   setTimeout(() => {
     showDropdown.value = false;
   }, 200);
 };
 
-// ==========================================
-// CHỨC NĂNG 1: THÊM THEO NHÓM (SWEETALERT LẬP LẬP)
-// ==========================================
 const addByGroup = async () => {
-  // Lấy danh sách nhóm (danh mục) độc duy
   const groups = [
     ...new Set(products.value.map((p) => p.tenDanhMuc || "Khác")),
   ];
-
-  // Tạo cấu trúc options cho SweetAlert
   const inputOptions = {};
   groups.forEach((g) => {
     inputOptions[g] = g;
@@ -302,43 +303,43 @@ const addByGroup = async () => {
     inputPlaceholder: "-- Vui lòng chọn --",
     showCancelButton: true,
     confirmButtonText: "Thêm ngay",
-    cancelButtonText: "Hủy",
   });
 
   if (selectedGroup) {
-    // Lọc các SP thuộc nhóm này
     const itemsToAdd = products.value.filter(
       (p) => (p.tenDanhMuc || "Khác") === selectedGroup,
     );
-    // Đưa hết vào giỏ hàng
-    itemsToAdd.forEach((prod) => addToCart(prod));
-
+    itemsToAdd.forEach((prod) => addToCart(prod)); // Add vào đều mặc định là 0
     swal.fire({
       toast: true,
       position: "top-end",
       icon: "success",
-      title: `Đã thêm ${itemsToAdd.length} món từ nhóm ${selectedGroup}`,
+      title: `Đã liệt kê ${itemsToAdd.length} món từ nhóm ${selectedGroup}`,
       timer: 1500,
       showConfirmButton: false,
     });
   }
 };
 
-// ==========================================
-// CHỨC NĂNG 2: LƯU PHIẾU (GỌI API TẠO PHIẾU + TĂNG KHO + TẠO PHIẾU CHI)
-// ==========================================
 const savePhieu = async (trangThai) => {
-  if (importList.value.length === 0)
-    return swal.fire("Chú ý", "Chưa có mặt hàng nào để nhập kho!", "warning");
+  // TÍNH NĂNG THÔNG MINH: CHỈ LỌC NHỮNG MÓN CÓ SỐ LƯỢNG > 0 ĐỂ LƯU
+  const validItems = importList.value.filter((item) => item.soLuong > 0);
+
+  if (validItems.length === 0) {
+    return swal.fire(
+      "Chú ý",
+      "Vui lòng nhập số lượng cho ít nhất 1 mặt hàng!",
+      "warning",
+    );
+  }
 
   let title = "Lưu nháp?";
-  let text = "Hệ thống sẽ lưu phiếu mà chưa tăng tồn kho.";
+  let text = `Hệ thống sẽ lưu phiếu nháp gồm ${validItems.length} mặt hàng.`;
   let icon = "question";
 
   if (trangThai === "Hoàn thành") {
     title = "Chốt nhập kho?";
-    text =
-      "Hệ thống sẽ CỘNG số lượng vào kho và tạo PHIẾU CHI tự động (nếu có thanh toán tiền cho NCC).";
+    text = `Hệ thống sẽ CỘNG ${validItems.length} mặt hàng này vào kho và tạo PHIẾU CHI tự động.`;
     icon = "warning";
   }
 
@@ -353,14 +354,14 @@ const savePhieu = async (trangThai) => {
 
   if (isConfirmed) {
     try {
-      // Chuẩn bị payload theo đúng chuẩn API đã thiết kế hôm qua
       const payload = {
         chiNhanhId: globalState.value.activeBranchId || 0,
-        nhaCungCap: form.value.nhaCungCap,
-        ghiChu: "",
+        nhaCungCap: "",
+        ghiChu: form.value.ghiChu,
         trangThai: trangThai,
         tienThanhToan: form.value.tienThanhToan,
-        chiTiets: importList.value.map((c) => ({
+        // Gửi danh sách đã lọc (loại bỏ các món = 0)
+        chiTiets: validItems.map((c) => ({
           sanPhamId: c.id,
           soLuong: c.soLuong,
           giaNhap: c.giaNhap,
@@ -377,7 +378,6 @@ const savePhieu = async (trangThai) => {
         timer: 2000,
         showConfirmButton: false,
       });
-      // Thành công thì quay về trang danh sách
       router.push("/admin/import-stock");
     } catch (e) {
       swal.fire(
