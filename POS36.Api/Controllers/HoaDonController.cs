@@ -468,5 +468,72 @@ namespace POS36.Api.Controllers
                 return StatusCode(500, "Lỗi server: " + ex.Message);
             }
         }
+        public class HuyMonDto
+        {
+            public int ChiTietId { get; set; }
+            public int SoLuongHuy { get; set; }
+            public string LyDo { get; set; } = string.Empty;
+        }
+
+        // ==========================================
+        // 9. HỦY MÓN / TRẢ ĐỒ
+        // ==========================================
+        [HttpPost("huymon")]
+        public async Task<IActionResult> HuyMon([FromBody] HuyMonDto request)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // Tìm món ăn kèm thông tin Hóa Đơn và Bàn
+                var chiTiet = await _context.ChiTietHoaDons
+                    .Include(c => c.HoaDon)
+                    .ThenInclude(h => h.Ban)
+                    .FirstOrDefaultAsync(c => c.Id == request.ChiTietId);
+
+                if (chiTiet == null) return BadRequest("Không tìm thấy món ăn này trong hóa đơn!");
+
+                var hoaDon = chiTiet.HoaDon;
+
+                // Tính toán số tiền bị trừ
+                decimal tienBiTru = chiTiet.DonGia * request.SoLuongHuy;
+                hoaDon!.TongTien -= tienBiTru;
+
+                // Nếu hủy hết số lượng thì xóa luôn dòng đó
+                if (request.SoLuongHuy >= chiTiet.SoLuong)
+                {
+                    _context.ChiTietHoaDons.Remove(chiTiet);
+                    await _context.SaveChangesAsync(); // Lưu để EF Core thực sự xóa món này đi
+
+                    // KIỂM TRA ĐÓNG BÀN: Xem hóa đơn này còn sót lại món nào không?
+                    bool conMonNaoKhong = await _context.ChiTietHoaDons.AnyAsync(c => c.HoaDonId == hoaDon.Id);
+
+                    // Nếu không còn món nào -> Bàn trống, Hóa đơn hủy!
+                    if (!conMonNaoKhong)
+                    {
+                        hoaDon.TrangThai = "Đã hủy"; // Đổi trạng thái hóa đơn thành rác
+                        if (hoaDon.Ban != null)
+                        {
+                            hoaDon.Ban.TrangThai = "Trống"; // Trả lại bàn trống cho khách khác vào
+                        }
+                        await _context.SaveChangesAsync(); // Lưu cập nhật bàn
+                    }
+                }
+                else
+                {
+                    // Nếu chỉ trừ đi 1 vài ly (Ví dụ gọi 3 ly, hủy 1 ly)
+                    chiTiet.SoLuong -= request.SoLuongHuy;
+                    await _context.SaveChangesAsync();
+                }
+
+                await transaction.CommitAsync();
+
+                return Ok(new { message = "Hủy món thành công!" });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, "Lỗi hệ thống: " + ex.Message);
+            }
+        }
     }
 }

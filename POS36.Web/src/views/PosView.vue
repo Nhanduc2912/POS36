@@ -298,12 +298,10 @@ const handleBaoCheBien = async () => {
   }
 };
 
-// --- 5. HỦY MÓN (XỬ LÝ Ở GIAO DIỆN TRƯỚC, BÀI TỚI NỐI API HỦY SAU) ---
+// --- 5. HỦY MÓN (UPDATE DB & THÊM LÝ DO) ---
 const handleCancelItem = async (item, index) => {
-  // Note: Nếu món đã gửi bếp (item.isSent), thực tế phải gọi API xuống DB để trừ.
-  // Hiện tại tạm thời trừ trên giao diện.
   const { value: formValues } = await swal.fire({
-    title: "Hủy/trả đồ",
+    title: "Hủy / Trả đồ",
     html: `
       <div class="d-flex justify-content-center align-items-center mb-3">
          <span class="fs-5 fw-bold text-danger me-2">Số lượng hủy:</span>
@@ -313,36 +311,71 @@ const handleCancelItem = async (item, index) => {
       <div class="d-flex gap-2 mb-3">
          <input type="radio" class="btn-check" name="reason" id="r1" value="Khách yêu cầu" checked>
          <label class="btn btn-outline-secondary w-50" for="r1">Khách yêu cầu</label>
+         
+         <input type="radio" class="btn-check" name="reason" id="r2" value="Lỗi thao tác">
+         <label class="btn btn-outline-secondary w-50" for="r2">Lỗi thao tác</label>
       </div>
     `,
     showCancelButton: true,
-    confirmButtonText: "Đồng ý",
-    confirmButtonColor: "#f37021",
+    confirmButtonText: "Đồng ý Hủy",
+    confirmButtonColor: "#dc3545",
     preConfirm: () => {
       const qty = parseInt(document.getElementById("cancel-qty").value);
+      // Lấy giá trị của Radio button đang được chọn
+      const reason = document.querySelector(
+        'input[name="reason"]:checked',
+      ).value;
+
       if (qty > item.qty) {
-        swal.showValidationMessage("Vượt quá SL thực tế!");
+        swal.showValidationMessage("Vượt quá SL thực tế đang có!");
         return false;
       }
-      return { qty };
+      return { qty, reason };
     },
   });
 
   if (formValues) {
-    if (formValues.qty >= item.qty)
-      ordersByTable.value[activeTable.value.id].splice(index, 1);
-    else item.qty -= formValues.qty;
+    try {
+      if (item.isSent && item.chiTietId) {
+        await axios.post("/api/HoaDon/huymon", {
+          chiTietId: item.chiTietId,
+          soLuongHuy: formValues.qty,
+          lyDo: formValues.reason,
+        });
+      }
 
-    activeTable.value.tamTinh = totalAmount.value;
-    tables.value = [...tables.value];
-    swal.fire({
-      toast: true,
-      position: "top-end",
-      icon: "success",
-      title: "Đã hủy món",
-      showConfirmButton: false,
-      timer: 1500,
-    });
+      // Xóa trên giao diện
+      if (formValues.qty >= item.qty) {
+        ordersByTable.value[activeTable.value.id].splice(index, 1);
+      } else {
+        item.qty -= formValues.qty;
+      }
+
+      // KIỂM TRA ĐÓNG BÀN TRÊN GIAO DIỆN VUE
+      if (ordersByTable.value[activeTable.value.id].length === 0) {
+        // Nếu xóa sạch món -> Đổi màu bàn về xám, chuyển tab về xem sơ đồ bàn
+        activeTable.value.trangThai = "Trống";
+        activeTable.value.timeOpen = null;
+        activeRightTab.value = "tables";
+      }
+
+      activeTable.value.tamTinh = totalAmount.value;
+      tables.value = [...tables.value];
+
+      // Tải lại Data từ Server để đồng bộ màu sắc với mọi người
+      fetchTables(globalState.value.activeBranchId);
+
+      swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: `Đã hủy ${formValues.qty} ${item.name} (${formValues.reason})`,
+        showConfirmButton: false,
+        timer: 2000,
+      });
+    } catch (e) {
+      swal.fire("Lỗi", "Không thể hủy món trong CSDL!", "error");
+    }
   }
 };
 
