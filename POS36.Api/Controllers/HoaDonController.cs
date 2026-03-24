@@ -405,23 +405,33 @@ namespace POS36.Api.Controllers
         }
 
         // ==========================================
-        // 8. LẤY DANH SÁCH ĐƠN HÀNG (CHO ADMIN)
+        // 8. LẤY DANH SÁCH ĐƠN HÀNG (CHO ADMIN) - ĐÃ NÂNG CẤP
         // ==========================================
         [HttpGet("danh-sach-admin")]
-        public async Task<IActionResult> GetDanhSachAdmin([FromQuery] int chiNhanhId)
+        public async Task<IActionResult> GetDanhSachAdmin([FromQuery] int chiNhanhId, [FromQuery] string? search, [FromQuery] string? status, [FromQuery] string? startDate, [FromQuery] string? endDate)
         {
             try
             {
                 int cuaHangId = GetCuaHangId();
                 var query = _context.HoaDons
                     .Include(h => h.Ban)
+                    .Include(h => h.ChiTietHoaDons!)
+                    .ThenInclude(c => c.SanPham)
                     .Where(h => h.CuaHangId == cuaHangId);
 
-                if (chiNhanhId > 0)
-                {
-                    query = query.Where(h => h.ChiNhanhId == chiNhanhId);
-                }
+                // 1. Lọc theo Chi Nhánh
+                if (chiNhanhId > 0) query = query.Where(h => h.ChiNhanhId == chiNhanhId);
 
+                // 2. Lọc theo Trạng thái
+                if (!string.IsNullOrEmpty(status)) query = query.Where(h => h.TrangThai == status);
+
+                // 3. Lọc theo Ngày tháng
+                if (!string.IsNullOrEmpty(startDate) && DateTime.TryParse(startDate, out var start))
+                    query = query.Where(h => h.NgayTao >= start.Date);
+                if (!string.IsNullOrEmpty(endDate) && DateTime.TryParse(endDate, out var end))
+                    query = query.Where(h => h.NgayTao <= end.Date.AddDays(1).AddTicks(-1));
+
+                // 4. Lấy dữ liệu và nhét chi tiết món ăn vào
                 var list = await query
                     .OrderByDescending(h => h.NgayTao)
                     .Select(h => new
@@ -433,9 +443,23 @@ namespace POS36.Api.Controllers
                         NgayBan = h.NgayTao,
                         TongCong = h.TongTien,
                         TongThanhToan = h.TongTien,
-                        TrangThai = h.TrangThai
+                        TrangThai = h.TrangThai,
+                        ChiTiets = h.ChiTietHoaDons!.Select(ct => new
+                        {
+                            TenSanPham = ct.SanPham != null ? ct.SanPham.TenSanPham : "SP đã xóa",
+                            SoLuong = ct.SoLuong,
+                            DonGia = ct.DonGia,
+                            ThanhTien = ct.SoLuong * ct.DonGia
+                        }).ToList()
                     })
                     .ToListAsync();
+
+                // 5. Lọc thêm theo Mã Chứng Từ (Lọc trên RAM để xử lý chuỗi động)
+                if (!string.IsNullOrEmpty(search))
+                {
+                    search = search.ToLower();
+                    list = list.Where(x => x.MaChungTu.ToLower().Contains(search)).ToList();
+                }
 
                 return Ok(list);
             }

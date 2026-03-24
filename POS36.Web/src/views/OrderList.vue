@@ -1,372 +1,619 @@
 <template>
-  <div class="order-list-container d-flex bg-white h-100">
+  <div class="order-history h-100 d-flex flex-column bg-light">
     <div
-      class="sidebar-filter border-end bg-light p-0 d-flex flex-column"
-      style="width: 260px; min-height: calc(100vh - 56px)"
+      class="bg-white p-3 border-bottom d-flex align-items-center justify-content-between shadow-sm z-1"
     >
-      <div class="filter-group border-bottom">
-        <div class="filter-header bg-light text-danger fw-bold p-2 small">
-          <i class="bi bi-list-ul me-1"></i> TÌM KIẾM
-        </div>
-        <div class="p-2">
+      <h5 class="mb-0 text-danger fw-bold text-uppercase">
+        <i class="bi bi-funnel-fill me-2"></i> DANH SÁCH ĐƠN HÀNG
+      </h5>
+    </div>
+
+    <div class="d-flex flex-grow-1 overflow-hidden">
+      <div
+        class="sidebar-filter border-end bg-white d-flex flex-column"
+        style="width: 280px; overflow-y: auto"
+      >
+        <div class="p-3 border-bottom">
+          <div class="text-danger fw-bold small mb-2">
+            <i class="bi bi-search me-1"></i> TÌM KIẾM
+          </div>
           <input
             type="text"
-            class="form-control form-control-sm mb-2 shadow-none"
-            placeholder="Mã chứng từ"
-            v-model="filters.maChungTu"
+            class="form-control form-control-sm shadow-none"
+            placeholder="Mã chứng từ..."
+            v-model="filter.search"
+            @keyup.enter="fetchOrders"
           />
-          <div class="input-group input-group-sm mb-2">
-            <input
-              type="text"
-              class="form-control shadow-none"
-              placeholder="Tìm kiếm mặt hàng"
-            />
-            <button
-              class="btn btn-outline-secondary bg-white text-muted border-start-0"
-            >
-              <i class="bi bi-search"></i>
-            </button>
-          </div>
-          <div class="input-group input-group-sm">
-            <input
-              type="text"
-              class="form-control shadow-none"
-              placeholder="Tìm đối tác"
-            />
-            <button
-              class="btn btn-outline-secondary bg-white text-muted border-start-0"
-            >
-              <i class="bi bi-search"></i>
-            </button>
-          </div>
         </div>
-      </div>
 
-      <div class="filter-group border-bottom">
-        <div class="filter-header bg-light text-danger fw-bold p-2 small">
-          <i class="bi bi-shop me-1"></i> KÊNH BÁN HÀNG
-        </div>
-        <div class="p-2">
-          <select class="form-select form-select-sm shadow-none">
-            <option>Tất cả</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="filter-group border-bottom">
-        <div class="filter-header bg-light text-danger fw-bold p-2 small">
-          <i class="bi bi-funnel me-1"></i> LỌC THEO TRẠNG THÁI
-        </div>
-        <div class="p-2">
-          <div class="form-check mb-1">
+        <div class="p-3 border-bottom">
+          <div class="text-danger fw-bold small mb-2">
+            <i class="bi bi-filter-circle me-1"></i> LỌC THEO TRẠNG THÁI
+          </div>
+          <div class="form-check mb-2">
             <input
-              class="form-check-input"
-              type="checkbox"
-              id="tt1"
+              class="form-check-input shadow-none cursor-pointer"
+              type="radio"
+              v-model="filter.status"
+              value=""
+              id="s0"
+            />
+            <label class="form-check-label small cursor-pointer" for="s0"
+              >Tất cả</label
+            >
+          </div>
+          <div class="form-check mb-2">
+            <input
+              class="form-check-input shadow-none cursor-pointer"
+              type="radio"
+              v-model="filter.status"
               value="Đang phục vụ"
-              v-model="filters.trangThai"
+              id="s1"
             />
-            <label class="form-check-label small" for="tt1"
+            <label class="form-check-label small cursor-pointer" for="s1"
               >Đang phục vụ / Phiếu tạm</label
             >
           </div>
-          <div class="form-check mb-1">
+          <div class="form-check mb-2">
             <input
-              class="form-check-input"
-              type="checkbox"
-              id="tt2"
+              class="form-check-input shadow-none cursor-pointer"
+              type="radio"
+              v-model="filter.status"
               value="Đã thanh toán"
-              v-model="filters.trangThai"
+              id="s2"
             />
-            <label class="form-check-label small" for="tt2"
+            <label class="form-check-label small cursor-pointer" for="s2"
               >Hoàn thành (Đã thanh toán)</label
             >
           </div>
           <div class="form-check">
             <input
-              class="form-check-input"
-              type="checkbox"
-              id="tt3"
-              value="Đã Hủy"
-              v-model="filters.trangThai"
+              class="form-check-input shadow-none cursor-pointer"
+              type="radio"
+              v-model="filter.status"
+              value="Đã hủy"
+              id="s3"
             />
-            <label class="form-check-label small" for="tt3">Hủy</label>
+            <label class="form-check-label small cursor-pointer" for="s3"
+              >Hủy</label
+            >
           </div>
         </div>
-      </div>
 
-      <div class="filter-group">
-        <div class="filter-header bg-light text-danger fw-bold p-2 small">
-          <i class="bi bi-calendar3 me-1"></i> LỌC THEO NGÀY
-        </div>
-        <div class="p-2">
-          <select
-            class="form-select form-select-sm shadow-none mb-2 text-danger fw-bold"
+        <div class="p-3">
+          <div class="text-danger fw-bold small mb-2">
+            <i class="bi bi-calendar-event me-1"></i> LỌC THEO NGÀY
+          </div>
+
+          <div class="d-flex flex-column gap-2 mb-3">
+            <div class="form-check">
+              <input
+                class="form-check-input shadow-none cursor-pointer"
+                type="radio"
+                v-model="datePreset"
+                value="all"
+                id="d0"
+                @change="applyDatePreset"
+              />
+              <label class="form-check-label small cursor-pointer" for="d0"
+                >Toàn thời gian</label
+              >
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input shadow-none cursor-pointer"
+                type="radio"
+                v-model="datePreset"
+                value="today"
+                id="d1"
+                @change="applyDatePreset"
+              />
+              <label class="form-check-label small cursor-pointer" for="d1"
+                >Hôm nay</label
+              >
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input shadow-none cursor-pointer"
+                type="radio"
+                v-model="datePreset"
+                value="yesterday"
+                id="d2"
+                @change="applyDatePreset"
+              />
+              <label class="form-check-label small cursor-pointer" for="d2"
+                >Hôm qua</label
+              >
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input shadow-none cursor-pointer"
+                type="radio"
+                v-model="datePreset"
+                value="3days"
+                id="d3"
+                @change="applyDatePreset"
+              />
+              <label class="form-check-label small cursor-pointer" for="d3"
+                >3 ngày trước</label
+              >
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input shadow-none cursor-pointer"
+                type="radio"
+                v-model="datePreset"
+                value="7days"
+                id="d4"
+                @change="applyDatePreset"
+              />
+              <label class="form-check-label small cursor-pointer" for="d4"
+                >7 ngày trước</label
+              >
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input shadow-none cursor-pointer"
+                type="radio"
+                v-model="datePreset"
+                value="thisMonth"
+                id="d5"
+                @change="applyDatePreset"
+              />
+              <label class="form-check-label small cursor-pointer" for="d5"
+                >Tháng này</label
+              >
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input shadow-none cursor-pointer"
+                type="radio"
+                v-model="datePreset"
+                value="lastMonth"
+                id="d6"
+                @change="applyDatePreset"
+              />
+              <label class="form-check-label small cursor-pointer" for="d6"
+                >Tháng trước</label
+              >
+            </div>
+            <div class="form-check">
+              <input
+                class="form-check-input shadow-none cursor-pointer"
+                type="radio"
+                v-model="datePreset"
+                value="custom"
+                id="d7"
+              />
+              <label class="form-check-label small cursor-pointer" for="d7"
+                >Lựa chọn khác</label
+              >
+            </div>
+          </div>
+
+          <div v-if="datePreset === 'custom'" class="border-top pt-2 mb-3">
+            <input
+              type="date"
+              class="form-control form-control-sm mb-2 shadow-none"
+              v-model="filter.startDate"
+            />
+            <input
+              type="date"
+              class="form-control form-control-sm shadow-none"
+              v-model="filter.endDate"
+            />
+          </div>
+
+          <button
+            class="btn btn-primary w-100 fw-bold shadow-sm"
+            @click="fetchOrders"
           >
-            <option>Ngày bán</option>
-          </select>
-          <div class="form-check mb-1">
-            <input
-              class="form-check-input"
-              type="radio"
-              name="timeFilter"
-              id="tf1"
-              value="all"
-              v-model="filters.thoiGian"
-              checked
-            />
-            <label class="form-check-label small" for="tf1"
-              >Toàn thời gian</label
-            >
-          </div>
-          <div class="form-check mb-1">
-            <input
-              class="form-check-input"
-              type="radio"
-              name="timeFilter"
-              id="tf2"
-              value="today"
-              v-model="filters.thoiGian"
-            />
-            <label class="form-check-label small" for="tf2">Hôm nay</label>
-          </div>
-          <div class="form-check mb-1">
-            <input
-              class="form-check-input"
-              type="radio"
-              name="timeFilter"
-              id="tf3"
-              value="yesterday"
-              v-model="filters.thoiGian"
-            />
-            <label class="form-check-label small" for="tf3">Hôm qua</label>
-          </div>
+            <i class="bi bi-search"></i> Lọc dữ liệu
+          </button>
         </div>
       </div>
-    </div>
 
-    <div class="main-content flex-grow-1 p-3 bg-white">
-      <div
-        class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom"
-      >
-        <h5 class="fw-bold text-danger mb-0 text-uppercase">
-          <i class="bi bi-funnel-fill"></i> Danh sách đơn hàng
-        </h5>
-        <button class="btn btn-success btn-sm fw-bold px-3">
-          <i class="bi bi-cart-plus me-1"></i> BÁN HÀNG
-        </button>
-      </div>
+      <div class="flex-grow-1 bg-white d-flex flex-column overflow-hidden">
+        <div class="flex-grow-1 overflow-auto p-3">
+          <table
+            class="table table-hover table-bordered align-middle mb-0"
+            style="font-size: 0.85rem"
+          >
+            <thead class="table-light text-muted align-middle">
+              <tr>
+                <th class="text-center" style="width: 40px"></th>
+                <th>Mã chứng từ</th>
+                <th>Khách hàng</th>
+                <th class="text-center">Ngày bán</th>
+                <th class="text-end">Tổng cộng</th>
+                <th class="text-end">Tổng thanh toán</th>
+                <th class="text-center" style="width: 150px">Trạng thái</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="loading" class="text-center">
+                <td colspan="7" class="py-4">
+                  <div
+                    class="spinner-border text-primary spinner-border-sm"
+                  ></div>
+                </td>
+              </tr>
+              <tr v-else-if="paginatedOrders.length === 0" class="text-center">
+                <td colspan="7" class="py-5 text-muted">
+                  Không tìm thấy đơn hàng nào.
+                </td>
+              </tr>
 
-      <div class="table-responsive">
-        <table
-          class="table table-hover table-bordered align-middle"
-          style="font-size: 0.85rem"
+              <template v-else v-for="o in paginatedOrders" :key="o.id">
+                <tr
+                  class="cursor-pointer"
+                  @click="toggleDetail(o.id)"
+                  :class="{ 'bg-light': expandedRowId === o.id }"
+                >
+                  <td class="text-center text-muted">
+                    <i
+                      class="bi"
+                      :class="
+                        expandedRowId === o.id
+                          ? 'bi-caret-down-fill text-dark'
+                          : 'bi-caret-right-fill'
+                      "
+                    ></i>
+                  </td>
+                  <td>
+                    <div class="fw-bold text-dark">{{ o.maChungTu }}</div>
+                    <div class="small text-muted">{{ o.tenBan }}</div>
+                  </td>
+                  <td>{{ o.khachHang }}</td>
+                  <td class="text-center text-muted">
+                    <div>{{ formatDateOnly(o.ngayBan) }}</div>
+                    <div class="small">{{ formatTimeOnly(o.ngayBan) }}</div>
+                  </td>
+                  <td class="text-end fw-bold text-dark">
+                    {{ formatPrice(o.tongCong) }}
+                  </td>
+                  <td class="text-end fw-bold text-dark">
+                    {{ formatPrice(o.tongThanhToan) }}
+                  </td>
+                  <td class="text-center">
+                    <div
+                      class="badge w-100 py-2 rounded-1 fw-bold"
+                      :class="
+                        o.trangThai === 'Đã thanh toán'
+                          ? 'bg-primary'
+                          : 'bg-secondary'
+                      "
+                    >
+                      {{
+                        o.trangThai === "Đã thanh toán"
+                          ? "Hoàn thành"
+                          : o.trangThai
+                      }}
+                    </div>
+                    <div
+                      class="small text-danger fw-bold mt-1"
+                      v-if="o.trangThai === 'Đã thanh toán'"
+                      style="font-size: 0.7rem"
+                    >
+                      TIỀN MẶT
+                    </div>
+                  </td>
+                </tr>
+
+                <tr v-if="expandedRowId === o.id" class="bg-light detail-row">
+                  <td
+                    colspan="7"
+                    class="p-0 border-start border-danger border-4"
+                  >
+                    <div class="p-3">
+                      <ul
+                        class="nav nav-tabs mb-3"
+                        style="border-bottom: 2px solid #dc3545"
+                      >
+                        <li class="nav-item">
+                          <a
+                            class="nav-link active fw-bold text-danger border-danger border-bottom-0 py-1"
+                            >Chi tiết</a
+                          >
+                        </li>
+                      </ul>
+
+                      <div
+                        class="row g-3 bg-white p-3 border mb-3 mx-0 shadow-sm rounded-2"
+                      >
+                        <div class="col-md-6">
+                          <div class="d-flex mb-2">
+                            <div class="fw-bold text-muted w-25">
+                              Mã chứng từ
+                            </div>
+                            <div class="fw-bold">{{ o.maChungTu }}</div>
+                          </div>
+                          <div class="d-flex mb-2">
+                            <div class="fw-bold text-muted w-25">Ngày tạo</div>
+                            <div>{{ formatDate(o.ngayBan) }}</div>
+                          </div>
+                          <div class="d-flex mb-2">
+                            <div class="fw-bold text-muted w-25">
+                              Trạng thái
+                            </div>
+                            <div>
+                              <span class="badge bg-primary">{{
+                                o.trangThai === "Đã thanh toán"
+                                  ? "Hoàn thành"
+                                  : o.trangThai
+                              }}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="col-md-6">
+                          <div class="d-flex mb-2">
+                            <div class="fw-bold text-muted w-25">Người bán</div>
+                            <div>Thu ngân</div>
+                          </div>
+                          <div class="d-flex mb-2">
+                            <div class="fw-bold text-muted w-25">
+                              Khách hàng
+                            </div>
+                            <div class="text-danger fw-bold">
+                              <i class="bi bi-exclamation-triangle-fill"></i>
+                              Chưa có thông tin
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="mb-2">
+                        <button
+                          @click="exportToExcel(o)"
+                          class="btn btn-outline-primary btn-sm fw-bold bg-white"
+                        >
+                          <i class="bi bi-file-earmark-excel-fill"></i> EXPORT
+                          TO EXCEL
+                        </button>
+                      </div>
+
+                      <table
+                        class="table table-sm table-bordered bg-white mb-3 shadow-sm"
+                        style="font-size: 0.85rem"
+                      >
+                        <thead class="table-light text-muted text-center">
+                          <tr>
+                            <th class="text-start">Tên hàng hóa</th>
+                            <th style="width: 100px">Số lượng</th>
+                            <th class="text-end" style="width: 150px">
+                              Đơn giá
+                            </th>
+                            <th class="text-end" style="width: 150px">
+                              Thành tiền
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="(mon, idx) in o.chiTiets" :key="idx">
+                            <td class="fw-bold">{{ mon.tenSanPham }}</td>
+                            <td class="text-center text-danger fw-bold">
+                              {{ mon.soLuong }}
+                            </td>
+                            <td class="text-end text-muted">
+                              {{ formatPrice(mon.donGia) }}
+                            </td>
+                            <td class="text-end fw-bold">
+                              {{ formatPrice(mon.thanhTien) }}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+
+                      <div
+                        class="d-flex justify-content-end bg-white p-2 border rounded-2"
+                      >
+                        <div style="width: 300px">
+                          <div class="d-flex justify-content-between mb-2">
+                            <span class="fw-bold text-muted">Tổng cộng</span
+                            ><span class="fw-bold">{{
+                              formatPrice(o.tongCong)
+                            }}</span>
+                          </div>
+                          <div class="d-flex justify-content-between">
+                            <span class="fw-bold text-muted"
+                              >Tổng thanh toán</span
+                            ><span class="fw-bold">{{
+                              formatPrice(o.tongThanhToan)
+                            }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+
+        <div
+          class="p-3 border-top bg-light d-flex justify-content-between align-items-center"
         >
-          <thead class="table-light text-muted text-center align-middle">
-            <tr>
-              <th style="width: 40px"></th>
-              <th class="text-start">Mã chứng từ</th>
-              <th class="text-start">Khách hàng</th>
-              <th>Ngày bán</th>
-              <th class="text-end">Tổng cộng</th>
-              <th class="text-end">Tổng thanh toán</th>
-              <th>Trạng thái</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class="fw-bold bg-light">
-              <td class="text-center">Σ</td>
-              <td colspan="3"></td>
-              <td class="text-end text-dark">
-                {{ formatPrice(totalTongCong) }}
-              </td>
-              <td class="text-end text-dark">
-                {{ formatPrice(totalThanhToan) }}
-              </td>
-              <td></td>
-            </tr>
-
-            <tr v-if="loading" class="text-center">
-              <td colspan="7" class="py-4">
-                <div class="spinner-border text-danger spinner-border-sm"></div>
-                Đang tải dữ liệu...
-              </td>
-            </tr>
-            <tr v-else-if="filteredOrders.length === 0" class="text-center">
-              <td colspan="7" class="py-4 text-muted">
-                Không có dữ liệu đơn hàng nào phù hợp.
-              </td>
-            </tr>
-
-            <tr
-              v-else
-              v-for="order in filteredOrders"
-              :key="order.id"
-              class="cursor-pointer"
+          <span class="small text-muted fw-bold"
+            >Hiển thị
+            {{ orders.length > 0 ? (currentPage - 1) * pageSize + 1 : 0 }} -
+            {{ Math.min(currentPage * pageSize, orders.length) }} /
+            {{ orders.length }} đơn hàng</span
+          >
+          <div class="btn-group shadow-sm">
+            <button
+              class="btn btn-sm btn-white border bg-white"
+              :disabled="currentPage === 1"
+              @click="currentPage--"
             >
-              <td class="text-center text-muted">
-                <i class="bi bi-caret-right-fill"></i>
-              </td>
-              <td class="text-start">
-                <div class="fw-bold text-dark">{{ order.maChungTu }}</div>
-                <div class="small text-muted">{{ order.tenBan }}</div>
-              </td>
-              <td class="text-start">{{ order.khachHang }}</td>
-              <td class="text-center">{{ formatDate(order.ngayBan) }}</td>
-              <td class="text-end">{{ formatPrice(order.tongCong) }}</td>
-              <td class="text-end">{{ formatPrice(order.tongThanhToan) }}</td>
-              <td class="text-center">
-                <span
-                  v-if="order.trangThai === 'Đã thanh toán'"
-                  class="badge bg-primary rounded-0 w-100 mb-1"
-                  >Hoàn thành</span
-                >
-                <span
-                  v-else-if="order.trangThai === 'Đang phục vụ'"
-                  class="badge bg-warning text-dark rounded-0 w-100 mb-1"
-                  >Đang phục vụ</span
-                >
-                <span v-else class="badge bg-danger rounded-0 w-100 mb-1">{{
-                  order.trangThai
-                }}</span>
-                <div class="text-danger fw-bold" style="font-size: 0.7rem">
-                  TIỀN MẶT
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              <i class="bi bi-chevron-left"></i>
+            </button>
+            <button
+              class="btn btn-sm btn-white border bg-white fw-bold text-primary px-3"
+            >
+              Trang {{ currentPage }} / {{ totalPages > 0 ? totalPages : 1 }}
+            </button>
+            <button
+              class="btn btn-sm btn-white border bg-white"
+              :disabled="currentPage === totalPages || totalPages === 0"
+              @click="currentPage++"
+            >
+              <i class="bi bi-chevron-right"></i>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import axios from "axios";
 import { globalState } from "../store";
 
 const orders = ref([]);
 const loading = ref(false);
+const expandedRowId = ref(null);
 
-// Bộ lọc
-const filters = ref({
-  maChungTu: "",
-  trangThai: [], // Mảng chứa các trạng thái được check
-  thoiGian: "all",
+const currentPage = ref(1);
+const pageSize = ref(10);
+
+// Biến lưu preset lọc ngày
+const datePreset = ref("today");
+
+const filter = ref({
+  search: "",
+  startDate: "",
+  endDate: "",
+  status: "",
 });
 
+// --- FORMAT FORMAT FORMAT ---
 const formatPrice = (price) =>
   new Intl.NumberFormat("vi-VN").format(price || 0);
-
 const formatDate = (dateString) => {
   const d = new Date(dateString);
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
-  const hours = String(d.getHours()).padStart(2, "0");
-  const minutes = String(d.getMinutes()).padStart(2, "0");
-  return `${day}/${month}/${year}\n${hours}:${minutes}`;
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 };
+const formatDateOnly = (dateString) => {
+  const d = new Date(dateString);
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+};
+const formatTimeOnly = (dateString) => {
+  const d = new Date(dateString);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+};
+
+// --- LOGIC LỌC NGÀY TỰ ĐỘNG ---
+const applyDatePreset = () => {
+  const today = new Date();
+  // Hàm lấy chuỗi YYYY-MM-DD theo múi giờ Local
+  const formatYMD = (date) => {
+    const d = new Date(date);
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().split("T")[0];
+  };
+
+  if (datePreset.value === "all") {
+    filter.value.startDate = "";
+    filter.value.endDate = "";
+  } else if (datePreset.value === "today") {
+    filter.value.startDate = formatYMD(today);
+    filter.value.endDate = formatYMD(today);
+  } else if (datePreset.value === "yesterday") {
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    filter.value.startDate = formatYMD(yesterday);
+    filter.value.endDate = formatYMD(yesterday);
+  } else if (datePreset.value === "3days") {
+    const past = new Date(today);
+    past.setDate(past.getDate() - 3);
+    filter.value.startDate = formatYMD(past);
+    filter.value.endDate = formatYMD(today);
+  } else if (datePreset.value === "7days") {
+    const past = new Date(today);
+    past.setDate(past.getDate() - 7);
+    filter.value.startDate = formatYMD(past);
+    filter.value.endDate = formatYMD(today);
+  } else if (datePreset.value === "thisMonth") {
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    filter.value.startDate = formatYMD(firstDay);
+    filter.value.endDate = formatYMD(today);
+  } else if (datePreset.value === "lastMonth") {
+    const firstDay = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const lastDay = new Date(today.getFullYear(), today.getMonth(), 0);
+    filter.value.startDate = formatYMD(firstDay);
+    filter.value.endDate = formatYMD(lastDay);
+  }
+};
+
+const totalPages = computed(() =>
+  Math.ceil(orders.value.length / pageSize.value),
+);
+const paginatedOrders = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return orders.value.slice(start, end);
+});
 
 // Gọi API
 const fetchOrders = async () => {
+  if (!globalState.value.activeBranchId) return;
   loading.value = true;
+  expandedRowId.value = null;
+  currentPage.value = 1; // Reset về trang 1
   try {
-    const branchId = globalState.value.activeBranchId || 0;
     const res = await axios.get(
-      `/api/HoaDon/danh-sach-admin?chiNhanhId=${branchId}`,
+      `/api/HoaDon/danh-sach-admin?chiNhanhId=${globalState.value.activeBranchId}&search=${filter.value.search}&status=${filter.value.status}&startDate=${filter.value.startDate}&endDate=${filter.value.endDate}`,
     );
     orders.value = res.data;
   } catch (e) {
-    console.error("Lỗi lấy danh sách đơn hàng:", e);
+    console.error("Lỗi tải đơn hàng", e);
   } finally {
     loading.value = false;
   }
 };
 
-// Hàm tính toán dữ liệu đã được lọc (Mã, Trạng thái)
-const filteredOrders = computed(() => {
-  let result = orders.value;
+const toggleDetail = (id) => {
+  expandedRowId.value = expandedRowId.value === id ? null : id;
+};
 
-  // 1. Lọc theo mã chứng từ
-  if (filters.value.maChungTu) {
-    result = result.filter((o) =>
-      o.maChungTu.toLowerCase().includes(filters.value.maChungTu.toLowerCase()),
-    );
-  }
+const exportToExcel = (order) => {
+  let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+  csvContent +=
+    "Ma Chung Tu,Ngay Ban,Ten Hang Hoa,So Luong,Don Gia,Thanh Tien\r\n";
+  order.chiTiets.forEach((mon) => {
+    let row = `${order.maChungTu},${formatDate(order.ngayBan)},"${mon.tenSanPham}",${mon.soLuong},${mon.donGia},${mon.thanhTien}`;
+    csvContent += row + "\r\n";
+  });
 
-  // 2. Lọc theo trạng thái (nếu có chọn checkbox)
-  if (filters.value.trangThai.length > 0) {
-    result = result.filter((o) =>
-      filters.value.trangThai.includes(o.trangThai),
-    );
-  }
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `${order.maChungTu}_export.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
-  // 3. Lọc theo thời gian (Hôm nay, hôm qua...)
-  const now = new Date();
-  if (filters.value.thoiGian === "today") {
-    result = result.filter(
-      (o) => new Date(o.ngayBan).toDateString() === now.toDateString(),
-    );
-  } else if (filters.value.thoiGian === "yesterday") {
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    result = result.filter(
-      (o) => new Date(o.ngayBan).toDateString() === yesterday.toDateString(),
-    );
-  }
-
-  return result;
-});
-
-// Tính tổng cho dòng Σ
-const totalTongCong = computed(() =>
-  filteredOrders.value.reduce((sum, item) => sum + item.tongCong, 0),
-);
-const totalThanhToan = computed(() =>
-  filteredOrders.value.reduce((sum, item) => sum + item.tongThanhToan, 0),
-);
-
-// Tự động tải lại dữ liệu khi đổi Chi nhánh ở Navbar Admin
-watch(
-  () => globalState.value.activeBranchId,
-  () => {
-    fetchOrders();
-  },
-);
+watch(() => globalState.value.activeBranchId, fetchOrders);
 
 onMounted(() => {
+  // Mặc định load "Toàn thời gian" hoặc "Hôm nay" tùy em, anh để all
+  applyDatePreset();
   fetchOrders();
 });
 </script>
 
 <style scoped>
-.order-list-container {
-  font-family: Arial, sans-serif;
-}
-.filter-header {
-  border-left: 3px solid #f37021;
-}
-.table th {
-  font-weight: 600;
-  border-bottom-width: 1px;
-  white-space: nowrap;
-}
-.table td {
-  vertical-align: middle;
-  white-space: pre-line; /* Để ngày và giờ rớt dòng chuẩn */
+.sidebar-filter {
+  border-right: 1px solid #dee2e6;
 }
 .cursor-pointer {
   cursor: pointer;
 }
-.form-check-input:checked {
-  background-color: #f37021;
-  border-color: #f37021;
-}
-/* Tuỳ chỉnh thanh cuộn cho bảng nếu quá dài */
-.table-responsive {
-  max-height: calc(100vh - 160px);
-  overflow-y: auto;
+.detail-row td {
+  box-shadow: inset 0 3px 6px -3px rgba(0, 0, 0, 0.15);
 }
 </style>
