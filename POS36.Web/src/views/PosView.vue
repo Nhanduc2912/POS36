@@ -538,7 +538,7 @@ const handleThanhToan = async () => {
             v-if="currentOrder.length === 0"
             class="h-100 d-flex flex-column align-items-center justify-content-center text-muted text-center p-4"
           >
-            <i class="bi bi-cart3 fs-1 mb-2 opacity-50"></i>
+            <i class="bi bi-cart fs-1 mb-2 opacity-50"></i>
             <p class="fst-italic small">
               Chưa có mặt hàng nào.<br />Double-click vào bàn và chọn món.
             </p>

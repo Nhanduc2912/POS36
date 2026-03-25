@@ -257,7 +257,6 @@ namespace POS36.Api.Controllers
 
             try
             {
-                // Tìm Hóa Đơn đang phục vụ kèm theo Chi tiết món và Thông tin Bàn
                 var hoaDon = await _context.HoaDons
                     .Include(h => h.ChiTietHoaDons)
                     .Include(h => h.Ban)
@@ -265,7 +264,6 @@ namespace POS36.Api.Controllers
 
                 if (hoaDon == null) return BadRequest("Không tìm thấy hóa đơn đang phục vụ của bàn này!");
 
-                // BƯỚC 1: Chốt Hóa Đơn & Giải phóng bàn
                 hoaDon.TrangThai = "Đã thanh toán";
                 hoaDon.NgayThanhToan = DateTime.Now;
 
@@ -274,33 +272,24 @@ namespace POS36.Api.Controllers
                     hoaDon.Ban.TrangThai = "Trống";
                 }
 
-                // BƯỚC 2: TRỪ TỒN KHO THỰC TẾ
                 if (hoaDon.ChiTietHoaDons != null)
                 {
                     foreach (var chiTiet in hoaDon.ChiTietHoaDons)
                     {
-                        var tonKho = await _context.TonKhos
-                            .FirstOrDefaultAsync(t => t.SanPhamId == chiTiet.SanPhamId && t.ChiNhanhId == hoaDon.ChiNhanhId);
-
-                        if (tonKho != null)
-                        {
-                            tonKho.SoLuong -= chiTiet.SoLuong; // Trừ đi số lượng khách đã gọi
-                        }
+                        var tonKho = await _context.TonKhos.FirstOrDefaultAsync(t => t.SanPhamId == chiTiet.SanPhamId && t.ChiNhanhId == hoaDon.ChiNhanhId);
+                        if (tonKho != null) { tonKho.SoLuong -= chiTiet.SoLuong; }
                         else
                         {
-                            // Trường hợp món này chưa nhập kho bao giờ nhưng vẫn bán (Bán âm kho)
                             _context.TonKhos.Add(new TonKho
                             {
                                 SanPhamId = chiTiet.SanPhamId,
                                 ChiNhanhId = hoaDon.ChiNhanhId,
-
-                                SoLuong = -chiTiet.SoLuong // Ghi nhận số âm
+                                SoLuong = -chiTiet.SoLuong
                             });
                         }
                     }
                 }
 
-                // BƯỚC 3: TỰ ĐỘNG LẬP PHIẾU THU TIỀN VÀO SỔ QUỸ
                 var phieuThu = new PhieuThuChi
                 {
                     CuaHangId = hoaDon.CuaHangId,
@@ -315,12 +304,17 @@ namespace POS36.Api.Controllers
                     NgayGiaoDich = DateTime.Now,
                     NguoiTao = User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")?.Value ?? "Thu ngân"
                 };
-
                 _context.PhieuThuChis.Add(phieuThu);
 
-                // Lưu lại toàn bộ các bước thay đổi vào SQL
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+
+                // --- ĐÂY LÀ ĐOẠN GIÚP GIAO DIỆN TỰ CẬP NHẬT ---
+                // Mượn luôn sự kiện CoDonHangMoi để kích hoạt hàm fetchTables bên Vue tải lại màu sắc của Bàn
+                if (_hubContext != null)
+                {
+                    await _hubContext.Clients.All.SendAsync("CoDonHangMoi", new { message = "Đã thanh toán" });
+                }
 
                 return Ok(new { message = "Thanh toán thành công!" });
             }
@@ -330,7 +324,6 @@ namespace POS36.Api.Controllers
                 return StatusCode(500, "Lỗi khi thanh toán: " + ex.Message);
             }
         }
-
         // ==========================================
         // 6. LẤY MÓN CHỜ CHẾ BIẾN (CHO MÀN HÌNH BẾP)
         // ==========================================
@@ -345,13 +338,14 @@ namespace POS36.Api.Controllers
                     .Where(c => c.HoaDon != null
                                 && c.HoaDon.ChiNhanhId == chiNhanhId
                                 && c.HoaDon.CuaHangId == cuaHangId
-                                && c.HoaDon.TrangThai == "Đang phục vụ"
+                                // SỬA CHỖ NÀY: Cho phép lấy cả hóa đơn "Đang phục vụ" LẪN "Đã thanh toán"
+                                && (c.HoaDon.TrangThai == "Đang phục vụ" || c.HoaDon.TrangThai == "Đã thanh toán")
                                 && c.TrangThaiMon == "Chờ chế biến")
                     .Select(c => new
                     {
                         ChiTietId = c.Id,
                         BanId = c.HoaDon!.BanId,
-                        TenBan = c.HoaDon.Ban != null ? c.HoaDon.Ban.TenBan : "Bàn ảo",
+                        TenBan = c.HoaDon.Ban != null ? c.HoaDon.Ban.TenBan : "Mang về",
                         TenMon = c.SanPham != null ? c.SanPham.TenSanPham : "Món đã bị xóa",
                         SoLuong = c.SoLuong,
                         GhiChu = c.GhiChu,
@@ -376,11 +370,9 @@ namespace POS36.Api.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine("LỖI LẤY MÓN BẾP: " + ex.Message);
                 return StatusCode(500, "Lỗi server: " + ex.Message);
             }
         }
-
         // ==========================================
         // 7. BẾP XÁC NHẬN ĐÃ LÀM XONG
         // ==========================================
