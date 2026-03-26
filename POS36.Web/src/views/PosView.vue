@@ -4,6 +4,7 @@ import axios from "axios";
 import * as signalR from "@microsoft/signalr";
 import { useRouter } from "vue-router";
 import { globalState } from "../store";
+import { printReceipt } from "../utils/printer";
 
 const swal = inject("$swal");
 const router = useRouter();
@@ -384,10 +385,18 @@ const logout = () => {
   router.push("/login");
 };
 // --- 6. THANH TOÁN HÓA ĐƠN ---
+// --- 6. THANH TOÁN VÀ IN HÓA ĐƠN ---
 const handleThanhToan = async () => {
   if (!activeTable.value || activeTable.value.trangThai === "Trống") {
     return swal.fire("Lỗi", "Bàn chưa có hóa đơn để thanh toán!", "warning");
   }
+
+  // Lấy dữ liệu giỏ hàng hiện tại để chuẩn bị in
+  const orderToPrint = {
+    tenBan: activeTable.value.tenBan,
+    tongTien: activeTable.value.tamTinh,
+    items: currentOrder.value, // Lấy danh sách món trong mảng ordersByTable
+  };
 
   swal
     .fire({
@@ -395,32 +404,48 @@ const handleThanhToan = async () => {
       text: `Tổng số tiền: ${formatPrice(activeTable.value.tamTinh)}`,
       icon: "info",
       showCancelButton: true,
-      confirmButtonText: "Đã Thu Tiền",
+      confirmButtonText: "Thanh toán & In Bill",
+      cancelButtonText: "Chỉ thanh toán",
+      showDenyButton: true,
+      denyButtonText: "Hủy bỏ",
       confirmButtonColor: "#28a745",
     })
     .then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          // Gọi API Thanh toán
-          await axios.post(`/api/HoaDon/thanhtoan/${activeTable.value.id}`);
+      // Nếu bấm Hủy thì dừng
+      if (result.isDenied || result.isDismissed) return;
 
-          swal.fire({
-            toast: true,
-            position: "top-end",
-            icon: "success",
-            title: "Thanh toán hoàn tất!",
-            timer: 1500,
-            showConfirmButton: false,
-          });
+      try {
+        // Gọi API Thanh toán xuống C#
+        await axios.post(`/api/HoaDon/thanhtoan/${activeTable.value.id}`);
 
-          // Trả giao diện về trạng thái Trống
-          ordersByTable.value[activeTable.value.id] = [];
-          activeTable.value = null;
-          activeRightTab.value = "tables";
-          fetchTables(); // Load lại sơ đồ bàn (Bàn sẽ đổi về màu xám)
-        } catch (e) {
-          swal.fire("Lỗi", "Thanh toán thất bại", "error");
+        swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: "Thanh toán thành công!",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+
+        // NẾU BẤM NÚT "Thanh toán & In Bill" (isConfirmed) -> Gọi hàm In
+        if (result.isConfirmed) {
+          // Thông tin chi nhánh (sau này lấy từ DB, tạm fix cứng demo)
+          const branchInfo = {
+            name: "POS36 ĐÀ NẴNG",
+            address: "123 Lê Duẩn, Đà Nẵng",
+            phone: "0905.123.456",
+          };
+          printReceipt(orderToPrint, branchInfo);
         }
+
+        // Trả giao diện về trạng thái Trống
+        ordersByTable.value[activeTable.value.id] = [];
+        activeTable.value.trangThai = "Trống";
+        activeTable.value.timeOpen = null;
+        activeRightTab.value = "tables";
+        fetchTables(globalState.value.activeBranchId);
+      } catch (e) {
+        swal.fire("Lỗi", "Thanh toán thất bại", "error");
       }
     });
 };

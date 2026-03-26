@@ -81,6 +81,11 @@ const routes = [
         name: "admin-cashbook",
         component: () => import("../views/Cashbook.vue"),
       },
+      {
+        path: "print-setup",
+        name: "admin-print-setup",
+        component: () => import("../views/PrintSetup.vue"),
+      },
     ],
   },
 

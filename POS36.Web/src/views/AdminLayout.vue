@@ -6,7 +6,6 @@ import { globalState } from "../store";
 
 const router = useRouter();
 
-// Hàm kéo danh sách Chi nhánh từ API gắn vào thanh Navbar
 // Hàm kéo danh sách Chi nhánh từ API
 const fetchBranches = async () => {
   try {
@@ -46,9 +45,9 @@ onMounted(() => {
   <div class="admin-wrapper">
     <nav class="navbar navbar-expand-lg navbar-dark pos-navbar shadow-sm">
       <div class="container-fluid px-4">
-        <router-link class="navbar-brand fw-bold fs-4 me-4" to="/admin"
-          ><i class="bi bi-shop me-2"></i>POS36</router-link
-        >
+        <router-link class="navbar-brand fw-bold fs-4 me-4" to="/admin">
+          <i class="bi bi-shop me-2"></i>POS36
+        </router-link>
 
         <div class="collapse navbar-collapse" id="adminMenu">
           <ul class="navbar-nav me-auto mb-2 mb-lg-0 fw-medium">
@@ -57,8 +56,9 @@ onMounted(() => {
                 class="nav-link dropdown-toggle"
                 href="#"
                 data-bs-toggle="dropdown"
-                ><i class="bi bi-box-seam me-1"></i> Hàng hóa</a
               >
+                <i class="bi bi-box-seam me-1"></i> Hàng hóa
+              </a>
               <ul class="dropdown-menu shadow-sm border-0">
                 <li>
                   <router-link
@@ -77,9 +77,8 @@ onMounted(() => {
                   <router-link
                     class="dropdown-item fw-bold"
                     to="/admin/inventory"
+                    ><i class="bi bi-clipboard-check"></i> Kiểm kê</router-link
                   >
-                    <i class="bi bi-clipboard-check"></i> Kiểm kê
-                  </router-link>
                 </li>
               </ul>
             </li>
@@ -88,8 +87,9 @@ onMounted(() => {
                 class="nav-link dropdown-toggle"
                 href="#"
                 data-bs-toggle="dropdown"
-                ><i class="bi bi-shop-window me-1"></i> Nhà hàng</a
               >
+                <i class="bi bi-shop-window me-1"></i> Nhà hàng
+              </a>
               <ul class="dropdown-menu shadow-sm border-0">
                 <li>
                   <router-link
@@ -129,8 +129,9 @@ onMounted(() => {
                 class="nav-link dropdown-toggle"
                 href="#"
                 data-bs-toggle="dropdown"
-                ><i class="bi bi-arrow-left-right me-1"></i> Giao dịch</a
               >
+                <i class="bi bi-arrow-left-right me-1"></i> Giao dịch
+              </a>
               <ul class="dropdown-menu shadow-sm border-0">
                 <li>
                   <router-link class="dropdown-item" to="/admin/orders"
@@ -152,8 +153,9 @@ onMounted(() => {
                 class="nav-link dropdown-toggle"
                 href="#"
                 data-bs-toggle="dropdown"
-                ><i class="bi bi-people me-1"></i> Nội bộ</a
               >
+                <i class="bi bi-people me-1"></i> Nội bộ
+              </a>
               <ul class="dropdown-menu shadow-sm border-0">
                 <li>
                   <router-link
@@ -174,8 +176,9 @@ onMounted(() => {
                 class="nav-link dropdown-toggle"
                 href="#"
                 data-bs-toggle="dropdown"
-                ><i class="bi bi-bar-chart-line me-1"></i> Báo cáo</a
               >
+                <i class="bi bi-bar-chart-line me-1"></i> Báo cáo
+              </a>
               <ul class="dropdown-menu shadow-sm border-0">
                 <li>
                   <a class="dropdown-item" href="#">Tổng kết cuối ngày</a>
@@ -187,7 +190,7 @@ onMounted(() => {
 
           <div class="d-flex align-items-center">
             <div
-              class="me-4 d-flex align-items-center bg-white rounded-pill px-2 py-1"
+              class="me-3 d-flex align-items-center bg-white rounded-pill px-2 py-1"
               style="min-width: 200px"
             >
               <i class="bi bi-geo-alt-fill text-danger me-2 ms-1"></i>
@@ -208,15 +211,74 @@ onMounted(() => {
               </select>
             </div>
 
-            <span class="text-white me-3"
-              ><i class="bi bi-person-circle fs-5"></i> Admin</span
+            <span class="text-white me-2 fw-medium"
+              ><i class="bi bi-person-circle fs-5 align-middle me-1"></i>
+              Admin</span
             >
-            <button
-              @click="handleLogout"
-              class="btn btn-sm btn-light text-danger fw-bold rounded-pill px-3"
-            >
-              Thoát
-            </button>
+
+            <ul class="navbar-nav">
+              <li class="nav-item dropdown ms-1">
+                <a
+                  class="nav-link text-white hide-caret p-0 ms-2"
+                  href="#"
+                  role="button"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                  title="Cài đặt hệ thống"
+                >
+                  <i class="bi bi-gear-fill fs-4 gear-icon"></i>
+                </a>
+
+                <ul
+                  class="dropdown-menu dropdown-menu-end shadow border-0 mt-3 py-2"
+                  style="width: 240px"
+                >
+                  <li>
+                    <h6 class="dropdown-header text-muted fw-bold">HỆ THỐNG</h6>
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="#"
+                      ><i class="bi bi-shop-window me-2 text-muted"></i> Thông
+                      tin cửa hàng</a
+                    >
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="#"
+                      ><i class="bi bi-person-vcard me-2 text-muted"></i> Thông
+                      tin cá nhân</a
+                    >
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="#"
+                      ><i class="bi bi-sliders me-2 text-muted"></i> Thiết lập
+                      cửa hàng</a
+                    >
+                  </li>
+                  <li>
+                    <router-link class="dropdown-item" to="/admin/print-setup"
+                      ><i class="bi bi-printer me-2 text-muted"></i> Thiết lập
+                      mẫu in</router-link
+                    >
+                  </li>
+                  <li>
+                    <router-link class="dropdown-item" to="/admin/bank-setup"
+                      ><i class="bi bi-qr-code-scan me-2 text-muted"></i> Thiết
+                      lập chuyển khoản</router-link
+                    >
+                  </li>
+                  <li><hr class="dropdown-divider my-2" /></li>
+                  <li>
+                    <a
+                      class="dropdown-item text-danger fw-bold"
+                      href="#"
+                      @click.prevent="handleLogout"
+                    >
+                      <i class="bi bi-box-arrow-right me-2"></i> Đăng xuất
+                    </a>
+                  </li>
+                </ul>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
@@ -246,18 +308,41 @@ select:focus {
   outline: none;
   box-shadow: none;
 }
+
+/* Dropdown styling */
 .dropdown-menu {
   border-radius: 8px;
-  margin-top: 8px;
   border: 1px solid #eee;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
 }
 .dropdown-item {
   padding: 10px 20px;
   font-weight: 500;
+  transition: all 0.2s;
 }
 .dropdown-item:hover {
   background-color: #fff3ed;
-  color: #f37021;
+  color: #f37021 !important;
+}
+.dropdown-item:hover i {
+  color: #f37021 !important;
+}
+
+/* Ẩn dấu mũi tên tam giác mặc định của Bootstrap */
+.hide-caret::after {
+  display: none !important;
+}
+
+/* Xoay Icon bánh răng */
+.gear-icon {
+  display: inline-block;
+  transition: transform 0.4s ease;
+  pointer-events: none; /* DÒNG QUAN TRỌNG: Chống lỗi click bị trượt */
+}
+
+/* Khi hover vào thẻ a, icon bên trong sẽ xoay */
+.nav-link:hover .gear-icon {
+  transform: rotate(90deg);
+  color: #fff !important;
 }
 </style>
