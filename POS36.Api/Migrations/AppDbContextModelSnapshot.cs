@@ -614,6 +614,30 @@ namespace POS36.Api.Migrations
                     b.ToTable("ThanhToans");
                 });
 
+            modelBuilder.Entity("POS36.Api.Models.ThietLap", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CuaHangId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DuLieu")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MaThietLap")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ThietLaps");
+                });
+
             modelBuilder.Entity("POS36.Api.Models.TonKho", b =>
                 {
                     b.Property<int>("Id")

@@ -6,6 +6,8 @@ import { useRouter } from "vue-router";
 import { globalState } from "../store";
 import { printReceipt } from "../utils/printer";
 
+// Danh sách các bàn đang treo chờ khách quét QR
+const pendingPayments = ref([]);
 const swal = inject("$swal");
 const router = useRouter();
 const backendUrl = "http://localhost:5198";
@@ -43,11 +45,9 @@ onMounted(async () => {
   } catch (err) {
     console.error("SignalR Lỗi: ", err);
   }
-  // THÊM ĐOẠN NÀY ĐỂ BẮT SÓNG ORDER BÁO THANH TOÁN
-  // THÊM VÀO TRONG onMounted CỦA PosView.vue
+
   connection.on("CoYeuCauThanhToan", (chiNhanhId, tenBan) => {
     if (chiNhanhId === globalState.value.activeBranchId && isThuNgan) {
-      // Lưu vào danh sách thông báo
       notificationList.value.unshift({
         id: Date.now(),
         title: `Bàn ${tenBan} yêu cầu thanh toán`,
@@ -66,16 +66,15 @@ onMounted(async () => {
       });
     }
   });
+
   fetchTables(globalState.value.activeBranchId);
-  // Lắng nghe sự kiện Bếp báo lại hoặc máy khác gọi món để cập nhật màn hình
+
   connection.on("CoDonHangMoi", (data) => {
-    // Có thể thêm logic popup thông báo ở đây nếu cần
     fetchTables(globalState.value.activeBranchId);
   });
 
   await getBranchIdAndFetch();
 
-  // Cập nhật đồng hồ đếm giờ mỗi phút
   setInterval(() => {
     tables.value = [...tables.value];
   }, 60000);
@@ -84,13 +83,28 @@ onMounted(async () => {
 onUnmounted(() => {
   connection.stop();
 });
-// THÊM HÀM NÀY VÀO DƯỚI CÁC KHAI BÁO BIẾN
+
 const getBranchIdAndFetch = async () => {
+  try {
+    // 1. Kéo BankConfig (Đã có)
+    const resConfig = await axios.get("/api/ThietLap/BankConfig");
+    if (resConfig.data && resConfig.data.duLieu) {
+      localStorage.setItem("pos36_bank_config", resConfig.data.duLieu);
+    }
+
+    // 2. THÊM ĐOẠN NÀY ĐỂ KÉO MẪU IN MỚI NHẤT VỀ MÁY THU NGÂN
+    const resPrint = await axios.get("/api/ThietLap/PrintTemplate");
+    if (resPrint.data && resPrint.data.duLieu) {
+      localStorage.setItem("pos36_print_template", resPrint.data.duLieu);
+    }
+  } catch (e) {
+    console.log("Lỗi tải cấu hình ngầm");
+  }
+
   let branchId =
     globalState.value.activeBranchId ||
     localStorage.getItem("pos36_active_branch");
 
-  // Nếu chưa có chi nhánh nào trong RAM (Vừa login xong) -> Tự gọi API lấy chi nhánh
   if (!branchId || branchId === "null") {
     try {
       const res = await axios.get("/api/ChiNhanh");
@@ -104,14 +118,12 @@ const getBranchIdAndFetch = async () => {
     }
   }
 
-  // Sau khi chắc chắn có branchId rồi mới gọi API lấy bàn và món
   if (branchId) {
     await fetchTables(branchId);
     await fetchProducts(branchId);
   }
 };
-// --- HÀM FETCH DỮ LIỆU ---
-// SỬA LẠI HÀM fetchTables và fetchProducts để nhận tham số
+
 const fetchTables = async (branchId) => {
   try {
     const res = await axios.get(
@@ -143,7 +155,6 @@ const calculateTimeElapsed = (timeOpenString) => {
     .padStart(2, "0")}:${(diffMins % 60).toString().padStart(2, "0")}`;
 };
 
-// --- 1. MỞ BÀN VÀ TẢI HÓA ĐƠN ---
 const openTable = async (ban) => {
   activeTable.value = ban;
   activeRightTab.value = "menu";
@@ -151,29 +162,26 @@ const openTable = async (ban) => {
   if (ban.trangThai === "Trống") {
     if (!ordersByTable.value[ban.id]) ordersByTable.value[ban.id] = [];
   } else {
-    // GỌI API GET CỦA EM ĐỂ LẤY CHI TIẾT HÓA ĐƠN LÊN GIỎ HÀNG
     try {
       const res = await axios.get(`/api/HoaDon/ban/${ban.id}`);
       const data = res.data;
 
       ordersByTable.value[ban.id] = data.danhSachMon.map((mon) => ({
-        id: mon.sanPhamId, // Id gốc của món ăn
-        chiTietId: mon.chiTietId, // Id dòng trong DB
+        id: mon.sanPhamId,
+        chiTietId: mon.chiTietId,
         name: mon.tenSanPham,
         price: mon.donGia,
         qty: mon.soLuong,
-        isSent: true, // Đánh dấu là đã gửi Bếp/lưu DB rồi
+        isSent: true,
       }));
 
       activeTable.value.tamTinh = data.tongTien;
-      // Lấy mốc thời gian từ DB tính ngược ra (nếu cần)
     } catch (e) {
       console.error("Lỗi tải hóa đơn cũ:", e);
     }
   }
 };
 
-// Tính toán Giỏ hàng hiển thị
 const currentOrder = computed(() =>
   activeTable.value ? ordersByTable.value[activeTable.value.id] || [] : [],
 );
@@ -181,15 +189,11 @@ const totalAmount = computed(() =>
   currentOrder.value.reduce((sum, item) => sum + item.price * item.qty, 0),
 );
 
-// --- 2. HÀM GỌI API GỌI MÓN (POST) CHỈ GỬI NHỮNG MÓN MỚI ---
 const saveNewOrdersToDatabase = async () => {
   if (!activeTable.value || currentOrder.value.length === 0) return false;
-
-  // Chỉ lọc ra những món CHƯA GỬI (isSent: false)
   const unsentItems = currentOrder.value.filter((item) => !item.isSent);
-  if (unsentItems.length === 0) return true; // Tránh gọi API dư thừa nếu không có món mới
+  if (unsentItems.length === 0) return true;
 
-  // Gói dữ liệu theo chuẩn TaoDonHangDto
   const payload = {
     banId: activeTable.value.id,
     danhSachMon: unsentItems.map((item) => ({
@@ -201,8 +205,6 @@ const saveNewOrdersToDatabase = async () => {
 
   try {
     await axios.post("/api/HoaDon/goimon", payload);
-
-    // Sau khi gửi thành công, đánh dấu các món đó là đã gửi
     unsentItems.forEach((item) => (item.isSent = true));
     return true;
   } catch (e) {
@@ -211,14 +213,11 @@ const saveNewOrdersToDatabase = async () => {
   }
 };
 
-// --- 3. THÊM MÓN VÀO GIỎ ---
 const addItem = async (prod) => {
   if (!activeTable.value)
     return swal.fire("Chú ý", "Vui lòng chọn bàn trước!", "warning");
 
   let orderList = ordersByTable.value[activeTable.value.id];
-
-  // Tìm xem món này đã có trong giỏ NHƯNG PHẢI LÀ MÓN CHƯA GỬI không
   const existingUnsentItem = orderList.find(
     (i) => i.id === prod.id && !i.isSent,
   );
@@ -237,7 +236,6 @@ const addItem = async (prod) => {
 
   activeTable.value.tamTinh = totalAmount.value;
 
-  // THU NGÂN: Click là lưu thẳng luôn
   if (isThuNgan) {
     const success = await saveNewOrdersToDatabase();
     if (success) {
@@ -245,12 +243,11 @@ const addItem = async (prod) => {
         activeTable.value.trangThai = "Đang phục vụ";
         activeTable.value.timeOpen = new Date().toISOString();
       }
-      tables.value = [...tables.value]; // Ép Vue vẽ lại
+      tables.value = [...tables.value];
     }
   }
 };
 
-// --- 4. BÁO CHẾ BIẾN (ORDER HOẶC THU NGÂN XÁC NHẬN LẠI) ---
 const handleBaoCheBien = async () => {
   if (!activeTable.value || currentOrder.value.length === 0) {
     return swal.fire("Trống", "Chưa có món nào để gửi Bếp!", "warning");
@@ -299,7 +296,6 @@ const handleBaoCheBien = async () => {
   }
 };
 
-// --- 5. HỦY MÓN (UPDATE DB & THÊM LÝ DO) ---
 const handleCancelItem = async (item, index) => {
   const { value: formValues } = await swal.fire({
     title: "Hủy / Trả đồ",
@@ -312,7 +308,6 @@ const handleCancelItem = async (item, index) => {
       <div class="d-flex gap-2 mb-3">
          <input type="radio" class="btn-check" name="reason" id="r1" value="Khách yêu cầu" checked>
          <label class="btn btn-outline-secondary w-50" for="r1">Khách yêu cầu</label>
-         
          <input type="radio" class="btn-check" name="reason" id="r2" value="Lỗi thao tác">
          <label class="btn btn-outline-secondary w-50" for="r2">Lỗi thao tác</label>
       </div>
@@ -322,11 +317,9 @@ const handleCancelItem = async (item, index) => {
     confirmButtonColor: "#dc3545",
     preConfirm: () => {
       const qty = parseInt(document.getElementById("cancel-qty").value);
-      // Lấy giá trị của Radio button đang được chọn
       const reason = document.querySelector(
         'input[name="reason"]:checked',
       ).value;
-
       if (qty > item.qty) {
         swal.showValidationMessage("Vượt quá SL thực tế đang có!");
         return false;
@@ -345,16 +338,13 @@ const handleCancelItem = async (item, index) => {
         });
       }
 
-      // Xóa trên giao diện
       if (formValues.qty >= item.qty) {
         ordersByTable.value[activeTable.value.id].splice(index, 1);
       } else {
         item.qty -= formValues.qty;
       }
 
-      // KIỂM TRA ĐÓNG BÀN TRÊN GIAO DIỆN VUE
       if (ordersByTable.value[activeTable.value.id].length === 0) {
-        // Nếu xóa sạch món -> Đổi màu bàn về xám, chuyển tab về xem sơ đồ bàn
         activeTable.value.trangThai = "Trống";
         activeTable.value.timeOpen = null;
         activeRightTab.value = "tables";
@@ -362,8 +352,6 @@ const handleCancelItem = async (item, index) => {
 
       activeTable.value.tamTinh = totalAmount.value;
       tables.value = [...tables.value];
-
-      // Tải lại Data từ Server để đồng bộ màu sắc với mọi người
       fetchTables(globalState.value.activeBranchId);
 
       swal.fire({
@@ -384,71 +372,138 @@ const logout = () => {
   localStorage.clear();
   router.push("/login");
 };
-// --- 6. THANH TOÁN HÓA ĐƠN ---
-// --- 6. THANH TOÁN VÀ IN HÓA ĐƠN ---
-const handleThanhToan = async () => {
-  if (!activeTable.value || activeTable.value.trangThai === "Trống") {
-    return swal.fire("Lỗi", "Bàn chưa có hóa đơn để thanh toán!", "warning");
-  }
 
-  // Lấy dữ liệu giỏ hàng hiện tại để chuẩn bị in
-  const orderToPrint = {
-    tenBan: activeTable.value.tenBan,
-    tongTien: activeTable.value.tamTinh,
-    items: currentOrder.value, // Lấy danh sách món trong mảng ordersByTable
-  };
+// --- ĐẢO HÀM NÀY LÊN TRÊN ĐỂ KHÔNG BỊ LỖI IS NOT DEFINED ---
+const thucHienThanhToanChinhThuc = async (banId) => {
+  try {
+    await axios.post(`/api/HoaDon/thanhtoan/${banId}`);
+
+    pendingPayments.value = pendingPayments.value.filter(
+      (p) => p.banId !== banId,
+    );
+
+    swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: `Bàn ${banId} thanh toán thành công!`,
+      timer: 2000,
+      showConfirmButton: false,
+    });
+
+    fetchTables(globalState.value.activeBranchId);
+
+    if (activeTable.value && activeTable.value.id === banId) {
+      ordersByTable.value[banId] = [];
+      activeTable.value.trangThai = "Trống";
+      activeTable.value.timeOpen = null;
+      activeRightTab.value = "tables";
+    }
+  } catch (e) {
+    console.error(e);
+    swal.fire("Lỗi", "Thanh toán trên hệ thống thất bại", "error");
+  }
+};
+
+// --- XỬ LÝ THANH TOÁN ---
+const handleThanhToan = async () => {
+  if (!activeTable.value || activeTable.value.trangThai === "Trống") return;
+
+  const soTien = activeTable.value.tamTinh;
+  const banId = activeTable.value.id;
 
   swal
     .fire({
-      title: `Thu tiền Bàn ${activeTable.value.tenBan}`,
-      text: `Tổng số tiền: ${formatPrice(activeTable.value.tamTinh)}`,
-      icon: "info",
-      showCancelButton: true,
-      confirmButtonText: "Thanh toán & In Bill",
-      cancelButtonText: "Chỉ thanh toán",
+      title: `Thanh toán Bàn ${activeTable.value.tenBan}`,
+      html: `<h3 class="text-danger fw-bold">${formatPrice(soTien)}</h3>`,
       showDenyButton: true,
-      denyButtonText: "Hủy bỏ",
+      showCancelButton: true,
+      confirmButtonText: '<i class="bi bi-cash"></i> Tiền mặt',
+      denyButtonText: '<i class="bi bi-qr-code-scan"></i> Chuyển khoản QR',
+      cancelButtonText: "Đóng",
       confirmButtonColor: "#28a745",
+      denyButtonColor: "#f37021",
     })
     .then(async (result) => {
-      // Nếu bấm Hủy thì dừng
-      if (result.isDenied || result.isDismissed) return;
-
-      try {
-        // Gọi API Thanh toán xuống C#
-        await axios.post(`/api/HoaDon/thanhtoan/${activeTable.value.id}`);
-
-        swal.fire({
-          toast: true,
-          position: "top-end",
-          icon: "success",
-          title: "Thanh toán thành công!",
-          timer: 1500,
-          showConfirmButton: false,
+      // 1. NẾU TRẢ TIỀN MẶT
+      if (result.isConfirmed) {
+        // In hóa đơn chính thức
+        const orderToPrint = {
+          tenBan: activeTable.value.tenBan,
+          tongTien: soTien,
+          items: currentOrder.value,
+        };
+        printReceipt(orderToPrint, {
+          name: "POS36",
+          address: "Đà Nẵng",
+          phone: "0905",
         });
 
-        // NẾU BẤM NÚT "Thanh toán & In Bill" (isConfirmed) -> Gọi hàm In
-        if (result.isConfirmed) {
-          // Thông tin chi nhánh (sau này lấy từ DB, tạm fix cứng demo)
-          const branchInfo = {
-            name: "POS36 ĐÀ NẴNG",
-            address: "123 Lê Duẩn, Đà Nẵng",
-            phone: "0905.123.456",
-          };
-          printReceipt(orderToPrint, branchInfo);
-        }
+        // Chốt đơn CSDL
+        thucHienThanhToanChinhThuc(banId);
+      }
 
-        // Trả giao diện về trạng thái Trống
-        ordersByTable.value[activeTable.value.id] = [];
-        activeTable.value.trangThai = "Trống";
-        activeTable.value.timeOpen = null;
-        activeRightTab.value = "tables";
-        fetchTables(globalState.value.activeBranchId);
-      } catch (e) {
-        swal.fire("Lỗi", "Thanh toán thất bại", "error");
+      // 2. NẾU CHỌN QUÉT QR
+      else if (result.isDenied) {
+        if (connection.state === "Connected") {
+          // Bắn lệnh qua máy nhân viên (Truyền chuỗi rỗng vào tham số thứ 3 để hết lỗi C#)
+          await connection.invoke("YeuCauMoQR", banId, soTien, "");
+
+          pendingPayments.value.push({
+            banId: banId,
+            tenBan: activeTable.value.tenBan,
+            soTien: soTien,
+          });
+
+          // IN HÓA ĐƠN TẠM TÍNH CHO KHÁCH (Đã mở khóa)
+          const orderToPrint = {
+            tenBan: activeTable.value.tenBan,
+            tongTien: soTien,
+            items: currentOrder.value,
+          };
+          printReceipt(orderToPrint, {
+            name: "POS36",
+            address: "Đà Nẵng",
+            phone: "0905",
+          });
+
+          swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "info",
+            title: `Đã in hóa đơn tạm tính & chuyển Bàn ${activeTable.value.tenBan} sang chờ QR`,
+            timer: 2000,
+            showConfirmButton: false,
+          });
+          activeRightTab.value = "tables";
+        }
       }
     });
 };
+
+const huyYeuCauQRGocManHinh = (banId) => {
+  pendingPayments.value = pendingPayments.value.filter(
+    (p) => p.banId !== banId,
+  );
+  connection.invoke("HuyMoQR", banId, "Thu ngân đã hủy yêu cầu QR");
+};
+
+// Lắng nghe Nhân viên báo Hủy QR
+connection.on("NhanHuyMoQR", (banId, lyDo) => {
+  pendingPayments.value = pendingPayments.value.filter(
+    (p) => p.banId !== banId,
+  ); // Gỡ khỏi góc phải nếu nhân viên hủy
+  if (activeTable.value && activeTable.value.id === banId) {
+    swal.fire("Đã hủy QR", `Lý do: ${lyDo}`, "warning");
+  }
+});
+
+// Lắng nghe Webhook báo Tiền về thành công
+connection.on("ThanhToanQRThanhCong", (banId) => {
+  // Lấy lại danh sách món ăn của bàn vừa thanh toán để in hóa đơn chính thức nếu cần
+  // (Ở đây vì đã in tạm tính lúc nãy rồi, tùy nghiệp vụ em có muốn in thêm 1 tờ lúc trả xong không thì gọi printReceipt ở đây)
+  thucHienThanhToanChinhThuc(banId);
+});
 </script>
 
 <template>
@@ -765,6 +820,37 @@ const handleThanhToan = async () => {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
+    <div
+      v-for="p in pendingPayments"
+      :key="p.banId"
+      class="toast show mb-2 shadow-lg border-warning fade-in"
+      role="alert"
+    >
+      <div
+        class="toast-header bg-warning bg-opacity-25 text-dark border-bottom-0 pb-1"
+      >
+        <div
+          class="spinner-border spinner-border-sm text-warning me-2"
+          role="status"
+        ></div>
+        <strong class="me-auto">Đang chờ quét QR</strong>
+        <button
+          type="button"
+          class="btn-close"
+          @click="huyYeuCauQRGocManHinh(p.banId)"
+        ></button>
+      </div>
+      <div class="toast-body bg-white rounded-bottom px-3 py-2 text-center">
+        <h6 class="fw-bold text-dark mb-1">{{ p.tenBan }}</h6>
+        <h4 class="fw-bold text-danger mb-0">{{ formatPrice(p.soTien) }}</h4>
+        <div class="text-muted font-monospace mt-1" style="font-size: 0.8rem">
+          Mã: POS36B{{ p.banId }}
         </div>
       </div>
     </div>

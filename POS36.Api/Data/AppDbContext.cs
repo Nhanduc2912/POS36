@@ -38,6 +38,7 @@ namespace POS36.Api.Data
 
         // 6. Phân hệ Sổ Quỹ (Thu Chi)
         public DbSet<PhieuThuChi> PhieuThuChis { get; set; }
+        public DbSet<ThietLap> ThietLaps { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

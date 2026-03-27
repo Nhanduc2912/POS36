@@ -218,7 +218,7 @@
 
 <script setup>
 import { ref, onMounted, computed, inject } from "vue";
-
+import axios from "axios";
 const swal = inject("$swal");
 const activeTab = ref("visual");
 const visualEditor = ref(null);
@@ -444,13 +444,42 @@ const previewHtml = computed(() => {
   return html;
 });
 
-onMounted(() => {
-  const saved = localStorage.getItem("pos36_print_template");
-  printTemplate.value = saved ? saved : presets.custom6;
-  if (visualEditor.value) {
-    visualEditor.value.innerHTML = printTemplate.value;
-  }
+onMounted(async () => {
+  try {
+    const res = await axios.get("/api/ThietLap/PrintTemplate");
+    if (res.data && res.data.duLieu) {
+      printTemplate.value = res.data.duLieu;
+      localStorage.setItem("pos36_print_template", res.data.duLieu);
+    } else {
+      printTemplate.value = presets.custom6; // Gán mẫu mặc định nếu CSDL trống
+    }
+    if (visualEditor.value) {
+      visualEditor.value.innerHTML = printTemplate.value;
+    }
+  } catch (e) {}
 });
+
+const saveTemplate = async () => {
+  if (activeTab.value === "visual") syncToHtml();
+
+  try {
+    await axios.post("/api/ThietLap", {
+      maThietLap: "PrintTemplate",
+      duLieu: printTemplate.value,
+    });
+    localStorage.setItem("pos36_print_template", printTemplate.value);
+    swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: "Đã lưu mẫu in lên CSDL!",
+      timer: 1500,
+      showConfirmButton: false,
+    });
+  } catch (e) {
+    swal.fire("Lỗi", "Lưu thiết lập thất bại", "error");
+  }
+};
 
 const applyPreset = () => {
   if (selectedPreset.value !== "none") {
@@ -498,19 +527,6 @@ const insertTag = (code) => {
     icon: "success",
     title: `Đã chèn ${code}`,
     timer: 1000,
-    showConfirmButton: false,
-  });
-};
-
-const saveTemplate = () => {
-  if (activeTab.value === "visual") syncToHtml();
-  localStorage.setItem("pos36_print_template", printTemplate.value);
-  swal.fire({
-    toast: true,
-    position: "top-end",
-    icon: "success",
-    title: "Đã lưu mẫu in",
-    timer: 1500,
     showConfirmButton: false,
   });
 };

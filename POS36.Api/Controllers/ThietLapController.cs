@@ -56,7 +56,7 @@ namespace POS36.Api.Controllers
                 .Where(c => c.CuaHangId == cuaHangId)
                 .Select(c => new { c.Id, c.TenChiNhanh, c.DiaChi })
                 .ToListAsync();
-            
+
             return Ok(branches);
         }
 
@@ -136,6 +136,52 @@ namespace POS36.Api.Controllers
                 .ToListAsync();
 
             return Ok(soDo);
+        }
+        // ==========================================
+        // 5. LẤY CẤU HÌNH (NGÂN HÀNG, MẪU IN, V.V...)
+        // ==========================================
+        [HttpGet("{maThietLap}")]
+        public async Task<IActionResult> GetThietLap(string maThietLap)
+        {
+            int cuaHangId = GetCuaHangId();
+            var thietLap = await _context.ThietLaps
+                .FirstOrDefaultAsync(t => t.CuaHangId == cuaHangId && t.MaThietLap == maThietLap);
+
+            if (thietLap == null) return Ok(new { duLieu = "" }); // Nếu chưa có cấu hình thì trả về rỗng
+
+            return Ok(new { duLieu = thietLap.DuLieu });
+        }
+
+        // ==========================================
+        // 6. LƯU CẤU HÌNH (THÊM MỚI HOẶC CẬP NHẬT)
+        // ==========================================
+        [HttpPost]
+        public async Task<IActionResult> SaveThietLap([FromBody] ThietLapDataDto request)
+        {
+            int cuaHangId = GetCuaHangId();
+
+            // Tìm xem cửa hàng này đã lưu cấu hình này (VD: BankConfig) bao giờ chưa
+            var thietLap = await _context.ThietLaps
+                .FirstOrDefaultAsync(t => t.CuaHangId == cuaHangId && t.MaThietLap == request.MaThietLap);
+
+            if (thietLap == null)
+            {
+                // Chưa có thì tạo mới
+                _context.ThietLaps.Add(new ThietLap
+                {
+                    CuaHangId = cuaHangId,
+                    MaThietLap = request.MaThietLap,
+                    DuLieu = request.DuLieu
+                });
+            }
+            else
+            {
+                // Có rồi thì ghi đè dữ liệu mới
+                thietLap.DuLieu = request.DuLieu;
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Lưu thiết lập thành công" });
         }
     }
 }

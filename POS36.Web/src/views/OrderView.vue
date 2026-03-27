@@ -421,6 +421,42 @@
       </div>
     </div>
   </div>
+
+  <div
+    v-if="showQRModal"
+    class="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+    style="background-color: rgba(0, 0, 0, 0.7); z-index: 9999"
+  >
+    <div
+      class="bg-white p-4 rounded-4 shadow-lg text-center mx-3 fade-in"
+      style="width: 100%; max-width: 360px"
+    >
+      <h5 class="fw-bold text-danger mb-2">QUÉT MÃ THANH TOÁN</h5>
+      <div class="badge bg-secondary mb-3 fs-6 px-3 py-2 shadow-sm">
+        {{ qrData.tenBan }}
+      </div>
+
+      <div class="bg-white p-2 rounded-3 border mb-3 shadow-sm">
+        <img :src="qrData.url" class="img-fluid w-100" alt="QR Code" />
+      </div>
+
+      <h3 class="fw-bold text-primary mb-1">
+        {{ formatPrice(qrData.soTien) }}
+      </h3>
+      <p class="text-muted font-monospace mb-4">
+        Nội dung: <span class="fw-bold text-dark">{{ qrData.maChungTu }}</span>
+      </p>
+
+      <div class="d-flex gap-2">
+        <button
+          @click="huyHienThiQR"
+          class="btn btn-outline-secondary w-100 fw-bold py-2 rounded-3"
+        >
+          Hủy bỏ
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -439,7 +475,8 @@ const isMobile = ref(window.innerWidth < 768);
 const tenNhanVien = ref(
   localStorage.getItem("tenNhanVien") || "Nhân viên Order",
 );
-
+const showQRModal = ref(false);
+const qrData = ref({ url: "", soTien: 0, maChungTu: "", banId: null });
 const tables = ref([]);
 const notificationList = ref([]);
 const products = ref([]);
@@ -701,6 +738,17 @@ const logout = () => {
 
 // 1. Hàm tự động tìm đúng Chi nhánh đang làm việc
 const getBranchIdAndFetch = async () => {
+  // --- THÊM ĐOẠN NÀY ĐỂ ĐỒNG BỘ CẤU HÌNH NGÂN HÀNG TỪ CSDL VỀ MÁY ---
+  try {
+    const resConfig = await axios.get("/api/ThietLap/BankConfig");
+    if (resConfig.data && resConfig.data.duLieu) {
+      localStorage.setItem("pos36_bank_config", resConfig.data.duLieu);
+    }
+  } catch (e) {
+    console.log("Chưa có cấu hình NH");
+  }
+  // -----------------------------------------------------------------
+
   let branchId =
     globalState.value.activeBranchId ||
     localStorage.getItem("pos36_active_branch");
@@ -727,6 +775,46 @@ const getBranchIdAndFetch = async () => {
     await fetchProducts(branchId);
   }
 };
+
+// Lắng nghe lệnh yêu cầu mở QR từ Thu Ngân (SỬA LỖI KHÔNG HIỆN)
+// Lắng nghe lệnh yêu cầu mở QR
+connection.on("NhanYeuCauMoQR", (banId, soTien) => {
+  const table = tables.value.find((t) => t.id === banId);
+  const tenBanHienTai = table ? table.tenBan : `Bàn số ${banId}`;
+  const maChungTu = `POS36B${banId}`; // <--- MÃ MỚI SIÊU CHUẨN
+
+  const bankConfig = JSON.parse(
+    localStorage.getItem("pos36_bank_config") || "{}",
+  );
+  if (!bankConfig.bankId) return swal.fire("Lỗi", "Chưa thiết lập NH", "error");
+
+  const accountName = encodeURIComponent(bankConfig.accountName);
+  const url = `https://img.vietqr.io/image/${bankConfig.bankId}-${bankConfig.accountNo}-${bankConfig.template}.png?amount=${soTien}&addInfo=${maChungTu}&accountName=${accountName}`;
+
+  qrData.value = { url, soTien, maChungTu, banId, tenBan: tenBanHienTai };
+  showQRModal.value = true;
+});
+// Nhân viên chủ động bấm Hủy (Do khách muốn trả tiền mặt hoặc sai bill)
+const huyHienThiQR = () => {
+  showQRModal.value = false;
+  connection.invoke(
+    "HuyMoQR",
+    qrData.value.banId,
+    "Nhân viên/Khách hàng báo hủy",
+  );
+};
+
+// Lắng nghe tiền về thật (để tự đóng modal)
+connection.on("ThanhToanQRThanhCong", (banId) => {
+  if (qrData.value.banId === banId) {
+    showQRModal.value = false;
+    swal.fire(
+      "Thành công!",
+      "Hệ thống đã nhận được tiền chuyển khoản.",
+      "success",
+    );
+  }
+});
 </script>
 
 <style scoped>
