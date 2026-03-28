@@ -3,7 +3,7 @@ import { onMounted } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 import { globalState } from "../store";
-import AiCopilot from '../components/AiCopilot.vue';
+import AiCopilot from "../components/AiCopilot.vue";
 const router = useRouter();
 
 // Hàm kéo danh sách Chi nhánh từ API
@@ -179,11 +179,34 @@ onMounted(() => {
               >
                 <i class="bi bi-bar-chart-line me-1"></i> Báo cáo
               </a>
-              <ul class="dropdown-menu shadow-sm border-0">
+              <ul
+                class="dropdown-menu shadow border-0 mt-2"
+                aria-labelledby="baoCaoDropdown"
+              >
                 <li>
-                  <a class="dropdown-item" href="#">Tổng kết cuối ngày</a>
+                  <router-link
+                    to="/admin/daily-summary"
+                    class="dropdown-item py-2"
+                    >Tổng kết cuối ngày</router-link
+                  >
                 </li>
-                <li><a class="dropdown-item" href="#">Báo cáo bán hàng</a></li>
+                <li>
+                  <router-link
+                    to="/admin/sales-report"
+                    class="dropdown-item py-2"
+                    >Báo cáo bán hàng</router-link
+                  >
+                </li>
+                <li><hr class="dropdown-divider" /></li>
+                <li>
+                  <router-link
+                    to="/admin/ai-report"
+                    class="dropdown-item py-2 fw-bold text-primary"
+                  >
+                    <i class="bi bi-robot text-danger me-2"></i> Trợ lý AI Phân
+                    tích
+                  </router-link>
+                </li>
               </ul>
             </li>
           </ul>

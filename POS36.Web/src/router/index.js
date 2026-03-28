@@ -20,16 +20,14 @@ const routes = [
   // --- GIAO DIỆN QUẢN TRỊ (CÓ MENU CAM) ---
   {
     path: "/admin",
-    component: () => import("../views/AdminLayout.vue"), // File Layout chứa thanh Menu
+    component: () => import("../views/AdminLayout.vue"),
     meta: { requiresAuth: true },
     children: [
-      // Mặc định vào /admin sẽ load trang Tổng quan
       {
         path: "",
         name: "AdminOverview",
         component: () => import("../views/DashboardOverview.vue"),
       },
-      // Đường dẫn /admin/tables sẽ load chức năng Thiết lập bàn
       {
         path: "tables",
         name: "TableSetup",
@@ -40,19 +38,18 @@ const routes = [
         name: "ProductSetup",
         component: () => import("../views/ProductSetup.vue"),
       },
-      // Đường dẫn Thiết lập giá
       {
         path: "prices",
         name: "PriceSetup",
         component: () => import("../views/PriceSetup.vue"),
       },
       {
-        path: "import-stock", // Trang Danh sách
+        path: "import-stock",
         name: "ImportStock",
         component: () => import("../views/ImportStock.vue"),
       },
       {
-        path: "import-create", // Trang Thêm mới
+        path: "import-create",
         name: "ImportStockCreate",
         component: () => import("../views/CreateStock.vue"),
       },
@@ -62,9 +59,9 @@ const routes = [
         component: () => import("../views/EmployeeSetup.vue"),
       },
       {
-        path: "orders", // Thêm đường dẫn này
+        path: "orders",
         name: "admin-orders",
-        component: () => import("../views/OrderList.vue"), // Trỏ đến file vừa tạo
+        component: () => import("../views/OrderList.vue"),
       },
       {
         path: "inventory",
@@ -91,6 +88,23 @@ const routes = [
         name: "admin-bank-setup",
         component: () => import("../views/BankSetup.vue"),
       },
+      // ĐÃ FIX LỖI TÊN FILE AI REPORT
+      {
+        path: "ai-report",
+        name: "AiReport",
+        component: () => import("../views/AiReportView.vue"),
+      },
+      // THÊM 2 TRANG BÁO CÁO MỚI
+      {
+        path: "daily-summary",
+        name: "DailySummary",
+        component: () => import("../views/DailySummary.vue"),
+      },
+      {
+        path: "sales-report",
+        name: "SalesReport",
+        component: () => import("../views/SalesReport.vue"),
+      },
     ],
   },
 
@@ -113,8 +127,6 @@ const routes = [
     component: () => import("../views/KitchenView.vue"),
     meta: { requiresAuth: true },
   },
-
-  // Đường dẫn quản lý Thực đơn
 ];
 
 const router = createRouter({
@@ -122,32 +134,27 @@ const router = createRouter({
   routes,
 });
 
-// Vệ sĩ kiểm tra quyền truy cập (Chuẩn Vue Router 4 mới nhất)
-// NGƯỜI GÁC CỔNG (ROUTER GUARD) CHỐNG VƯỢT QUYỀN
+// NGƯỜI GÁC CỔNG (ROUTER GUARD) CHỐNG VƯỢT QUYỀN (Đã dọn dẹp code thừa)
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem("pos36_token");
   const role = localStorage.getItem("pos36_role");
 
-  // 1. Nếu trang cần bảo mật (tất cả trừ Login/Register) mà chưa có Token -> Đuổi ra Login
+  // 1. Nếu trang cần bảo mật mà chưa có Token -> Đuổi ra Login
   if (to.path !== "/login" && to.path !== "/register" && !token) {
     return next("/login");
   }
 
   // 2. CHẶN VƯỢT QUYỀN VÀO ADMIN
   if (to.path.startsWith("/admin")) {
-    // 2. CHẶN VƯỢT QUYỀN VÀO ADMIN
-    if (to.path.startsWith("/admin")) {
-      // NẾU KHÔNG PHẢI LÀ Admin, QuanLy, HOẶC ChuCuaHang THÌ BỊ ĐUỔI
-      if (role !== "Admin" && role !== "QuanLy" && role !== "ChuCuaHang") {
-        if (role === "ThuNgan") return next("/pos");
-        if (role === "Order") return next("/order");
-        if (role === "Bep") return next("/kitchen");
-        return next("/login"); // Không có quyền rõ ràng thì đuổi ra
-      }
+    // NẾU KHÔNG PHẢI LÀ Admin, QuanLy, HOẶC ChuCuaHang THÌ BỊ ĐUỔI
+    if (role !== "Admin" && role !== "QuanLy" && role !== "ChuCuaHang") {
+      if (role === "ThuNgan") return next("/pos");
+      if (role === "Order") return next("/order");
+      if (role === "Bep") return next("/kitchen");
+      return next("/login");
     }
   }
 
-  // Cho phép đi tiếp
   next();
 });
 
