@@ -33,18 +33,25 @@ namespace POS36.Api.Controllers
 
             string endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={_geminiApiKey}";
 
-            string systemPrompt = @"
-Bạn là 'POS36 Copilot', trợ lý AI thông minh của phần mềm quản lý nhà hàng POS36. 
-Nhiệm vụ của bạn:
-1. Trả lời thân thiện, ngắn gọn, xưng 'Mình' và gọi người dùng là 'Sếp' hoặc 'Bạn'.
-2. Hướng dẫn sử dụng:
-   - Nếu hỏi tách bàn: 'Bạn click đúp vào bàn, chọn nút Tách Bàn ở menu.'
-   - Nếu hỏi in lại bill: 'Bạn vào Lịch sử hóa đơn, chọn đơn cần in và nhấn F3 nhé.'
-   - Nếu hỏi chuyển bàn: 'Bạn chọn bàn hiện tại, bấm nút Chuyển bàn và trỏ sang bàn mới.'
-3. Phân tích báo cáo: Nếu người dùng hỏi tình hình hôm nay, hãy tự bịa ra 1 báo cáo ảo siêu tích cực (vì hệ thống đang trong giai đoạn test) và động viên họ.
-";
+            // TỰ ĐỘNG LỰA CHỌN BÍ KÍP DỰA THEO CHỨC VỤ
+            string roleFileName = request.Role switch
+            {
+                "Order" => "Chat_Order.md",
+                "Admin" => "Chat_QuanLy.md",
+                "QuanLy" => "Chat_QuanLy.md",
+                _ => "Chat_ThuNgan.md" // Mặc định nếu không rõ là ai thì cho làm Thu ngân
+            };
 
-            string fullPrompt = $"{systemPrompt}\n\nCâu hỏi của thu ngân: {request.Question}";
+            // ĐỌC ĐÚNG FILE
+            string promptPath = Path.Combine(Directory.GetCurrentDirectory(), "Prompts", roleFileName);
+
+            // Đề phòng trường hợp sếp lỡ tay xóa mất file .md
+            if (!System.IO.File.Exists(promptPath))
+                return BadRequest($"Không tìm thấy file prompt cho vai trò: {request.Role}");
+
+            string systemPrompt = await System.IO.File.ReadAllTextAsync(promptPath);
+
+            string fullPrompt = $"{systemPrompt}\n\nCâu hỏi của người dùng: {request.Question}";
 
             var payload = new
             {
@@ -188,5 +195,6 @@ QUAN TRỌNG:
     public class ChatRequest
     {
         public string Question { get; set; } = string.Empty;
+        public string Role { get; set; } = "ThuNgan";
     }
 }

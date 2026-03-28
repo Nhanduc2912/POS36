@@ -148,8 +148,9 @@ const sendAiMessage = async () => {
   scrollToBottom();
 
   try {
-    // 🔥 TUYỆT KỸ LÁCH LUẬT: Dùng fetch nguyên thủy thay vì axios để không bị dính cục Loading ở giữa màn hình
     const token = localStorage.getItem("token") || "";
+    // Lấy chức vụ thực tế của người đang đăng nhập
+    const userRole = localStorage.getItem("pos36_role") || "ThuNgan";
 
     const response = await fetch(`${backendUrl}/api/AIChat/ask`, {
       method: "POST",
@@ -157,7 +158,11 @@ const sendAiMessage = async () => {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ Question: question }),
+      // NHÉT THÊM ROLE VÀO ĐỂ C# BIẾT ĐƯỜNG ĐỌC FILE
+      body: JSON.stringify({
+        Question: question,
+        Role: userRole,
+      }),
     });
 
     if (!response.ok) throw new Error("Lỗi mạng");
