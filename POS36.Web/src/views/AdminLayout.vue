@@ -3,7 +3,7 @@ import { onMounted } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 import { globalState } from "../store";
-
+import AiCopilot from '../components/AiCopilot.vue';
 const router = useRouter();
 
 // Hàm kéo danh sách Chi nhánh từ API
@@ -285,6 +285,8 @@ onMounted(() => {
     </nav>
     <router-view></router-view>
   </div>
+
+  <AiCopilot />
 </template>
 
 <style scoped>

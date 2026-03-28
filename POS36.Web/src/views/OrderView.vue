@@ -457,6 +457,8 @@
       </div>
     </div>
   </div>
+
+  <AiCopilot />
 </template>
 
 <script setup>
@@ -466,7 +468,7 @@ import axios from "axios";
 import * as signalR from "@microsoft/signalr";
 import { Modal, Offcanvas } from "bootstrap";
 import { globalState } from "../store";
-
+import AiCopilot from "../components/AiCopilot.vue";
 const router = useRouter();
 const swal = inject("$swal");
 const backendUrl = "http://localhost:5198";

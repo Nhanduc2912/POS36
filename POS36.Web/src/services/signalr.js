@@ -1,4 +1,4 @@
-import * as signalR from '@microsoft/signalr';
+import * as signalR from "@microsoft/signalr";
 
 class SignalRService {
   constructor() {
@@ -9,15 +9,16 @@ class SignalRService {
     if (this.connection) return;
 
     this.connection = new signalR.HubConnectionBuilder()
-      .withUrl("http://localhost:5198/kitchenHub", {
-        accessTokenFactory: () => localStorage.getItem('token')
+      .withUrl("http://:5198/kitchenHub", {
+        accessTokenFactory: () => localStorage.getItem("token"),
       })
       .withAutomaticReconnect()
       .build();
 
-    this.connection.start()
+    this.connection
+      .start()
       .then(() => console.log("SignalR Connected."))
-      .catch(err => console.error("SignalR Connection Error: ", err));
+      .catch((err) => console.error("SignalR Connection Error: ", err));
   }
 
   on(eventName, callback) {
