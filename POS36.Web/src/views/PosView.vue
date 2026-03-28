@@ -374,9 +374,9 @@ const logout = () => {
 };
 
 // --- ĐẢO HÀM NÀY LÊN TRÊN ĐỂ KHÔNG BỊ LỖI IS NOT DEFINED ---
-const thucHienThanhToanChinhThuc = async (banId) => {
+const thucHienThanhToanChinhThuc = async (banId, phuongThuc) => {
   try {
-    await axios.post(`/api/HoaDon/thanhtoan/${banId}`);
+    await axios.post(`/api/HoaDon/thanhtoan/${banId}?phuongThuc=${phuongThuc}`);
 
     pendingPayments.value = pendingPayments.value.filter(
       (p) => p.banId !== banId,
@@ -405,6 +405,7 @@ const thucHienThanhToanChinhThuc = async (banId) => {
   }
 };
 
+// --- XỬ LÝ THANH TOÁN ---
 // --- XỬ LÝ THANH TOÁN ---
 const handleThanhToan = async () => {
   if (!activeTable.value || activeTable.value.trangThai === "Trống") return;
@@ -439,14 +440,13 @@ const handleThanhToan = async () => {
           phone: "0905",
         });
 
-        // Chốt đơn CSDL
-        thucHienThanhToanChinhThuc(banId);
+        // Chốt đơn CSDL với phương thức "Tiền mặt"
+        thucHienThanhToanChinhThuc(banId, "Tiền mặt");
       }
 
-      // 2. NẾU CHỌN QUÉT QR
+      // 2. NẾU CHỌN QUÉT QR (CHUYỂN KHOẢN)
       else if (result.isDenied) {
         if (connection.state === "Connected") {
-          // Bắn lệnh qua máy nhân viên (Truyền chuỗi rỗng vào tham số thứ 3 để hết lỗi C#)
           await connection.invoke("YeuCauMoQR", banId, soTien, "");
 
           pendingPayments.value.push({
@@ -455,7 +455,7 @@ const handleThanhToan = async () => {
             soTien: soTien,
           });
 
-          // IN HÓA ĐƠN TẠM TÍNH CHO KHÁCH (Đã mở khóa)
+          // In hóa đơn tạm tính
           const orderToPrint = {
             tenBan: activeTable.value.tenBan,
             tongTien: soTien,
@@ -499,10 +499,13 @@ connection.on("NhanHuyMoQR", (banId, lyDo) => {
 });
 
 // Lắng nghe Webhook báo Tiền về thành công
+// Lắng nghe Webhook báo Tiền về thành công
 connection.on("ThanhToanQRThanhCong", (banId) => {
-  // Lấy lại danh sách món ăn của bàn vừa thanh toán để in hóa đơn chính thức nếu cần
-  // (Ở đây vì đã in tạm tính lúc nãy rồi, tùy nghiệp vụ em có muốn in thêm 1 tờ lúc trả xong không thì gọi printReceipt ở đây)
-  thucHienThanhToanChinhThuc(banId);
+  swal.close(); // Đóng bảng chờ QR
+  setTimeout(() => {
+    // GỌI HÀM VÀ TRUYỀN RÕ CHỮ "Chuyển khoản" VÀO ĐÂY
+    thucHienThanhToanChinhThuc(banId, "Chuyển khoản");
+  }, 300);
 });
 </script>
 

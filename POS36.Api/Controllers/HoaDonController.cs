@@ -55,7 +55,6 @@ namespace POS36.Api.Controllers
                     hoaDon = new HoaDon
                     {
                         CuaHangId = cuaHangId,
-                        // Dùng dấu ? để an toàn. Nếu Bàn chưa có Khu vực thì tạm gán ChiNhanhId = 0
                         ChiNhanhId = ban.KhuVuc?.ChiNhanhId ?? 0,
                         BanId = request.BanId,
                         NgayTao = DateTime.Now,
@@ -82,7 +81,7 @@ namespace POS36.Api.Controllers
                         SanPhamId = mon.SanPhamId,
                         SoLuong = mon.SoLuong,
                         DonGia = sanPham.GiaBan,
-                        GhiChu = mon.GhiChu ?? "", // Chống Null ghi chú
+                        GhiChu = mon.GhiChu ?? "",
                         TrangThaiMon = "Chờ chế biến"
                     };
 
@@ -95,7 +94,6 @@ namespace POS36.Api.Controllers
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                // Bắn SignalR xuống bếp
                 if (_hubContext != null)
                 {
                     await _hubContext.Clients.All.SendAsync("CoDonHangMoi", new
@@ -173,10 +171,8 @@ namespace POS36.Api.Controllers
                 var hoaDon = await _context.HoaDons.FirstOrDefaultAsync(h => h.BanId == request.TuBanId && h.TrangThai == "Đang phục vụ" && h.CuaHangId == cuaHangId);
                 if (hoaDon == null) return BadRequest("Không tìm thấy hóa đơn của bàn chuyển đi.");
 
-                // Đổi bàn cho hóa đơn
                 hoaDon.BanId = request.DenBanId;
 
-                // Cập nhật trạng thái bàn
                 tuBan.TrangThai = "Trống";
                 denBan.TrangThai = "Đang phục vụ";
 
@@ -218,20 +214,16 @@ namespace POS36.Api.Controllers
 
                 if (hoaDonGoc == null || hoaDonDich == null) return BadRequest("Không tìm thấy thông tin hóa đơn.");
 
-                // Chuyển toàn bộ chi tiết món từ Hóa Đơn Gốc sang Hóa Đơn Đích
                 foreach (var chiTiet in hoaDonGoc.ChiTietHoaDons)
                 {
                     chiTiet.HoaDonId = hoaDonDich.Id;
                 }
 
-                // Cập nhật tổng tiền hóa đơn đích
                 hoaDonDich.TongTien += hoaDonGoc.TongTien;
 
-                // Xóa hóa đơn gốc hoặc đánh dấu là Đã hủy/Ghép
                 hoaDonGoc.TrangThai = "Đã Ghép Bàn";
-                hoaDonGoc.TongTien = 0; // Để không bị tính double vào doanh thu nếu query sai
+                hoaDonGoc.TongTien = 0;
 
-                // Cập nhật trạng thái bàn gốc
                 tuBan.TrangThai = "Trống";
 
                 await _context.SaveChangesAsync();
@@ -250,7 +242,7 @@ namespace POS36.Api.Controllers
         // 5. THANH TOÁN KẾT HỢP TRỪ KHO & TẠO PHIẾU THU SỔ QUỸ
         // ==========================================
         [HttpPost("thanhtoan/{banId}")]
-        public async Task<IActionResult> ThanhToan(int banId)
+        public async Task<IActionResult> ThanhToan(int banId, [FromQuery] string phuongThuc = "Tiền mặt")
         {
             int cuaHangId = GetCuaHangId();
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -264,8 +256,10 @@ namespace POS36.Api.Controllers
 
                 if (hoaDon == null) return BadRequest("Không tìm thấy hóa đơn đang phục vụ của bàn này!");
 
+                // CẬP NHẬT TRẠNG THÁI & PHƯƠNG THỨC TRƯỚC KHI GỌI SAVECHANGES
                 hoaDon.TrangThai = "Đã thanh toán";
                 hoaDon.NgayThanhToan = DateTime.Now;
+                hoaDon.PhuongThucThanhToan = phuongThuc;
 
                 if (hoaDon.Ban != null)
                 {
@@ -296,7 +290,7 @@ namespace POS36.Api.Controllers
                     ChiNhanhId = hoaDon.ChiNhanhId,
                     MaChungTu = $"PT{DateTime.Now:ddMMyy}-{new Random().Next(1000, 9999)}",
                     LoaiPhieu = "Thu",
-                    PhuongThuc = "Tiền mặt",
+                    PhuongThuc = phuongThuc, // Đồng bộ phương thức
                     NguoiNopNhan = "Khách hàng lẻ",
                     HangMuc = "Thu tiền bán hàng",
                     LyDo = $"Thanh toán hóa đơn cho {hoaDon.Ban?.TenBan ?? "Bàn ảo"}",
@@ -306,10 +300,10 @@ namespace POS36.Api.Controllers
                 };
                 _context.PhieuThuChis.Add(phieuThu);
 
+                // LƯU DB 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                // --- ĐÂY LÀ ĐOẠN GIÚP GIAO DIỆN TỰ CẬP NHẬT ---
                 // Mượn luôn sự kiện CoDonHangMoi để kích hoạt hàm fetchTables bên Vue tải lại màu sắc của Bàn
                 if (_hubContext != null)
                 {
@@ -324,6 +318,7 @@ namespace POS36.Api.Controllers
                 return StatusCode(500, "Lỗi khi thanh toán: " + ex.Message);
             }
         }
+
         // ==========================================
         // 6. LẤY MÓN CHỜ CHẾ BIẾN (CHO MÀN HÌNH BẾP)
         // ==========================================
@@ -338,7 +333,6 @@ namespace POS36.Api.Controllers
                     .Where(c => c.HoaDon != null
                                 && c.HoaDon.ChiNhanhId == chiNhanhId
                                 && c.HoaDon.CuaHangId == cuaHangId
-                                // SỬA CHỖ NÀY: Cho phép lấy cả hóa đơn "Đang phục vụ" LẪN "Đã thanh toán"
                                 && (c.HoaDon.TrangThai == "Đang phục vụ" || c.HoaDon.TrangThai == "Đã thanh toán")
                                 && c.TrangThaiMon == "Chờ chế biến")
                     .Select(c => new
@@ -373,6 +367,7 @@ namespace POS36.Api.Controllers
                 return StatusCode(500, "Lỗi server: " + ex.Message);
             }
         }
+
         // ==========================================
         // 7. BẾP XÁC NHẬN ĐÃ LÀM XONG
         // ==========================================
@@ -385,7 +380,6 @@ namespace POS36.Api.Controllers
             chiTiet.TrangThaiMon = "Đã Xong";
             await _context.SaveChangesAsync();
 
-            // Bắn tín hiệu lại cho Order biết ra bưng đồ
             await _hubContext.Clients.All.SendAsync("MonAnDaXong", new
             {
                 banId = chiTiet.HoaDon!.BanId,
@@ -411,19 +405,15 @@ namespace POS36.Api.Controllers
                     .ThenInclude(c => c.SanPham)
                     .Where(h => h.CuaHangId == cuaHangId);
 
-                // 1. Lọc theo Chi Nhánh
                 if (chiNhanhId > 0) query = query.Where(h => h.ChiNhanhId == chiNhanhId);
 
-                // 2. Lọc theo Trạng thái
                 if (!string.IsNullOrEmpty(status)) query = query.Where(h => h.TrangThai == status);
 
-                // 3. Lọc theo Ngày tháng
                 if (!string.IsNullOrEmpty(startDate) && DateTime.TryParse(startDate, out var start))
                     query = query.Where(h => h.NgayTao >= start.Date);
                 if (!string.IsNullOrEmpty(endDate) && DateTime.TryParse(endDate, out var end))
                     query = query.Where(h => h.NgayTao <= end.Date.AddDays(1).AddTicks(-1));
 
-                // 4. Lấy dữ liệu và nhét chi tiết món ăn vào
                 var list = await query
                     .OrderByDescending(h => h.NgayTao)
                     .Select(h => new
@@ -446,7 +436,6 @@ namespace POS36.Api.Controllers
                     })
                     .ToListAsync();
 
-                // 5. Lọc thêm theo Mã Chứng Từ (Lọc trên RAM để xử lý chuỗi động)
                 if (!string.IsNullOrEmpty(search))
                 {
                     search = search.ToLower();
@@ -460,6 +449,7 @@ namespace POS36.Api.Controllers
                 return StatusCode(500, "Lỗi server: " + ex.Message);
             }
         }
+
         public class HuyMonDto
         {
             public int ChiTietId { get; set; }
@@ -476,7 +466,6 @@ namespace POS36.Api.Controllers
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Tìm món ăn kèm thông tin Hóa Đơn và Bàn
                 var chiTiet = await _context.ChiTietHoaDons
                     .Include(c => c.HoaDon)
                     .ThenInclude(h => h.Ban)
@@ -486,33 +475,28 @@ namespace POS36.Api.Controllers
 
                 var hoaDon = chiTiet.HoaDon;
 
-                // Tính toán số tiền bị trừ
                 decimal tienBiTru = chiTiet.DonGia * request.SoLuongHuy;
                 hoaDon!.TongTien -= tienBiTru;
 
-                // Nếu hủy hết số lượng thì xóa luôn dòng đó
                 if (request.SoLuongHuy >= chiTiet.SoLuong)
                 {
                     _context.ChiTietHoaDons.Remove(chiTiet);
-                    await _context.SaveChangesAsync(); // Lưu để EF Core thực sự xóa món này đi
+                    await _context.SaveChangesAsync();
 
-                    // KIỂM TRA ĐÓNG BÀN: Xem hóa đơn này còn sót lại món nào không?
                     bool conMonNaoKhong = await _context.ChiTietHoaDons.AnyAsync(c => c.HoaDonId == hoaDon.Id);
 
-                    // Nếu không còn món nào -> Bàn trống, Hóa đơn hủy!
                     if (!conMonNaoKhong)
                     {
-                        hoaDon.TrangThai = "Đã hủy"; // Đổi trạng thái hóa đơn thành rác
+                        hoaDon.TrangThai = "Đã hủy";
                         if (hoaDon.Ban != null)
                         {
-                            hoaDon.Ban.TrangThai = "Trống"; // Trả lại bàn trống cho khách khác vào
+                            hoaDon.Ban.TrangThai = "Trống";
                         }
-                        await _context.SaveChangesAsync(); // Lưu cập nhật bàn
+                        await _context.SaveChangesAsync();
                     }
                 }
                 else
                 {
-                    // Nếu chỉ trừ đi 1 vài ly (Ví dụ gọi 3 ly, hủy 1 ly)
                     chiTiet.SoLuong -= request.SoLuongHuy;
                     await _context.SaveChangesAsync();
                 }

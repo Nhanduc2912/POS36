@@ -10,7 +10,8 @@ namespace POS36.Api.Models
         public int ChiNhanhId { get; set; }
         public int BanId { get; set; }
         public int? NhanVienId { get; set; } // Ai mở bàn
-
+                                             // Thêm cột này vào class HoaDon
+        public string PhuongThucThanhToan { get; set; } = "Chưa thanh toán";
         public DateTime NgayTao { get; set; } = DateTime.Now;
         public DateTime? NgayThanhToan { get; set; }
         public decimal TongTien { get; set; }
