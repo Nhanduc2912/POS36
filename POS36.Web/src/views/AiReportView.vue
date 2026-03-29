@@ -88,11 +88,8 @@ const reportHtml = ref("");
 const isLoading = ref(false);
 const reportContainer = ref(null);
 
-// Lấy Token từ LocalStorage để bảo mật API
-const getAuthHeaders = () => {
-  const token = localStorage.getItem("token");
-  return { headers: { Authorization: `Bearer ${token}` } };
-};
+// 👉 SỬA CHỖ NÀY ĐỂ TRỎ VỀ ĐÚNG BACKEND IP (GIỐNG BÊN AICOPILOT.VUE)
+const backendUrl = "http://localhost:5198"; // Sếp nhớ đổi thành IP mạng LAN (ví dụ 192.168.1.xxx:5198) nếu test trên máy khác
 
 const generateReport = async () => {
   if (!prompt.value.trim()) return;
@@ -101,12 +98,12 @@ const generateReport = async () => {
 
   try {
     const token =
-      localStorage.getItem("token") ||
       localStorage.getItem("pos36_token") ||
+      localStorage.getItem("token") ||
       "";
 
-    // DÙNG LỆNH FETCH NGUYÊN THỦY ĐỂ NÉ AXIOS INTERCEPTOR (Tiêu diệt cục loading ở giữa)
-    const response = await fetch("/api/AIChat/report", {
+    // CỘNG THÊM backendUrl VÀO TRƯỚC URL API
+    const response = await fetch(`${backendUrl}/api/AIChat/report`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -120,7 +117,7 @@ const generateReport = async () => {
     const data = await response.json();
     reportHtml.value = data.htmlReport;
   } catch (error) {
-    alert("Lỗi tạo báo cáo. Vui lòng thử lại!");
+    alert("Lỗi tạo báo cáo. Sếp kiểm tra lại kết nối mạng hoặc thử lại nhé!");
   } finally {
     isLoading.value = false;
   }
@@ -130,7 +127,6 @@ const generateReport = async () => {
 // TUYỆT KỸ XUẤT FILE TỪ TRÌNH DUYỆT (KHÔNG CẦN THƯ VIỆN)
 // ==========================================
 const exportToExcel = () => {
-  // Thêm style cho thẻ table để Excel nhận diện đường viền
   let htmlContent = reportContainer.value.innerHTML;
   let excelFormat = `
         <html xmlns:x="urn:schemas-microsoft-com:office:excel">
