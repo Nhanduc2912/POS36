@@ -107,7 +107,7 @@ namespace POS36.Api.Controllers
         }
 
         // ========================================================
-        // 3. API BÁO CÁO AI (LẤY DỮ LIỆU TOÀN CẢNH)
+        // 3. API BÁO CÁO AI (ĐÃ NÂNG CẤP DỮ LIỆU TUẦN & TÁCH TIỀN)
         // ========================================================
         [HttpPost("report")]
         public async Task<IActionResult> GenerateReport([FromBody] AiReportRequest request)
@@ -118,20 +118,36 @@ namespace POS36.Api.Controllers
                 var now = DateTime.Now;
                 var startOfMonth = new DateTime(now.Year, now.Month, 1);
 
+                // Thuật toán tìm ngày đầu tuần (Thứ 2)
+                int diff = (7 + (now.DayOfWeek - DayOfWeek.Monday)) % 7;
+                var startOfWeek = now.Date.AddDays(-1 * diff);
+
                 var queryHoaDon = _context.HoaDons.Where(h => h.CuaHangId == cuaHangId && h.TrangThai == "Đã thanh toán");
 
-                // 1. KÉO DỮ LIỆU THỐNG KÊ TOÀN CẢNH TỪ SQL SERVER
-                decimal tongDoanhThuLichSu = await queryHoaDon.SumAsync(h => h.TongTien);
-                decimal doanhThuThangNay = await queryHoaDon.Where(h => h.NgayTao >= startOfMonth).SumAsync(h => h.TongTien);
-                decimal doanhThuHomNay = await queryHoaDon.Where(h => h.NgayTao >= now.Date).SumAsync(h => h.TongTien);
-                int tongSoDonLichSu = await queryHoaDon.CountAsync();
+                // --- TÍNH TOÁN DỮ LIỆU TỪNG THỜI KỲ ---
+                // 1. Toàn thời gian
+                decimal tongDoanhThu = await queryHoaDon.SumAsync(h => h.TongTien);
+                int tongDon = await queryHoaDon.CountAsync();
 
-                // Phân loại doanh thu hôm nay
-                var hoaDonsHomNay = await queryHoaDon.Where(h => h.NgayTao >= now.Date).ToListAsync();
-                decimal tienMatHomNay = hoaDonsHomNay.Where(h => h.PhuongThucThanhToan == "Tiền mặt").Sum(h => h.TongTien);
-                decimal chuyenKhoanHomNay = hoaDonsHomNay.Where(h => h.PhuongThucThanhToan == "Chuyển khoản").Sum(h => h.TongTien);
+                // 2. Tháng này
+                var hdThang = await queryHoaDon.Where(h => h.NgayTao >= startOfMonth).ToListAsync();
+                decimal dtThang = hdThang.Sum(h => h.TongTien);
+                decimal ckThang = hdThang.Where(h => h.PhuongThucThanhToan == "Chuyển khoản").Sum(h => h.TongTien);
+                decimal tmThang = hdThang.Where(h => h.PhuongThucThanhToan == "Tiền mặt").Sum(h => h.TongTien);
 
-                // Lấy Top 5 món "Gánh Team" từ trước đến nay
+                // 3. Tuần này
+                var hdTuan = hdThang.Where(h => h.NgayTao >= startOfWeek).ToList();
+                decimal dtTuan = hdTuan.Sum(h => h.TongTien);
+                decimal ckTuan = hdTuan.Where(h => h.PhuongThucThanhToan == "Chuyển khoản").Sum(h => h.TongTien);
+                decimal tmTuan = hdTuan.Where(h => h.PhuongThucThanhToan == "Tiền mặt").Sum(h => h.TongTien);
+
+                // 4. Hôm nay
+                var hdHomNay = hdTuan.Where(h => h.NgayTao >= now.Date).ToList();
+                decimal dtHomNay = hdHomNay.Sum(h => h.TongTien);
+                decimal ckHomNay = hdHomNay.Where(h => h.PhuongThucThanhToan == "Chuyển khoản").Sum(h => h.TongTien);
+                decimal tmHomNay = hdHomNay.Where(h => h.PhuongThucThanhToan == "Tiền mặt").Sum(h => h.TongTien);
+
+                // Lấy Top 5 món 
                 var top5MonAllTime = await _context.ChiTietHoaDons
                     .Where(ct => ct.HoaDon!.CuaHangId == cuaHangId && ct.HoaDon.TrangThai == "Đã thanh toán")
                     .GroupBy(ct => ct.SanPham!.TenSanPham ?? "Khác")
@@ -139,29 +155,19 @@ namespace POS36.Api.Controllers
                     .OrderByDescending(x => x.SL)
                     .Take(5)
                     .ToListAsync();
+                string topMonString = top5MonAllTime.Any() ? string.Join(", ", top5MonAllTime.Select(x => $"{x.Ten} ({x.SL})")) : "Chưa có";
 
-                string topMonString = top5MonAllTime.Any() ? string.Join(", ", top5MonAllTime.Select(x => $"{x.Ten} ({x.SL})")) : "Chưa có dữ liệu";
-
-                // 2. ÉP THÀNH CHUỖI DỮ LIỆU "KHỦNG" CHO AI
+                // ĐÓNG GÓI DỮ LIỆU ĐỂ BƠM CHO AI
                 string rawData = $@"
-DỮ LIỆU LỊCH SỬ KINH DOANH TOÀN DIỆN TÍNH ĐẾN {now:dd/MM/yyyy}:
-- Tổng doanh thu lịch sử (All-time): {tongDoanhThuLichSu:N0} VND
-- Số lượng hóa đơn lịch sử: {tongSoDonLichSu} đơn
-- Doanh thu tháng hiện tại: {doanhThuThangNay:N0} VND
-- Doanh thu riêng hôm nay: {doanhThuHomNay:N0} VND (Tiền mặt: {tienMatHomNay:N0} VND, Chuyển khoản: {chuyenKhoanHomNay:N0} VND)
-- TOP 5 MÓN BÁN CHẠY NHẤT LỊCH SỬ: {topMonString}
+DỮ LIỆU KINH DOANH TÍNH ĐẾN {now:dd/MM/yyyy}:
+[LỊCH SỬ] Doanh thu: {tongDoanhThu:N0} VND ({tongDon} đơn). TOP 5 MÓN: {topMonString}
+[THÁNG NÀY] Doanh thu: {dtThang:N0} VND (Tiền mặt: {tmThang:N0}, Chuyển khoản: {ckThang:N0})
+[TUẦN NÀY] Doanh thu: {dtTuan:N0} VND (Tiền mặt: {tmTuan:N0}, Chuyển khoản: {ckTuan:N0})
+[HÔM NAY] Doanh thu: {dtHomNay:N0} VND (Tiền mặt: {tmHomNay:N0}, Chuyển khoản: {ckHomNay:N0})
 ";
 
-                string systemPrompt = "";
                 string promptPath = Path.Combine(Directory.GetCurrentDirectory(), "Prompts", "ReportCopilot.md");
-                if (System.IO.File.Exists(promptPath))
-                {
-                    systemPrompt = await System.IO.File.ReadAllTextAsync(promptPath);
-                }
-                else
-                {
-                    systemPrompt = "Bạn là Chuyên gia dữ liệu. Trình bày báo cáo bằng bảng HTML. Phân tích số liệu và đưa ra chiến lược kinh doanh.";
-                }
+                string systemPrompt = System.IO.File.Exists(promptPath) ? await System.IO.File.ReadAllTextAsync(promptPath) : "Trả lời dưới dạng HTML.";
 
                 string fullPrompt = $"{systemPrompt}\n\n{rawData}\n\nYêu cầu của người dùng: {request.Prompt}";
                 string endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={_geminiApiKey}";
@@ -179,7 +185,6 @@ DỮ LIỆU LỊCH SỬ KINH DOANH TOÀN DIỆN TÍNH ĐẾN {now:dd/MM/yyyy}:
                 var aiText = doc.RootElement.GetProperty("candidates")[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString();
 
                 aiText = aiText!.Replace("```html", "").Replace("```", "").Trim();
-
                 return Ok(new { htmlReport = aiText });
             }
             catch (Exception ex)
