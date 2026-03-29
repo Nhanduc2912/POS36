@@ -37,8 +37,8 @@ namespace POS36.Api.Controllers
             string roleFileName = request.Role switch
             {
                 "Order" => "Chat_Order.md",
-                "Admin" => "Chat_QuanLy.md",
-                "QuanLy" => "Chat_QuanLy.md",
+                "ChuCuaHang" => "Chat_QuanLy.md",
+                "ThuNgan" => "Chat_ThuNgan.md",
                 _ => "Chat_ThuNgan.md" // Mặc định nếu không rõ là ai thì cho làm Thu ngân
             };
 

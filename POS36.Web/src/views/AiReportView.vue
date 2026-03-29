@@ -100,12 +100,25 @@ const generateReport = async () => {
   reportHtml.value = "";
 
   try {
-    const res = await axios.post(
-      "/api/AIChat/report",
-      { Prompt: prompt.value },
-      getAuthHeaders(),
-    );
-    reportHtml.value = res.data.htmlReport;
+    const token =
+      localStorage.getItem("token") ||
+      localStorage.getItem("pos36_token") ||
+      "";
+
+    // DÙNG LỆNH FETCH NGUYÊN THỦY ĐỂ NÉ AXIOS INTERCEPTOR (Tiêu diệt cục loading ở giữa)
+    const response = await fetch("/api/AIChat/report", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ Prompt: prompt.value }),
+    });
+
+    if (!response.ok) throw new Error("Lỗi gọi AI");
+
+    const data = await response.json();
+    reportHtml.value = data.htmlReport;
   } catch (error) {
     alert("Lỗi tạo báo cáo. Vui lòng thử lại!");
   } finally {

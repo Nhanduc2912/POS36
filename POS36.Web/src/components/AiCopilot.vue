@@ -48,16 +48,12 @@
             </div>
           </div>
 
-          <div
-            class="p-2 px-3 rounded-4 shadow-sm"
-            style="max-width: 85%; font-size: 0.9rem; line-height: 1.5"
-            :class="
-              msg.role === 'user'
-                ? 'bg-primary text-white text-end'
-                : 'bg-white text-dark border'
-            "
+          <div 
+            class="p-2 px-3 rounded-4 shadow-sm" 
+            style="max-width: 85%; font-size: 0.9rem; line-height: 1.5;"
+            :class="msg.role === 'user' ? 'bg-primary text-white text-end' : 'bg-white text-dark border'"
+            v-html="formatMessage(msg.text)"
           >
-            {{ msg.text }}
           </div>
         </div>
 
@@ -178,6 +174,18 @@ const sendAiMessage = async () => {
     isAiTyping.value = false;
     scrollToBottom();
   }
+};
+
+// HÀM DỊCH MARKDOWN CỦA AI THÀNH HTML (In đậm & Xuống dòng)
+const formatMessage = (text) => {
+  if (!text) return "";
+  // 1. Biến **chữ** thành thẻ <b>chữ</b>
+  let html = text.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
+  // 2. Biến dấu * (danh sách) thành dấu gạch đầu dòng
+  html = html.replace(/\* (.*?)\n/g, "• $1<br/>");
+  // 3. Biến phím Enter (\n) thành thẻ <br/>
+  html = html.replace(/\n/g, "<br/>");
+  return html;
 };
 </script>
 
