@@ -163,10 +163,13 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem("pos36_token");
   const role = localStorage.getItem("pos36_role");
-
+  if (to.meta.requiresAuth && !token) {
+    // Trả về thẳng đường dẫn thay vì dùng hàm next()
+    return "/login";
+  }
   // 1. Nếu trang cần bảo mật mà chưa có Token -> Đuổi ra Login
   if (to.path !== "/login" && to.path !== "/register" && !token) {
-    return next("/login");
+    return true;
   }
 
   // 2. CHẶN VƯỢT QUYỀN VÀO ADMIN

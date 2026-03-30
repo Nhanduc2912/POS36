@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 using POS36.Api.Data;
 using POS36.Api.DTOs;
 using POS36.Api.Models;
@@ -176,7 +177,7 @@ namespace POS36.Api.Controllers
 
             _context.SanPhams.Add(newSanPham);
             await _context.SaveChangesAsync();
-
+            Log.Information("📦 Đã thêm sản phẩm mới: {TenSanPham} (Giá: {GiaBan} VND)", request.TenSanPham, request.GiaBan);
             return Ok(new { message = "Thêm thành công!", id = newSanPham.Id });
         }
         // 6. CẬP NHẬT GIÁ BÁN SIÊU TỐC

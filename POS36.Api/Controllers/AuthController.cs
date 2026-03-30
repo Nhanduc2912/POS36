@@ -6,6 +6,7 @@ using POS36.Api.Models;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using Serilog;
 using System.Text;
 
 namespace POS36.Api.Controllers
@@ -71,6 +72,7 @@ namespace POS36.Api.Controllers
 
             _context.TaiKhoans.Add(newTaiKhoan);
             await _context.SaveChangesAsync();
+            Log.Information("👤 Tài khoản {TenDangNhap} vừa ĐĂNG KÝ thành công vào hệ thống.", request.TenDangNhap);
 
             return Ok(new { message = "Đăng ký cửa hàng thành công!", cuaHangId = newCuaHang.Id });
         }
@@ -113,7 +115,7 @@ namespace POS36.Api.Controllers
             );
 
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);
-
+            Log.Information("👤 Tài khoản {TenDangNhap} vừa ĐĂNG NHẬP thành công vào hệ thống.", request.TenDangNhap);
             // Trả Token về cho người dùng
             return Ok(new { token = jwt, role = user.VaiTro });
         }

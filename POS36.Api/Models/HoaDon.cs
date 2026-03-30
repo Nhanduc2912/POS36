@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
+
 namespace POS36.Api.Models
 {
     public class HoaDon

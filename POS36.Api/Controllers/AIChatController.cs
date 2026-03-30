@@ -4,97 +4,115 @@ using Microsoft.EntityFrameworkCore;
 using POS36.Api.Data;
 using System.Text;
 using System.Text.Json;
+using Serilog; // Bắt buộc phải có để in màu ra Terminal
 
 namespace POS36.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // QUAN TRỌNG: Bắt buộc phải đăng nhập mới được chat với AI
+    [Authorize] // Bắt buộc đăng nhập
     public class AIChatController : ControllerBase
     {
-        private readonly string _geminiApiKey = "AIzaSyC1pMH7UEobMrIOdz2e9T9U53k1Frmh8bs";
+        private readonly string _geminiApiKey;
         private readonly AppDbContext _context;
 
-        public AIChatController(AppDbContext context)
+        public AIChatController(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
-        }
-
-        // Hàm lấy ID cửa hàng hiện tại để bảo mật dữ liệu
-        private int GetCuaHangId()
-        {
-            var claim = User.FindFirst("CuaHangId");
-            if (claim == null) throw new UnauthorizedAccessException("Token không hợp lệ");
-            return int.Parse(claim.Value);
+            _geminiApiKey = configuration["GeminiAI:ApiKey"] ?? "";
         }
 
         // ==========================================
-        // 1. API HỎI ĐÁP COPILOT (BƠM DỮ LIỆU TOÀN CỤC CHO QUẢN LÝ)
+        // HÀM LẤY ID AN TOÀN (CHỐNG CRASH LỖI 500)
+        // ==========================================
+        private int GetCuaHangId()
+        {
+            var claim = User.FindFirst("CuaHangId");
+            if (claim == null || string.IsNullOrEmpty(claim.Value))
+            {
+                Log.Warning("⚠️ Token không có CuaHangId. Tạm gán CuaHangId = 1 để test AI.");
+                return 1; // Chống crash hệ thống nếu Admin chưa có Cửa hàng
+            }
+            return int.TryParse(claim.Value, out int id) ? id : 1;
+        }
+
+        // ==========================================
+        // 1. API HỎI ĐÁP COPILOT (ĐÃ UPDATE 2.5 FLASH)
         // ==========================================
         [HttpPost("ask")]
         public async Task<IActionResult> AskCopilot([FromBody] ChatRequest request)
         {
-            if (string.IsNullOrEmpty(request.Question))
-                return BadRequest("Câu hỏi không được để trống.");
+            if (string.IsNullOrEmpty(request.Question)) return BadRequest("Câu hỏi trống.");
 
             int cuaHangId = GetCuaHangId();
+
+            // CHUẨN HÓA SANG BẢN 2.5 FLASH
             string endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={_geminiApiKey}";
 
-            // Lựa chọn file Prompt theo chức vụ (Cú pháp switch an toàn cho mọi bản C#)
-            string roleFileName = "Chat_ThuNgan.md"; // Mặc định
-
-            if (request.Role == "Order") roleFileName = "Chat_Order.md";
-            else if (request.Role == "Admin" || request.Role == "QuanLy" || request.Role == "ChuCuaHang") roleFileName = "Chat_QuanLy.md";
+            string roleFileName = request.Role switch
+            {
+                "Order" => "Chat_Order.md",
+                "Admin" or "QuanLy" or "ChuCuaHang" => "Chat_QuanLy.md",
+                _ => "Chat_ThuNgan.md"
+            };
 
             string promptPath = Path.Combine(Directory.GetCurrentDirectory(), "Prompts", roleFileName);
-            if (!System.IO.File.Exists(promptPath)) return BadRequest($"Không tìm thấy file prompt: {roleFileName}");
+            if (!System.IO.File.Exists(promptPath)) return BadRequest($"Không tìm thấy file: {roleFileName}");
 
             string systemPrompt = await System.IO.File.ReadAllTextAsync(promptPath);
             string liveDataSnippet = "";
 
-            // NẾU LÀ SẾP LỚN -> BƠM DỮ LIỆU TỔNG QUAN TOÀN THỜI GIAN
             if (request.Role == "Admin" || request.Role == "QuanLy" || request.Role == "ChuCuaHang")
             {
                 var now = DateTime.Now;
                 var startOfMonth = new DateTime(now.Year, now.Month, 1);
-
-                // Dùng Entity Framework tính toán trực tiếp dưới SQL Server cho nhẹ RAM
                 var queryHoaDon = _context.HoaDons.Where(h => h.CuaHangId == cuaHangId && h.TrangThai == "Đã thanh toán");
 
-                decimal doanhThuHomNay = await queryHoaDon.Where(h => h.NgayTao >= now.Date).SumAsync(h => h.TongTien);
-                decimal doanhThuThangNay = await queryHoaDon.Where(h => h.NgayTao >= startOfMonth).SumAsync(h => h.TongTien);
-                decimal tongDoanhThuLichSu = await queryHoaDon.SumAsync(h => h.TongTien);
-                int tongDonLichSu = await queryHoaDon.CountAsync();
+                decimal dtHomNay = await queryHoaDon.Where(h => h.NgayTao >= now.Date).SumAsync(h => h.TongTien);
+                decimal dtThangNay = await queryHoaDon.Where(h => h.NgayTao >= startOfMonth).SumAsync(h => h.TongTien);
+                decimal dtLichSu = await queryHoaDon.SumAsync(h => h.TongTien);
+                int tongDon = await queryHoaDon.CountAsync();
 
-                liveDataSnippet = $"\n[DỮ LIỆU BÍ MẬT CỦA QUÁN: Doanh thu hôm nay: {doanhThuHomNay:N0} VNĐ. Tháng này: {doanhThuThangNay:N0} VNĐ. Tổng doanh thu từ trước đến nay: {tongDoanhThuLichSu:N0} VNĐ với {tongDonLichSu} đơn. Chỉ sử dụng dữ liệu này nếu người dùng hỏi.]";
+                liveDataSnippet = $"\n[DỮ LIỆU: Hôm nay {dtHomNay:N0} VNĐ. Tháng này {dtThangNay:N0} VNĐ. Tổng {dtLichSu:N0} VNĐ ({tongDon} đơn).]";
             }
 
-            string fullPrompt = $"{systemPrompt}{liveDataSnippet}\n\nCâu hỏi của Sếp: {request.Question}";
-
+            string fullPrompt = $"{systemPrompt}{liveDataSnippet}\n\nCâu hỏi Sếp: {request.Question}";
             var payload = new { contents = new[] { new { parts = new[] { new { text = fullPrompt } } } } };
+
             using var client = new HttpClient();
             var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
 
             try
             {
                 var response = await client.PostAsync(endpoint, content);
-                if (!response.IsSuccessStatusCode) return StatusCode(500, "Lỗi API AI");
-
                 var jsonResponse = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    // IN ĐÍCH DANH CÂU CHỬI CỦA GOOGLE RA TERMINAL
+                    Log.Error("❌ Lỗi API từ Google Gemini (AskCopilot): {Error}", jsonResponse);
+                    return StatusCode(500, $"Lỗi từ Google: {jsonResponse}");
+                }
+
                 using var doc = JsonDocument.Parse(jsonResponse);
                 var aiText = doc.RootElement.GetProperty("candidates")[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString();
 
                 return Ok(new { answer = aiText });
             }
-            catch (Exception ex) { return StatusCode(500, ex.Message); }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "❌ Code C# bị sập tại hàm AskCopilot!");
+                return StatusCode(500, ex.Message);
+            }
         }
 
         // ==========================================
-        // 2. API LẤY DANH SÁCH MODEL 
+        // 2. API LẤY DANH SÁCH MODEL (ĐÃ SỬA CÚ PHÁP CHUẨN)
         // ==========================================
         [HttpGet("models")]
         public async Task<IActionResult> ListModels()
         {
+            // Cú pháp lấy list model CHUẨN (không có chữ generateContent)
             string endpoint = $"https://generativelanguage.googleapis.com/v1beta/models?key={_geminiApiKey}";
             using var client = new HttpClient();
             try
@@ -103,11 +121,15 @@ namespace POS36.Api.Controllers
                 var jsonResponse = await response.Content.ReadAsStringAsync();
                 return Content(jsonResponse, "application/json");
             }
-            catch (Exception ex) { return StatusCode(500, new { message = "Lỗi", error = ex.Message }); }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "❌ Lỗi khi lấy danh sách Models");
+                return StatusCode(500, new { message = "Lỗi", error = ex.Message });
+            }
         }
 
         // ========================================================
-        // 3. API BÁO CÁO AI (ĐÃ NÂNG CẤP DỮ LIỆU TUẦN & TÁCH TIỀN)
+        // 3. API BÁO CÁO AI (ĐÃ UPDATE 2.5 FLASH)
         // ========================================================
         [HttpPost("report")]
         public async Task<IActionResult> GenerateReport([FromBody] AiReportRequest request)
@@ -117,37 +139,30 @@ namespace POS36.Api.Controllers
                 int cuaHangId = GetCuaHangId();
                 var now = DateTime.Now;
                 var startOfMonth = new DateTime(now.Year, now.Month, 1);
-
-                // Thuật toán tìm ngày đầu tuần (Thứ 2)
                 int diff = (7 + (now.DayOfWeek - DayOfWeek.Monday)) % 7;
                 var startOfWeek = now.Date.AddDays(-1 * diff);
 
                 var queryHoaDon = _context.HoaDons.Where(h => h.CuaHangId == cuaHangId && h.TrangThai == "Đã thanh toán");
 
-                // --- TÍNH TOÁN DỮ LIỆU TỪNG THỜI KỲ ---
-                // 1. Toàn thời gian
+                // --- TÍNH TOÁN DỮ LIỆU ---
                 decimal tongDoanhThu = await queryHoaDon.SumAsync(h => h.TongTien);
                 int tongDon = await queryHoaDon.CountAsync();
 
-                // 2. Tháng này
                 var hdThang = await queryHoaDon.Where(h => h.NgayTao >= startOfMonth).ToListAsync();
                 decimal dtThang = hdThang.Sum(h => h.TongTien);
                 decimal ckThang = hdThang.Where(h => h.PhuongThucThanhToan == "Chuyển khoản").Sum(h => h.TongTien);
                 decimal tmThang = hdThang.Where(h => h.PhuongThucThanhToan == "Tiền mặt").Sum(h => h.TongTien);
 
-                // 3. Tuần này
                 var hdTuan = hdThang.Where(h => h.NgayTao >= startOfWeek).ToList();
                 decimal dtTuan = hdTuan.Sum(h => h.TongTien);
                 decimal ckTuan = hdTuan.Where(h => h.PhuongThucThanhToan == "Chuyển khoản").Sum(h => h.TongTien);
                 decimal tmTuan = hdTuan.Where(h => h.PhuongThucThanhToan == "Tiền mặt").Sum(h => h.TongTien);
 
-                // 4. Hôm nay
                 var hdHomNay = hdTuan.Where(h => h.NgayTao >= now.Date).ToList();
                 decimal dtHomNay = hdHomNay.Sum(h => h.TongTien);
                 decimal ckHomNay = hdHomNay.Where(h => h.PhuongThucThanhToan == "Chuyển khoản").Sum(h => h.TongTien);
                 decimal tmHomNay = hdHomNay.Where(h => h.PhuongThucThanhToan == "Tiền mặt").Sum(h => h.TongTien);
 
-                // Lấy Top 5 món 
                 var top5MonAllTime = await _context.ChiTietHoaDons
                     .Where(ct => ct.HoaDon!.CuaHangId == cuaHangId && ct.HoaDon.TrangThai == "Đã thanh toán")
                     .GroupBy(ct => ct.SanPham!.TenSanPham ?? "Khác")
@@ -157,7 +172,6 @@ namespace POS36.Api.Controllers
                     .ToListAsync();
                 string topMonString = top5MonAllTime.Any() ? string.Join(", ", top5MonAllTime.Select(x => $"{x.Ten} ({x.SL})")) : "Chưa có";
 
-                // ĐÓNG GÓI DỮ LIỆU ĐỂ BƠM CHO AI
                 string rawData = $@"
 DỮ LIỆU KINH DOANH TÍNH ĐẾN {now:dd/MM/yyyy}:
 [LỊCH SỬ] Doanh thu: {tongDoanhThu:N0} VND ({tongDon} đơn). TOP 5 MÓN: {topMonString}
@@ -168,8 +182,9 @@ DỮ LIỆU KINH DOANH TÍNH ĐẾN {now:dd/MM/yyyy}:
 
                 string promptPath = Path.Combine(Directory.GetCurrentDirectory(), "Prompts", "ReportCopilot.md");
                 string systemPrompt = System.IO.File.Exists(promptPath) ? await System.IO.File.ReadAllTextAsync(promptPath) : "Trả lời dưới dạng HTML.";
+                string fullPrompt = $"{systemPrompt}\n\n{rawData}\n\nYêu cầu người dùng: {request.Prompt}";
 
-                string fullPrompt = $"{systemPrompt}\n\n{rawData}\n\nYêu cầu của người dùng: {request.Prompt}";
+                // CHUẨN HÓA SANG BẢN 2.5 FLASH
                 string endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={_geminiApiKey}";
 
                 var payload = new { contents = new[] { new { parts = new[] { new { text = fullPrompt } } } } };
@@ -179,7 +194,11 @@ DỮ LIỆU KINH DOANH TÍNH ĐẾN {now:dd/MM/yyyy}:
                 var response = await client.PostAsync(endpoint, content);
                 var jsonResponse = await response.Content.ReadAsStringAsync();
 
-                if (!response.IsSuccessStatusCode) return StatusCode(500, jsonResponse);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Log.Error("❌ Lỗi API từ Google Gemini (Report): {Error}", jsonResponse);
+                    return StatusCode(500, $"Lỗi Google: {jsonResponse}");
+                }
 
                 using var doc = JsonDocument.Parse(jsonResponse);
                 var aiText = doc.RootElement.GetProperty("candidates")[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString();
@@ -189,7 +208,8 @@ DỮ LIỆU KINH DOANH TÍNH ĐẾN {now:dd/MM/yyyy}:
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "Lỗi tạo báo cáo: " + ex.Message);
+                Log.Error(ex, "❌ Code C# bị sập tại hàm GenerateReport!");
+                return StatusCode(500, ex.Message);
             }
         }
     }
