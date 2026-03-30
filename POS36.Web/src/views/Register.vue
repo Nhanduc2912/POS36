@@ -94,7 +94,9 @@ const handleRegister = async () => {
           class="overlay d-flex flex-column justify-content-between p-5 w-100 h-100 text-white"
         >
           <div class="logo-box">
-            <h2 class="fw-bold tracking-tight">POS36</h2>
+            <router-link to="/" class="text-decoration-none">
+              <h2 class="fw-bold tracking-tight">POS36</h2>
+            </router-link>
           </div>
 
           <div class="content-box pe-4 mb-4">
@@ -137,7 +139,9 @@ const handleRegister = async () => {
       >
         <div class="form-wrapper w-100" style="max-width: 500px; padding: 2rem">
           <div class="d-lg-none mb-4 text-center">
-            <h2 class="fw-bold text-orange">POS36</h2>
+            <router-link to="/" class="text-decoration-none">
+              <h2 class="fw-bold text-orange">POS36</h2>
+            </router-link>
           </div>
 
           <div class="mb-5 text-center text-lg-start">

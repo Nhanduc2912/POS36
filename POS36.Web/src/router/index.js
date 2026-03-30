@@ -4,7 +4,7 @@ const routes = [
   {
     path: "/",
     name: "LandingPage",
-    component: () => import("../views/LandingPage.vue"),
+    component: () => import("../views/Home/LandingPage.vue"),
   },
   {
     path: "/login",
@@ -15,6 +15,31 @@ const routes = [
     path: "/register",
     name: "Register",
     component: () => import("../views/Register.vue"),
+  },
+  {
+    path: "/features",
+    name: "Features",
+    component: () => import("../views/Home/FeaturesView.vue"),
+  },
+  {
+    path: "/pricing",
+    name: "Pricing",
+    component: () => import("../views/Home/PricingView.vue"),
+  },
+  {
+    path: "/about",
+    name: "About",
+    component: () => import("../views/Home/AboutView.vue"),
+  },
+  {
+    path: "/privacy",
+    name: "Privacy",
+    component: () => import("../views/Home/PrivacyView.vue"),
+  },
+  {
+    path: "/solutions",
+    name: "Solutions",
+    component: () => import("../views/Home/SolutionsView.vue"),
   },
 
   // --- GIAO DIỆN QUẢN TRỊ (CÓ MENU CAM) ---

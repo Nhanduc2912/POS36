@@ -92,7 +92,9 @@ const handleLogin = async () => {
           class="overlay d-flex flex-column justify-content-between p-5 w-100 h-100 text-white"
         >
           <div class="logo-box">
-            <h2 class="fw-bold tracking-tight">POS36</h2>
+            <router-link to="/" class="text-decoration-none">
+              <h2 class="fw-bold tracking-tight">POS36</h2>
+            </router-link>
           </div>
           <div class="content-box pe-5 mb-5">
             <h1 class="display-5 fw-bolder mb-3 lh-sm text-shadow">
