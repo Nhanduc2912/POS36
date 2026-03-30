@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace POS36.Api.Models
 {
@@ -19,5 +20,10 @@ namespace POS36.Api.Models
 
         public Ban? Ban { get; set; }
         public ICollection<ChiTietHoaDon>? ChiTietHoaDons { get; set; }
+        // Mở file HoaDon.cs thêm 2 dòng này:
+        public int? KhachHangId { get; set; } // Dùng dấu ? vì khách vãng lai thì không cần ID
+
+        [ForeignKey("KhachHangId")]
+        public virtual KhachHang? KhachHang { get; set; }
     }
 }

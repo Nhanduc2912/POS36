@@ -1,4 +1,6 @@
 using System;
+// THÊM DÒNG NÀY ĐỂ C# HIỂU CHỮ [ForeignKey]
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace POS36.Api.Models
 {
@@ -19,5 +21,11 @@ namespace POS36.Api.Models
         public double GiaTri { get; set; }
         public DateTime NgayGiaoDich { get; set; }
         public string NguoiTao { get; set; } = "Admin";
+        // Thêm 2 dòng này vào dưới cùng của class PhieuThuChi và ThietLap
+        [ForeignKey("CuaHangId")]
+        public virtual CuaHang? CuaHang { get; set; }
+
+        [ForeignKey("ChiNhanhId")] // (Chỉ thêm dòng này cho PhieuThuChi)
+        public virtual ChiNhanh? ChiNhanh { get; set; }
     }
 }
