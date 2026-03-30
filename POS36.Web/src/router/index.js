@@ -158,32 +158,33 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
 });
-
-// NGƯỜI GÁC CỔNG (ROUTER GUARD) CHỐNG VƯỢT QUYỀN (Đã dọn dẹp code thừa)
-router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem("pos36_token");
+// NGƯỜI GÁC CỔNG (ROUTER GUARD) CHUẨN VUE 4 (Tuyệt đối không dùng chữ 'next')
+router.beforeEach((to, from) => {
+  const token =
+    localStorage.getItem("pos36_token") || localStorage.getItem("token");
   const role = localStorage.getItem("pos36_role");
+
+  // 1. Nếu trang cần bảo mật mà chưa có Token -> Đuổi ra Login
   if (to.meta.requiresAuth && !token) {
-    // Trả về thẳng đường dẫn thay vì dùng hàm next()
     return "/login";
   }
-  // 1. Nếu trang cần bảo mật mà chưa có Token -> Đuổi ra Login
-  if (to.path !== "/login" && to.path !== "/register" && !token) {
-    return true;
-  }
 
-  // 2. CHẶN VƯỢT QUYỀN VÀO ADMIN
+  // 2. CHẶN VƯỢT QUYỀN VÀO KHU VỰC ADMIN
   if (to.path.startsWith("/admin")) {
-    // NẾU KHÔNG PHẢI LÀ Admin, QuanLy, HOẶC ChuCuaHang THÌ BỊ ĐUỔI
+    // Nếu chưa đăng nhập mà ráng vào admin -> Đuổi ra login
+    if (!token) return "/login";
+
+    // NẾU KHÔNG PHẢI LÀ Sếp lớn THÌ BỊ ĐÁ VỀ ĐÚNG CHỖ LÀM VIỆC
     if (role !== "Admin" && role !== "QuanLy" && role !== "ChuCuaHang") {
-      if (role === "ThuNgan") return next("/pos");
-      if (role === "Order") return next("/order");
-      if (role === "Bep") return next("/kitchen");
-      return next("/login");
+      if (role === "ThuNgan") return "/pos";
+      if (role === "Order") return "/order";
+      if (role === "Bep") return "/kitchen";
+      return "/login";
     }
   }
 
-  next();
+  // 3. Nếu hợp lệ hết, hoặc đang vào các trang Public (như Landing Page) -> Cho phép đi tiếp
+  return true;
 });
 
 export default router;
