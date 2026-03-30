@@ -64,7 +64,7 @@
           "
         >
           <div
-            class="p-2 px-3 rounded-4 shadow-sm"
+            class="p-2 px-3 rounded-4 shadow-sm msg-animate"
             style="
               max-width: 85%;
               font-size: 0.9rem;
@@ -76,15 +76,19 @@
                 ? 'bg-primary text-white rounded-bottom-end-0'
                 : 'bg-white text-dark border rounded-bottom-start-0'
             "
-            v-html="formatMessage(msg.text)"
+            v-html="
+              msg.role === 'ai'
+                ? formatMessage(msg.displayedText)
+                : formatMessage(msg.text)
+            "
           ></div>
         </div>
 
-        <div v-if="isLoading" class="d-flex justify-content-start">
+        <div v-if="isLoading" class="d-flex justify-content-start msg-animate">
           <div
-            class="bg-white border text-muted p-2 px-3 rounded-4 shadow-sm rounded-bottom-start-0"
+            class="bg-white border text-muted p-2 px-3 rounded-4 shadow-sm rounded-bottom-start-0 d-flex align-items-center"
           >
-            <span class="spinner-grow spinner-grow-sm text-primary me-1"></span>
+            <span class="spinner-grow spinner-grow-sm text-primary me-2"></span>
             Đang suy nghĩ...
           </div>
         </div>
@@ -98,13 +102,13 @@
             placeholder="Hỏi AI cách dùng..."
             v-model="question"
             @keyup.enter="sendMessage"
-            :disabled="isLoading"
+            :disabled="isLoading || isTyping"
           />
           <button
             @click="sendMessage"
             class="btn btn-primary rounded-circle ms-2 d-flex align-items-center justify-content-center"
             style="width: 40px; height: 40px"
-            :disabled="isLoading || !question.trim()"
+            :disabled="isLoading || isTyping || !question.trim()"
           >
             <i class="bi bi-send-fill"></i>
           </button>
@@ -115,22 +119,45 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, nextTick } from "vue";
 
 const isOpen = ref(false);
 const question = ref("");
 const messages = ref([]);
 const isLoading = ref(false);
+const isTyping = ref(false); // Khóa nút bấm khi AI đang gõ
 const chatBody = ref(null);
 const bubbleRef = ref(null);
 
+const backendUrl = "http://localhost:5198";
+
 // ==========================================
-// FIX LỖI 401: GỌI API CHUẨN XÁC
+// THUẬT TOÁN GÕ CHỮ (TYPEWRITER EFFECT)
 // ==========================================
-const backendUrl = "http://localhost:5198"; // Đổi IP LAN vào đây nếu sếp test điện thoại
+const typeWriterEffect = async (messageIndex, fullText) => {
+  isTyping.value = true;
+  // Chia đoạn văn bản thành các khối nhỏ (mỗi lần gõ 3 ký tự cho mượt và nhanh)
+  const chunkSize = 3;
+  let currentText = "";
+
+  for (let i = 0; i < fullText.length; i += chunkSize) {
+    // Ép vòng lặp chờ 15 mili-giây (Có thể tăng lên để gõ chậm lại)
+    await new Promise((resolve) => setTimeout(resolve, 15));
+
+    currentText += fullText.substring(i, i + chunkSize);
+    messages.value[messageIndex].displayedText = currentText; // Cập nhật biến hiển thị
+
+    scrollToBottom(); // Vừa gõ vừa cuộn màn hình xuống
+  }
+
+  // Đảm bảo kết thúc không bị sót chữ nào
+  messages.value[messageIndex].displayedText = fullText;
+  isTyping.value = false;
+  scrollToBottom();
+};
 
 const sendMessage = async () => {
-  if (!question.value.trim()) return;
+  if (!question.value.trim() || isTyping.value) return;
 
   const userText = question.value;
   messages.value.push({ role: "user", text: userText });
@@ -139,14 +166,12 @@ const sendMessage = async () => {
   scrollToBottom();
 
   try {
-    // 1. LẤY ĐÚNG TÊN TOKEN TỪ LOCALSTORAGE
     const token =
       localStorage.getItem("pos36_token") ||
       localStorage.getItem("token") ||
       "";
     const userRole = localStorage.getItem("pos36_role") || "ThuNgan";
 
-    // 2. GỬI KÈM TOKEN LÊN C# (BEARER TOKEN) ĐỂ KHÔNG BỊ BÁO LỖI 401
     const response = await fetch(`${backendUrl}/api/AIChat/ask`, {
       method: "POST",
       headers: {
@@ -159,29 +184,35 @@ const sendMessage = async () => {
       }),
     });
 
-    if (!response.ok) throw new Error("Unauthorized hoặc Lỗi mạng");
+    if (!response.ok) throw new Error("Lỗi kết nối");
 
     const data = await response.json();
-    messages.value.push({ role: "ai", text: data.answer });
+
+    // TẮT LOADING TRƯỚC KHI HIỆU ỨNG GÕ BẮT ĐẦU
+    isLoading.value = false;
+
+    // TẠO TIN NHẮN MỚI CỦA AI VỚI NỘI DUNG TRỐNG
+    const newAiMessageIndex = messages.value.length;
+    messages.value.push({ role: "ai", text: data.answer, displayedText: "" });
+
+    // KÍCH HOẠT HIỆU ỨNG GÕ CHỮ VÀO TIN NHẮN VỪA TẠO
+    await typeWriterEffect(newAiMessageIndex, data.answer);
   } catch (error) {
+    isLoading.value = false;
     messages.value.push({
       role: "ai",
-      text: "❌ Đứt cáp quang tới não AI rồi Sếp ạ! Vui lòng thử lại sau.",
+      text: "❌ Đứt cáp quang tới não AI rồi Sếp ạ!",
+      displayedText: "❌ Đứt cáp quang tới não AI rồi Sếp ạ!",
     });
-  } finally {
-    isLoading.value = false;
     scrollToBottom();
   }
 };
 
-// ==========================================
-// FORMAT MARKDOWN: DỊCH DẤU ** THÀNH CHỮ IN ĐẬM
-// ==========================================
 const formatMessage = (text) => {
   if (!text) return "";
-  let html = text.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
-  html = html.replace(/\* (.*?)\n/g, "• $1<br/>");
-  html = html.replace(/\n/g, "<br/>");
+  let html = text.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>"); // Chữ đậm
+  html = html.replace(/\* (.*?)\n/g, "• $1<br/>"); // Dấu chấm đầu dòng
+  html = html.replace(/\n/g, "<br/>"); // Xuống dòng
   return html;
 };
 
@@ -193,7 +224,7 @@ const scrollToBottom = async () => {
 };
 
 // ==========================================
-// VẬT LÝ NÂNG CAO: BONG BÓNG KÉO THẢ & HÍT CẠNH
+// VẬT LÝ KÉO THẢ BONG BÓNG CHAT
 // ==========================================
 const pos = ref({ x: window.innerWidth - 80, y: window.innerHeight - 100 });
 const isDragging = ref(false);
@@ -202,7 +233,7 @@ let hasMoved = false;
 
 const startDrag = (e) => {
   isDragging.value = true;
-  hasMoved = false; // Đặt lại trạng thái di chuyển
+  hasMoved = false;
 
   let clientX = e.clientX || (e.touches && e.touches[0].clientX);
   let clientY = e.clientY || (e.touches && e.touches[0].clientY);
@@ -227,7 +258,6 @@ const onDrag = (e) => {
   let dx = clientX - startX;
   let dy = clientY - startY;
 
-  // Nếu di chuyển quá 5px thì mới tính là Đang Kéo (để phân biệt với Click)
   if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
     hasMoved = true;
   }
@@ -244,29 +274,25 @@ const stopDrag = () => {
   document.removeEventListener("touchmove", onDrag);
   document.removeEventListener("touchend", stopDrag);
 
-  // LOGIC CHỌN CẠNH ĐỂ HÍT: Nếu bóng nằm nửa trái màn hình -> Hít lề trái. Nếu nửa phải -> Hít lề phải.
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight;
-  const bubbleSize = 60; // Kích thước bong bóng
+  const bubbleSize = 60;
 
   if (pos.value.x + bubbleSize / 2 < screenWidth / 2) {
-    pos.value.x = 20; // Hít trái
+    pos.value.x = 20;
   } else {
-    pos.value.x = screenWidth - bubbleSize - 20; // Hít phải
+    pos.value.x = screenWidth - bubbleSize - 20;
   }
 
-  // Khống chế không cho bay ra khỏi lề trên/dưới màn hình
   if (pos.value.y < 20) pos.value.y = 20;
   if (pos.value.y > screenHeight - bubbleSize - 20)
     pos.value.y = screenHeight - bubbleSize - 20;
 
-  // NẾU KHÔNG KÉO MÀ CHỈ BẤM (Click) -> Mở cửa sổ chat
   if (!hasMoved) {
     isOpen.value = !isOpen.value;
   }
 };
 
-// Cập nhật lại vị trí nếu sếp xoay dọc/ngang thiết bị
 window.addEventListener("resize", () => {
   pos.value = { x: window.innerWidth - 80, y: window.innerHeight - 100 };
 });
@@ -280,7 +306,7 @@ window.addEventListener("resize", () => {
   border-radius: 50%;
   z-index: 1050;
   user-select: none;
-  touch-action: none; /* Khống chế scroll khi chạm trên điện thoại */
+  touch-action: none;
 }
 
 .ai-chat-window {
@@ -299,6 +325,22 @@ window.addEventListener("resize", () => {
     width: calc(100% - 40px);
     right: 20px;
     bottom: 90px;
+  }
+}
+
+/* ANIMATION HIỆN TỪ TRÊN XUỐNG & MỜ SANG RÕ (Yêu cầu của Sếp) */
+.msg-animate {
+  animation: slideDownFade 0.4s ease-out forwards;
+}
+
+@keyframes slideDownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
