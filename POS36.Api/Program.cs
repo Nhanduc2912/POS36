@@ -6,6 +6,8 @@ using POS36.Api.Data;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace POS36.Api
@@ -15,34 +17,44 @@ namespace POS36.Api
         public static void Main(string[] args)
         {
             // ========================================================
-            // 1. VẼ LOGO POS36 SIÊU NGẦU (ASCII ART) Ở GIỮA MÀN HÌNH
+            // 1. MÀN HÌNH KHỞI ĐỘNG (BOOT SCREEN) CHUẨN ENTERPRISE
             // ========================================================
             Console.Clear();
             Console.ForegroundColor = ConsoleColor.DarkYellow;
-            Console.WriteLine();
-            Console.WriteLine(@"        ██████╗  ██████╗  ██████╗ ██████╗   ██████╗ ");
-            Console.WriteLine(@"        ██╔══██╗██╔═══██╗██╔════╝ ╚════██╗ ██╔════╝ ");
-            Console.WriteLine(@"        ██████╔╝██║   ██║╚█████╗   █████╔╝ ███████╗ ");
-            Console.WriteLine(@"        ██╔═══╝ ██║   ██║ ╚═══██╗  ╚═══██╗ ██╔═══██╗");
-            Console.WriteLine(@"        ██║     ╚██████╔╝██████╔╝ ██████╔╝ ╚██████╔╝");
-            Console.WriteLine(@"        ╚═╝      ╚═════╝ ╚═════╝  ╚═════╝   ╚═════╝ ");
+            Console.WriteLine(@"
+    ██████╗  ██████╗  ██████╗ ██████╗  ██████╗ 
+    ██╔══██╗██╔═══██╗██╔════╝ ╚════██╗ ██╔════╝ 
+    ██████╔╝██║   ██║╚█████╗   █████╔╝ ███████╗ 
+    ██╔═══╝ ██║   ██║ ╚═══██╗  ╚═══██╗ ██╔═══██╗
+    ██║     ╚██████╔╝██████╔╝ ██████╔╝ ╚██████╔╝
+    ╚═╝      ╚═════╝ ╚═════╝  ╚═════╝   ╚═════╝ ");
             Console.ResetColor();
+
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine(@"        ===========================================");
-            Console.WriteLine(@"        🚀 NỀN TẢNG QUẢN LÝ NHÀ HÀNG - POS36 API 🚀");
-            Console.WriteLine(@"        ===========================================");
-            Console.WriteLine();
+            Console.WriteLine("    =========================================================");
+            Console.WriteLine("    🚀 HỆ THỐNG ĐIỀU HÀNH LÕI - POS36 CULINARY KINETIC API 🚀");
+            Console.WriteLine("    =========================================================");
+            Console.ResetColor();
+
+            // Hiển thị thông số cấu hình Server
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine($"    [+] Khởi động lúc : {DateTime.Now:dd/MM/yyyy HH:mm:ss}");
+            Console.WriteLine($"    [+] Máy chủ       : {Environment.MachineName}");
+            Console.WriteLine($"    [+] Nền tảng OS   : {RuntimeInformation.OSDescription}");
+            Console.WriteLine($"    [+] Core Engine   : {RuntimeInformation.FrameworkDescription}");
+            Console.WriteLine($"    [+] RAM cấp phát  : {Process.GetCurrentProcess().WorkingSet64 / 1024 / 1024} MB");
+            Console.WriteLine("    =========================================================\n");
             Console.ResetColor();
 
             // ========================================================
-            // 2. CẤU HÌNH SERILOG (ĐÃ KHÓA MÕM 100% RÁC HỆ THỐNG)
+            // 2. CẤU HÌNH SERILOG THEME HACKER
             // ========================================================
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Information()
-                .MinimumLevel.Override("Microsoft", LogEventLevel.Error) // Chỉ báo lỗi, cấm báo lằng nhằng
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Error)
                 .MinimumLevel.Override("System", LogEventLevel.Error)
-                .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Warning) // Tắt dòng 'Now listening on...'
-                .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Error) // TẮT SẠCH CHỮ VÀNG SQL DECIMAL
+                .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Warning)
+                .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Error)
                 .WriteTo.Console(
                     outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}",
                     theme: AnsiConsoleTheme.Code)
@@ -50,17 +62,13 @@ namespace POS36.Api
 
             try
             {
-                Log.Information("⏳ Đang nạp cấu hình hệ thống...");
                 var builder = WebApplication.CreateBuilder(args);
-
-                // Kích hoạt Serilog thay thế Logger mặc định
                 builder.Host.UseSerilog();
 
-                // 3. Thêm kết nối Database
+                // Kết nối DB & JWT & Swagger & CORS
                 builder.Services.AddDbContext<AppDbContext>(options =>
                     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-                // 4. Cấu hình JWT
                 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     .AddJwtBearer(options =>
                     {
@@ -78,35 +86,25 @@ namespace POS36.Api
 
                 builder.Services.AddControllers();
                 builder.Services.AddSignalR();
-
-                // 5. Cấu hình Swagger 
                 builder.Services.AddEndpointsApiExplorer();
                 builder.Services.AddSwaggerGen(c =>
                 {
                     c.SwaggerDoc("v1", new OpenApiInfo { Title = "POS36 API", Version = "v1" });
-
                     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                     {
-                        Description = "JWT Authorization header sử dụng scheme Bearer. \r\n\r\n Nhập 'Bearer' [khoảng trắng] và dán Token của bạn vào.\r\n\r\nVí dụ: 'Bearer eyJhbGci...'",
+                        Description = "Nhập 'Bearer' [khoảng trắng] và dán Token.",
                         Name = "Authorization",
                         In = ParameterLocation.Header,
                         Type = SecuritySchemeType.ApiKey,
                         Scheme = "Bearer"
                     });
-
                     c.AddSecurityRequirement(new OpenApiSecurityRequirement()
                     {
                         {
                             new OpenApiSecurityScheme
                             {
-                                Reference = new OpenApiReference
-                                {
-                                    Type = ReferenceType.SecurityScheme,
-                                    Id = "Bearer"
-                                },
-                                Scheme = "oauth2",
-                                Name = "Bearer",
-                                In = ParameterLocation.Header,
+                                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" },
+                                Scheme = "oauth2", Name = "Bearer", In = ParameterLocation.Header,
                             },
                             new List<string>()
                         }
@@ -115,32 +113,80 @@ namespace POS36.Api
 
                 builder.Services.AddCors(options =>
                 {
-                    options.AddPolicy("AllowVueApp",
-                        builder =>
-                        {
-                            builder.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173")
-                                   .AllowAnyHeader()
-                                   .AllowAnyMethod()
-                                   .AllowCredentials();
-                        });
+                    options.AddPolicy("AllowVueApp", builder =>
+                    {
+                        builder.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+                    });
                 });
 
                 var app = builder.Build();
 
                 // ========================================================
-                // 6. TÍNH NĂNG THEO DÕI REQUEST TỪ CLIENT (BẮT IP)
+                // 3. MIDDLEWARE GIÁM SÁT REQUEST (SIÊU CẤP ĐẲNG CẤP)
                 // ========================================================
-                app.UseSerilogRequestLogging(options =>
+                app.Use(async (context, next) =>
                 {
-                    // Format cực đẹp: [IP] Phương thức - Đường dẫn => Trạng thái (Thời gian)
-                    options.MessageTemplate = "🌐 [IP: {ClientIp}] {RequestMethod} {RequestPath} => Mã {StatusCode} ({Elapsed:0.0} ms)";
-                    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+                    var method = context.Request.Method;
+
+                    // 🛑 Bỏ qua log rác OPTIONS
+                    if (method == "OPTIONS")
                     {
-                        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
-                        if (ip == "::1" || ip == "127.0.0.1") ip = "Localhost";
-                        diagnosticContext.Set("ClientIp", ip);
+                        await next();
+                        return;
+                    }
+
+                    var sw = Stopwatch.StartNew();
+                    await next();
+                    sw.Stop();
+
+                    var statusCode = context.Response.StatusCode;
+                    var path = context.Request.Path;
+
+                    // 1. Phân loại Icon Trạng thái
+                    string icon = statusCode switch
+                    {
+                        >= 200 and < 300 => "✅",
+                        >= 300 and < 400 => "🔀",
+                        >= 400 and < 500 => "⚠️",
+                        _ => "❌"
                     };
+
+                    // 2. Đánh giá tốc độ phản hồi (Performance)
+                    string speedIndicator = sw.ElapsedMilliseconds switch
+                    {
+                        < 100 => "⚡", // Siêu tốc
+                        < 500 => "🚀", // Nhanh
+                        < 2000 => "🐢", // Chậm
+                        _ => "🔥" // Cực chậm (báo động)
+                    };
+
+                    // 3. Bắt IP Khách
+                    var ip = context.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+                    if (ip == "::1" || ip == "127.0.0.1") ip = "Local";
+
+                    // 4. Nhận diện thiết bị
+                    var userAgent = context.Request.Headers["User-Agent"].ToString();
+                    string device = userAgent.Contains("Mobile") ? "📱 Mob " : "💻 Web ";
+
+                    // 5. Bắt Danh tính người dùng (Nếu có Token)
+                    string user = "Khách lạ";
+                    if (context.User.Identity?.IsAuthenticated == true)
+                    {
+                        // Giả sử sếp lưu Username vào Claim, móc nó ra
+                        user = context.User.Identity.Name ?? "Tài khoản";
+                    }
+
+                    // Format log thành một bảng siêu đẹp và thẳng hàng
+                    string logMessage = $"{icon} {statusCode} | {speedIndicator} {sw.ElapsedMilliseconds,5}ms | 👤 {user,-10} | 🌐 {ip,-15} | {device} | {method,-6} {path}";
+
+                    // Nếu lỗi (4xx, 5xx) thì in màu đỏ, nếu thành công in bình thường
+                    if (statusCode >= 400)
+                        Log.Warning(logMessage);
+                    else
+                        Log.Information(logMessage);
                 });
+
+                // ========================================================
 
                 if (app.Environment.IsDevelopment())
                 {
@@ -148,7 +194,6 @@ namespace POS36.Api
                     app.UseSwaggerUI();
                 }
 
-                // --- KHU VỰC CÁC MIDDLEWARE ---
                 app.UseStaticFiles();
                 app.UseCors("AllowVueApp");
                 app.UseAuthentication();
@@ -157,12 +202,12 @@ namespace POS36.Api
                 app.MapHub<POS36.Api.Hubs.KitchenHub>("/kitchenHub");
                 app.MapControllers();
 
-                Log.Information("✅ Khởi động hoàn tất! POS36 đang lắng nghe tại http://localhost:5198");
+                Log.Information("🟢 BỘ MÁY ĐÃ SẴN SÀNG! Đang lắng nghe luồng dữ liệu tại cổng 5198...");
                 app.Run();
             }
             catch (Exception ex)
             {
-                Log.Fatal(ex, "❌ Server gặp sự cố và phải dừng lại!");
+                Log.Fatal(ex, "❌ HỆ THỐNG CORE BỊ SẬP!");
             }
             finally
             {
