@@ -442,12 +442,17 @@ select:focus {
 
 .gear-icon {
   display: inline-block;
-  transition: transform 0.4s ease;
+  animation: spin 3s linear infinite;
   pointer-events: none;
 }
-.nav-link:hover .gear-icon {
-  transform: rotate(90deg);
-  color: #fff !important;
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* STYLE CHO CÁC Ô CHỌN MÀU */
