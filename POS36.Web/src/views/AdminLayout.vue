@@ -316,9 +316,11 @@ onMounted(() => {
                     >
                   </li>
                   <li>
-                    <a class="dropdown-item" href="#"
+                    <router-link
+                      class="dropdown-item"
+                      to="/admin/store-settings"
                       ><i class="bi bi-sliders me-2 text-muted"></i> Thiết lập
-                      cửa hàng</a
+                      cửa hàng</router-link
                     >
                   </li>
                   <li>
