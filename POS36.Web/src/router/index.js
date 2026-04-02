@@ -130,6 +130,11 @@ const routes = [
         name: "SalesReport",
         component: () => import("../views/SalesReport.vue"),
       },
+      {
+        path: "profile",
+        name: "AdminProfile",
+        component: () => import("../views/ProfileView.vue"),
+      },
     ],
   },
 

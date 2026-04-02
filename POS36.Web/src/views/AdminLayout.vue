@@ -310,9 +310,9 @@ onMounted(() => {
                     >
                   </li>
                   <li>
-                    <a class="dropdown-item" href="#"
+                    <router-link class="dropdown-item" to="/admin/profile"
                       ><i class="bi bi-person-vcard me-2 text-muted"></i> Thông
-                      tin cá nhân</a
+                      tin cá nhân</router-link
                     >
                   </li>
                   <li>

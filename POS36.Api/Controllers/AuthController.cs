@@ -18,7 +18,6 @@ namespace POS36.Api.Controllers
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
 
-        // Bơm IConfiguration vào để đọc appsettings.json
         public AuthController(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
@@ -33,6 +32,7 @@ namespace POS36.Api.Controllers
                 return BadRequest("Tên đăng nhập đã tồn tại!");
             }
 
+            // 1. Tạo Cửa hàng
             var newCuaHang = new CuaHang
             {
                 TenCuaHang = request.TenCuaHang,
@@ -43,7 +43,7 @@ namespace POS36.Api.Controllers
             _context.CuaHangs.Add(newCuaHang);
             await _context.SaveChangesAsync();
 
-            // Tự động tạo một Chi nhánh mặc định và Khu vực mặc định cho cửa hàng mới
+            // 2. Tạo Chi nhánh và Khu vực mặc định
             var defaultChiNhanh = new ChiNhanh
             {
                 CuaHangId = newCuaHang.Id,
@@ -62,9 +62,25 @@ namespace POS36.Api.Controllers
             _context.KhuVucs.Add(defaultKhuVuc);
             await _context.SaveChangesAsync();
 
+            // =========================================================
+            // 3. FIX LỖI: TẠO HỒ SƠ NHÂN VIÊN CHO CHỦ CỬA HÀNG
+            // =========================================================
+            var newNhanVien = new NhanVien
+            {
+                CuaHangId = newCuaHang.Id,
+                MaNhanVien = $"ADMIN{DateTime.Now:HHmmss}", // Mã nhân viên ngẫu nhiên chống trùng
+                TenNhanVien = request.TenDangNhap, // Tạm lấy tên đăng nhập làm tên hiển thị
+                SoDienThoai = request.SoDienThoai,
+                Email = ""
+            };
+            _context.NhanViens.Add(newNhanVien);
+            await _context.SaveChangesAsync(); // Sinh ra NhanVien.Id
+
+            // 4. Tạo Tài khoản VÀ LIÊN KẾT VỚI NHÂN VIÊN VỪA TẠO
             var newTaiKhoan = new TaiKhoan
             {
                 CuaHangId = newCuaHang.Id,
+                NhanVienId = newNhanVien.Id, // <- ĐÂY LÀ CHÌA KHÓA GIẢI QUYẾT LỖI
                 TenDangNhap = request.TenDangNhap,
                 MatKhauHash = BCrypt.Net.BCrypt.HashPassword(request.MatKhau),
                 VaiTro = "ChuCuaHang"
@@ -93,10 +109,9 @@ namespace POS36.Api.Controllers
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.TenDangNhap),
                 new Claim(ClaimTypes.Role, user.VaiTro),
-                new Claim("CuaHangId", user.CuaHangId.ToString()) // Nhét CuaHangId vào để sau này biết của quán nào
+                new Claim("CuaHangId", user.CuaHangId.ToString())
             };
 
-            // Nếu user thuộc 1 chi nhánh cụ thể thì nhét thêm ChiNhanhId vào
             if (user.ChiNhanhId.HasValue)
             {
                 claims.Add(new Claim("ChiNhanhId", user.ChiNhanhId.Value.ToString()));
@@ -110,13 +125,13 @@ namespace POS36.Api.Controllers
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.Now.AddDays(1), // Token sống 1 ngày
+                expires: DateTime.Now.AddDays(1),
                 signingCredentials: creds
             );
 
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);
             Log.Information("👤 Tài khoản {TenDangNhap} vừa ĐĂNG NHẬP thành công vào hệ thống.", request.TenDangNhap);
-            // Trả Token về cho người dùng
+
             return Ok(new { token = jwt, role = user.VaiTro });
         }
     }
