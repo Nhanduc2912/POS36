@@ -304,9 +304,9 @@ onMounted(() => {
                     <h6 class="dropdown-header text-muted fw-bold">HỆ THỐNG</h6>
                   </li>
                   <li>
-                    <a class="dropdown-item" href="#"
+                    <router-link class="dropdown-item" to="/admin/store-info"
                       ><i class="bi bi-shop-window me-2 text-muted"></i> Thông
-                      tin cửa hàng</a
+                      tin cửa hàng</router-link
                     >
                   </li>
                   <li>

@@ -135,6 +135,11 @@ const routes = [
         name: "AdminProfile",
         component: () => import("../views/ProfileView.vue"),
       },
+      {
+        path: "store-info",
+        name: "AdminStoreInfo",
+        component: () => import("../views/StoreInfoView.vue"),
+      },
     ],
   },
 
