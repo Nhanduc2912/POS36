@@ -2,19 +2,33 @@ using System.ComponentModel.DataAnnotations;
 
 namespace POS36.Api.DTOs
 {
-    // DTO dùng lúc người ta bấm Đăng ký
+    // Dữ liệu từ form Đăng ký
     public class RegisterDto
     {
-        [Required] public string TenCuaHang { get; set; } = string.Empty;
-        [Required] public string SoDienThoai { get; set; } = string.Empty;
-        [Required] public string TenDangNhap { get; set; } = string.Empty;
-        [Required] public string MatKhau { get; set; } = string.Empty;
+        public string TenDangNhap { get; set; } = string.Empty;
+        public string MatKhau { get; set; } = string.Empty;
+        public string TenCuaHang { get; set; } = string.Empty;
+        public string SoDienThoai { get; set; } = string.Empty;
     }
 
-    // DTO dùng lúc người ta bấm Đăng nhập
+    // Dữ liệu từ form Đăng nhập
     public class LoginDto
     {
-        [Required] public string TenDangNhap { get; set; } = string.Empty;
-        [Required] public string MatKhau { get; set; } = string.Empty;
+        public string TenDangNhap { get; set; } = string.Empty;
+        public string MatKhau { get; set; } = string.Empty;
+    }
+
+    // Dữ liệu từ form Quên mật khẩu (Bước 1)
+    public class ForgotPasswordRequest
+    {
+        public string TenDangNhap { get; set; } = string.Empty;
+    }
+
+    // Dữ liệu từ form Nhập OTP và Đổi mật khẩu (Bước 2)
+    public class ResetPasswordRequest
+    {
+        public string TenDangNhap { get; set; } = string.Empty;
+        public string OtpCode { get; set; } = string.Empty;
+        public string MatKhauMoi { get; set; } = string.Empty;
     }
 }
