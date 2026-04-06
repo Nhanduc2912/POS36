@@ -16,6 +16,12 @@ const routes = [
     name: "Register",
     component: () => import("../views/Register.vue"),
   },
+  // THÊM ROUTE QUÊN MẬT KHẨU VÀO ĐÂY
+  {
+    path: "/forgot-password",
+    name: "ForgotPassword",
+    component: () => import("../views/ForgotPasswordView.vue"),
+  },
   {
     path: "/features",
     name: "Features",
@@ -113,13 +119,11 @@ const routes = [
         name: "admin-bank-setup",
         component: () => import("../views/BankSetup.vue"),
       },
-      // ĐÃ FIX LỖI TÊN FILE AI REPORT
       {
         path: "ai-report",
         name: "AiReport",
         component: () => import("../views/AiReportView.vue"),
       },
-      // THÊM 2 TRANG BÁO CÁO MỚI
       {
         path: "daily-summary",
         name: "DailySummary",
@@ -173,23 +177,19 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
 });
-// NGƯỜI GÁC CỔNG (ROUTER GUARD) CHUẨN VUE 4 (Tuyệt đối không dùng chữ 'next')
+
 router.beforeEach((to, from) => {
   const token =
     localStorage.getItem("pos36_token") || localStorage.getItem("token");
   const role = localStorage.getItem("pos36_role");
 
-  // 1. Nếu trang cần bảo mật mà chưa có Token -> Đuổi ra Login
   if (to.meta.requiresAuth && !token) {
     return "/login";
   }
 
-  // 2. CHẶN VƯỢT QUYỀN VÀO KHU VỰC ADMIN
   if (to.path.startsWith("/admin")) {
-    // Nếu chưa đăng nhập mà ráng vào admin -> Đuổi ra login
     if (!token) return "/login";
 
-    // NẾU KHÔNG PHẢI LÀ Sếp lớn THÌ BỊ ĐÁ VỀ ĐÚNG CHỖ LÀM VIỆC
     if (role !== "Admin" && role !== "QuanLy" && role !== "ChuCuaHang") {
       if (role === "ThuNgan") return "/pos";
       if (role === "Order") return "/order";
@@ -198,7 +198,6 @@ router.beforeEach((to, from) => {
     }
   }
 
-  // 3. Nếu hợp lệ hết, hoặc đang vào các trang Public (như Landing Page) -> Cho phép đi tiếp
   return true;
 });
 

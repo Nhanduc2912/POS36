@@ -75,7 +75,7 @@ namespace POS36.Api.Controllers
                 MaNhanVien = $"ADMIN{DateTime.Now:HHmmss}",
                 TenNhanVien = request.TenDangNhap,
                 SoDienThoai = request.SoDienThoai,
-                Email = ""
+                Email = request.Email // ĐÃ LƯU EMAIL VÀO ĐÂY
             };
             _context.NhanViens.Add(newNhanVien);
             await _context.SaveChangesAsync();
@@ -140,27 +140,31 @@ namespace POS36.Api.Controllers
         }
 
         // ==========================================
-        // 3. LUỒNG QUÊN MẬT KHẨU (GỬI OTP)
+        // 3. LUỒNG QUÊN MẬT KHẨU (GỬI OTP QUA EMAIL)
         // ==========================================
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
         {
-            var user = await _context.TaiKhoans.FirstOrDefaultAsync(u => u.TenDangNhap == request.TenDangNhap);
+            // TÌM TÀI KHOẢN CHỦ CỬA HÀNG QUA EMAIL TRONG BẢNG NHANVIEN
+            var user = await _context.TaiKhoans
+                .Include(t => t.NhanVien)
+                .FirstOrDefaultAsync(t => t.NhanVien != null && t.NhanVien.Email == request.Email && t.VaiTro == "ChuCuaHang");
+
             if (user == null)
             {
-                return Ok(new { message = "Nếu tài khoản tồn tại, mã OTP đã được gửi!" });
+                return BadRequest("Không tìm thấy Chủ cửa hàng nào sử dụng Email này!");
             }
 
             string otpCode = new Random().Next(100000, 999999).ToString();
-            _otpCache[request.TenDangNhap] = otpCode;
+            _otpCache[user.TenDangNhap] = otpCode; // Lưu OTP vào cache bằng TenDangNhap
 
-            Log.Warning("==================================================");
-            Log.Warning("📧 [GIẢ LẬP GỬI EMAIL] Yêu cầu cấp lại mật khẩu!");
-            Log.Warning("👤 Tài khoản : {TenDangNhap}", request.TenDangNhap);
-            Log.Warning("🔑 MÃ OTP CỦA BẠN LÀ : {OTP}", otpCode);
-            Log.Warning("==================================================");
-
-            return Ok(new { message = "Mã xác nhận OTP đã được tạo! (Hãy xem Terminal C#)" });
+            // TRẢ VỀ CHO VUE ĐỂ VUE BẮN EMAILJS
+            return Ok(new
+            {
+                otp = otpCode,
+                tenDangNhap = user.TenDangNhap,
+                tenNhanVien = user.NhanVien!.TenNhanVien
+            });
         }
 
         // ==========================================

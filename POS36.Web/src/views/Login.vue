@@ -42,7 +42,7 @@ const handleLogin = async () => {
 
     // 2. Lưu Token và thông tin MỚI CÁU
     localStorage.setItem("pos36_token", data.token);
-    localStorage.setItem("pos36_role", data.role); // BẮT BUỘC PHẢI THÊM DÒNG NÀY
+    localStorage.setItem("pos36_role", data.role);
     localStorage.setItem(
       "tenNhanVien",
       data.tenNhanVien || form.value.tenDangNhap,
@@ -60,7 +60,6 @@ const handleLogin = async () => {
 
     // 4. CHIA LUỒNG THEO VAI TRÒ
     const role = data.role;
-    // ĐÃ THÊM ChuCuaHang VÀO ĐÂY
     if (role === "Admin" || role === "QuanLy" || role === "ChuCuaHang") {
       window.location.href = "/admin/";
     } else if (role === "ThuNgan") {
@@ -70,7 +69,7 @@ const handleLogin = async () => {
     } else if (role === "Bep") {
       window.location.href = "/kitchen";
     } else {
-      window.location.href = "/admin/"; // Mặc định cho các vai trò khác (nếu có)
+      window.location.href = "/admin/";
     }
   } catch (error) {
     swal.fire(
@@ -153,7 +152,7 @@ const handleLogin = async () => {
               </div>
             </div>
 
-            <div class="mb-5">
+            <div class="mb-2">
               <label class="form-label fw-semibold small text-dark mb-2"
                 >Mật khẩu</label
               >
@@ -176,6 +175,15 @@ const handleLogin = async () => {
               <div class="text-danger small mt-1 fw-bold" v-if="errors.matKhau">
                 {{ errors.matKhau }}
               </div>
+            </div>
+
+            <div class="text-end mb-4">
+              <router-link
+                to="/forgot-password"
+                class="text-orange fw-bold text-decoration-none small"
+              >
+                Quên mật khẩu?
+              </router-link>
             </div>
 
             <button
@@ -227,14 +235,12 @@ const handleLogin = async () => {
   background-color: #ffffff;
 }
 
-/* Background ảnh bên trái */
 .left-panel {
   background-image: url("https://images.unsplash.com/photo-1556155092-490a1ba16284?q=80&w=2070&auto=format&fit=crop");
   background-size: cover;
   background-position: center;
 }
 
-/* Phủ lớp màu cam Gradient lồng lên ảnh */
 .overlay {
   background: linear-gradient(
     135deg,
@@ -248,7 +254,6 @@ const handleLogin = async () => {
   text-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Khung Input xám nhạt bo tròn */
 .custom-input-group {
   background-color: #f7f7f9;
   border-radius: 8px;
@@ -262,7 +267,6 @@ const handleLogin = async () => {
   box-shadow: 0 0 0 3px rgba(230, 92, 0, 0.1);
 }
 
-/* Nút cam */
 .btn-orange {
   background-color: #e65c00;
   color: white;

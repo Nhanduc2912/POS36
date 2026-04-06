@@ -22,7 +22,7 @@
             :class="{ active: step === 1, completed: step > 1 }"
           >
             <div class="step-circle">1</div>
-            <div class="step-label mt-2">Nhập Email/SĐT</div>
+            <div class="step-label mt-2">Nhập Email</div>
           </div>
           <div
             class="stepper-item"
@@ -53,24 +53,25 @@
           <label
             class="form-label fw-bold text-secondary"
             style="font-size: 0.85rem"
-            >Email, Số điện thoại hoặc Tên đăng nhập</label
           >
+            Email đăng ký của Chủ cửa hàng
+          </label>
           <div class="input-group input-group-lg">
-            <span class="input-group-text bg-light border-end-0"
-              ><i class="bi bi-envelope text-muted"></i
-            ></span>
+            <span class="input-group-text bg-light border-end-0">
+              <i class="bi bi-envelope text-muted"></i>
+            </span>
             <input
-              type="text"
+              type="email"
               class="form-control bg-light border-start-0 ps-0 fs-6"
-              v-model="form.username"
-              placeholder="name@company.com hoặc 09xx xxx xxx"
+              v-model="form.email"
+              placeholder="VD: name@company.com"
               required
               autofocus
             />
           </div>
         </div>
         <p class="text-muted small mb-4">
-          Chúng tôi sẽ gửi một mã xác minh gồm 6 chữ số đến địa chỉ này.
+          Chúng tôi sẽ gửi một mã xác minh gồm 6 chữ số đến địa chỉ Email này.
         </p>
 
         <button
@@ -91,8 +92,9 @@
           <label
             class="form-label fw-bold text-secondary mb-3"
             style="font-size: 0.85rem"
-            >Nhập mã gồm 6 chữ số đã gửi</label
           >
+            Nhập mã gồm 6 chữ số đã gửi
+          </label>
           <input
             type="text"
             class="form-control form-control-lg bg-light text-center fw-bold tracking-widest fs-4 mx-auto"
@@ -196,22 +198,25 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, inject } from "vue";
+import { useRouter } from "vue-router";
 import axios from "axios";
-import Swal from "sweetalert2";
+import emailjs from "@emailjs/browser";
 
-// Quản lý biến trạng thái
+const router = useRouter();
+const swal = inject("$swal");
+
 const step = ref(1);
 const isLoading = ref(false);
 
 const form = ref({
+  email: "",
   username: "",
   otp: "",
   newPassword: "",
   confirmPassword: "",
 });
 
-// Tính toán độ dài thanh Cam tùy theo Bước hiện tại
 const progressWidth = computed(() => {
   if (step.value === 1) return "0%";
   if (step.value === 2) return "33.33%";
@@ -219,53 +224,92 @@ const progressWidth = computed(() => {
   return "100%";
 });
 
-// [BƯỚC 1] Gọi API yêu cầu cấp OTP
+// ==========================================
+// BƯỚC 1: LẤY OTP & BẮN EMAIL
+// ==========================================
 const requestOtp = async () => {
+  if (!form.value.email.trim()) {
+    swal.fire("Chú ý", "Vui lòng nhập Email!", "warning");
+    return;
+  }
+
   isLoading.value = true;
   try {
-    await axios.post("http://localhost:5198/api/Auth/forgot-password", {
-      TenDangNhap: form.value.username,
+    const res = await axios.post("/api/Auth/forgot-password", {
+      Email: form.value.email,
     });
-    // Gọi API xong thì đẩy sang Bước 2 (Nhập OTP)
+
+    form.value.username = res.data.tenDangNhap;
+    const otpCode = res.data.otp;
+    const fullName = res.data.tenNhanVien;
+
+    // Gửi Email thật qua EmailJS
+    await emailjs.send(
+      "service_65xya5u",
+      "template_a63e1vv",
+      {
+        to_email: form.value.email,
+        to_name: fullName,
+        otp_code: otpCode,
+      },
+      "Zjm65dyIcuEbthcT3",
+    );
+
     step.value = 2;
   } catch (error) {
-    Swal.fire({ icon: "error", title: "Lỗi", text: "Không thể gửi yêu cầu." });
+    console.error("Chi tiết lỗi:", error);
+    swal.fire(
+      "Lỗi",
+      error.response?.data ||
+        "Không thể gửi Email lúc này. Vui lòng kiểm tra lại cấu hình EmailJS!",
+      "error",
+    );
   } finally {
     isLoading.value = false;
   }
 };
 
-// [BƯỚC 2] Bấm nút Tiếp theo ở màn OTP
+// ==========================================
+// BƯỚC 2: CHUYỂN SANG ĐẶT MẬT KHẨU
+// ==========================================
 const verifyOtp = () => {
-  // Chỉ chuyển sang giao diện nhập Mật khẩu mới
-  // Việc xác thực sẽ gom chung ở Bước 3 khi gọi API reset
+  if (form.value.otp.length < 6) {
+    swal.fire("Chú ý", "Vui lòng nhập đủ 6 số OTP!", "warning");
+    return;
+  }
   step.value = 3;
 };
 
-// [BƯỚC 3] Gọi API Đổi mật khẩu
+// ==========================================
+// BƯỚC 3: ĐẶT LẠI MẬT KHẨU
+// ==========================================
 const resetPassword = async () => {
-  if (form.value.newPassword !== form.value.confirmPassword) return;
+  if (form.value.newPassword !== form.value.confirmPassword) {
+    swal.fire("Chú ý", "Mật khẩu xác nhận không khớp!", "warning");
+    return;
+  }
 
   isLoading.value = true;
   try {
-    await axios.post("http://localhost:5198/api/Auth/reset-password", {
+    await axios.post("/api/Auth/reset-password", {
       TenDangNhap: form.value.username,
       OtpCode: form.value.otp,
       MatKhauMoi: form.value.newPassword,
     });
-    // Thành công thì nhảy sang Bước 4 (Hoàn tất)
+
     step.value = 4;
   } catch (error) {
-    Swal.fire({
-      icon: "error",
-      title: "Từ chối",
-      text: error.response?.data || "Mã OTP không hợp lệ hoặc đã hết hạn!",
-      confirmButtonColor: "#e65c00",
-    }).then(() => {
-      // Nếu OTP sai, cho người dùng lùi lại Bước 2 để nhập lại OTP
-      step.value = 2;
-      form.value.otp = "";
-    });
+    swal
+      .fire({
+        icon: "error",
+        title: "Từ chối",
+        text: error.response?.data || "Mã OTP không hợp lệ hoặc đã hết hạn!",
+        confirmButtonColor: "#e65c00",
+      })
+      .then(() => {
+        step.value = 2;
+        form.value.otp = "";
+      });
   } finally {
     isLoading.value = false;
   }
@@ -273,7 +317,6 @@ const resetPassword = async () => {
 </script>
 
 <style scoped>
-/* Nền màu sương sương cực sang */
 .forgot-password-bg {
   background: radial-gradient(circle at center, #ffffff 0%, #faf8f5 100%);
 }
@@ -284,7 +327,6 @@ const resetPassword = async () => {
   border-radius: 20px;
 }
 
-/* Nút bấm Cam chuẩn hình sếp gửi */
 .btn-brand {
   background-color: #e65c00;
   color: white;
@@ -303,9 +345,6 @@ const resetPassword = async () => {
   box-shadow: none;
 }
 
-/* ==========================================
-   CSS CHO THANH TIẾN TRÌNH (STEPPER)
-   ========================================== */
 .progress-line-container {
   position: absolute;
   top: 15px;
@@ -361,12 +400,10 @@ const resetPassword = async () => {
   color: #333;
 }
 
-/* Nhập OTP dãn chữ */
 .tracking-widest {
   letter-spacing: 0.5em;
 }
 
-/* Link quay lại */
 .back-link:hover {
   color: #e65c00 !important;
 }

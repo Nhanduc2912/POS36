@@ -9,11 +9,12 @@ const swal = inject("$swal");
 const form = ref({
   tenCuaHang: "",
   soDienThoai: "",
+  email: "", // ĐÃ THÊM TRƯỜNG EMAIL
   tenDangNhap: "",
   matKhau: "",
 });
 
-const agreeTerms = ref(false); // Biến check đồng ý điều khoản
+const agreeTerms = ref(false);
 const errors = ref({});
 const isLoading = ref(false);
 
@@ -31,6 +32,15 @@ const validateForm = () => {
     isValid = false;
   } else if (!/^[0-9]+$/.test(form.value.soDienThoai)) {
     errors.value.soDienThoai = "Số điện thoại không hợp lệ!";
+    isValid = false;
+  }
+
+  // VALIDATE EMAIL
+  if (!form.value.email.trim()) {
+    errors.value.email = "Vui lòng nhập Email!";
+    isValid = false;
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email)) {
+    errors.value.email = "Email không đúng định dạng!";
     isValid = false;
   }
 
@@ -60,7 +70,6 @@ const handleRegister = async () => {
 
   isLoading.value = true;
   try {
-    // Dùng đường dẫn tương đối vì đã cấu hình Axios baseURL ở main.js
     await axios.post("/api/Auth/register", form.value);
 
     swal
@@ -76,9 +85,7 @@ const handleRegister = async () => {
       });
   } catch (error) {
     let msg = "Không thể kết nối máy chủ!";
-    if (error.response && error.response.data) {
-      msg = error.response.data;
-    }
+    if (error.response && error.response.data) msg = error.response.data;
     swal.fire("Đăng ký thất bại", msg, "error");
   } finally {
     isLoading.value = false;
@@ -98,17 +105,16 @@ const handleRegister = async () => {
               <h2 class="fw-bold tracking-tight">POS36</h2>
             </router-link>
           </div>
-
           <div class="content-box pe-4 mb-4">
             <h1 class="display-5 fw-bolder mb-4 lh-sm text-shadow">
-              Nâng tầm quản lý <br />
-              <span class="text-white-50">Cửa hàng của bạn</span>
+              Nâng tầm quản lý <br /><span class="text-white-50"
+                >Cửa hàng của bạn</span
+              >
             </h1>
             <p class="fs-6 opacity-90 lh-lg pe-3">
               Tham gia cùng 5,000+ chủ nhà hàng đã tối ưu hóa dịch vụ và tăng
               trưởng doanh thu với hệ thống quản lý thông minh của POS36.
             </p>
-
             <div
               class="mt-5 bg-white bg-opacity-10 p-4 rounded-4 border border-light border-opacity-25 backdrop-blur"
             >
@@ -182,28 +188,25 @@ const handleRegister = async () => {
             <div class="row g-3 mb-4">
               <div class="col-md-6">
                 <label class="form-label fw-semibold small text-muted mb-2"
-                  >Tên đăng nhập</label
+                  >Email chủ quán</label
                 >
                 <div
                   class="input-group custom-input-group"
-                  :class="{ 'border-danger': errors.tenDangNhap }"
+                  :class="{ 'border-danger': errors.email }"
                 >
                   <span
                     class="input-group-text bg-transparent border-0 text-muted ps-3"
-                    ><i class="bi bi-person"></i
+                    ><i class="bi bi-envelope"></i
                   ></span>
                   <input
-                    type="text"
+                    type="email"
                     class="form-control border-0 bg-transparent shadow-none py-2.5"
-                    v-model="form.tenDangNhap"
-                    placeholder="admin123"
+                    v-model="form.email"
+                    placeholder="name@company.com"
                   />
                 </div>
-                <div
-                  class="text-danger small mt-1 fw-bold"
-                  v-if="errors.tenDangNhap"
-                >
-                  {{ errors.tenDangNhap }}
+                <div class="text-danger small mt-1 fw-bold" v-if="errors.email">
+                  {{ errors.email }}
                 </div>
               </div>
 
@@ -235,27 +238,59 @@ const handleRegister = async () => {
               </div>
             </div>
 
-            <div class="mb-4">
-              <label class="form-label fw-semibold small text-muted mb-2"
-                >Mật khẩu</label
-              >
-              <div
-                class="input-group custom-input-group"
-                :class="{ 'border-danger': errors.matKhau }"
-              >
-                <span
-                  class="input-group-text bg-transparent border-0 text-muted ps-3"
-                  ><i class="bi bi-lock"></i
-                ></span>
-                <input
-                  type="password"
-                  class="form-control border-0 bg-transparent shadow-none py-2.5"
-                  v-model="form.matKhau"
-                  placeholder="••••••••"
-                />
+            <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold small text-muted mb-2"
+                  >Tên đăng nhập</label
+                >
+                <div
+                  class="input-group custom-input-group"
+                  :class="{ 'border-danger': errors.tenDangNhap }"
+                >
+                  <span
+                    class="input-group-text bg-transparent border-0 text-muted ps-3"
+                    ><i class="bi bi-person"></i
+                  ></span>
+                  <input
+                    type="text"
+                    class="form-control border-0 bg-transparent shadow-none py-2.5"
+                    v-model="form.tenDangNhap"
+                    placeholder="admin123"
+                  />
+                </div>
+                <div
+                  class="text-danger small mt-1 fw-bold"
+                  v-if="errors.tenDangNhap"
+                >
+                  {{ errors.tenDangNhap }}
+                </div>
               </div>
-              <div class="text-danger small mt-1 fw-bold" v-if="errors.matKhau">
-                {{ errors.matKhau }}
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold small text-muted mb-2"
+                  >Mật khẩu</label
+                >
+                <div
+                  class="input-group custom-input-group"
+                  :class="{ 'border-danger': errors.matKhau }"
+                >
+                  <span
+                    class="input-group-text bg-transparent border-0 text-muted ps-3"
+                    ><i class="bi bi-lock"></i
+                  ></span>
+                  <input
+                    type="password"
+                    class="form-control border-0 bg-transparent shadow-none py-2.5"
+                    v-model="form.matKhau"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <div
+                  class="text-danger small mt-1 fw-bold"
+                  v-if="errors.matKhau"
+                >
+                  {{ errors.matKhau }}
+                </div>
               </div>
             </div>
 
@@ -322,20 +357,15 @@ const handleRegister = async () => {
 
 <style scoped>
 @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap");
-
 .register-container {
   font-family: "Plus Jakarta Sans", sans-serif;
   background-color: #ffffff;
 }
-
-/* Background ảnh bên trái */
 .left-panel {
   background-image: url("https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1974&auto=format&fit=crop");
   background-size: cover;
   background-position: center;
 }
-
-/* Phủ lớp màu cam Gradient lồng lên ảnh */
 .overlay {
   background: linear-gradient(
     135deg,
@@ -344,34 +374,26 @@ const handleRegister = async () => {
   );
   z-index: 1;
 }
-
 .text-shadow {
   text-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
-
 .backdrop-blur {
   backdrop-filter: blur(10px);
 }
-
-/* Khung Input xám nhạt bo tròn */
 .custom-input-group {
   background-color: #f7f7f9;
   border-radius: 10px;
   border: 1px solid transparent;
   transition: all 0.2s ease-in-out;
 }
-
 .custom-input-group:focus-within {
   border-color: #e65c00;
   background-color: #fff;
   box-shadow: 0 0 0 3px rgba(230, 92, 0, 0.1);
 }
-
 .cursor-pointer {
   cursor: pointer;
 }
-
-/* Nút cam */
 .btn-orange {
   background: linear-gradient(135deg, #994700 0%, #ff7a00 100%);
   color: white;
@@ -380,21 +402,17 @@ const handleRegister = async () => {
   transition: all 0.3s ease;
   box-shadow: 0 10px 20px -10px rgba(255, 122, 0, 0.5);
 }
-
 .btn-orange:hover {
   opacity: 0.9;
   color: white;
   transform: translateY(-2px);
 }
-
 .btn-orange:active {
   transform: scale(0.98);
 }
-
 .text-orange {
   color: #e65c00;
 }
-
 .text-orange:hover {
   color: #cc5200;
   text-decoration: underline !important;
