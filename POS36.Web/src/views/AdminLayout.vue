@@ -205,7 +205,14 @@ onMounted(() => {
                   <router-link
                     class="dropdown-item fw-bold"
                     to="/admin/employees"
-                    ><i class="bi bi-person-badge"></i> Nhân viên</router-link
+                    ><i class="bi bi-person-badge me-1"></i> Nhân viên</router-link
+                  >
+                </li>
+                <li>
+                  <router-link
+                    class="dropdown-item fw-bold"
+                    to="/admin/customers"
+                    ><i class="bi bi-person-hearts me-1"></i> Khách hàng</router-link
                   >
                 </li>
               </ul>

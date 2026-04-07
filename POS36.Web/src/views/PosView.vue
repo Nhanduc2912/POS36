@@ -29,6 +29,72 @@ const formatPrice = (price) =>
     price || 0,
   );
 
+// --- KHÁCH HÀNG TÍCH ĐIỂM ---
+const customerSearchText = ref("");
+const customerResults = ref([]);
+const selectedCustomer = ref(null);
+let customerSearchTimeout = null;
+
+const searchCustomer = () => {
+  clearTimeout(customerSearchTimeout);
+  const sdt = customerSearchText.value.trim();
+  if (!sdt) {
+    customerResults.value = [];
+    return;
+  }
+  customerSearchTimeout = setTimeout(async () => {
+    try {
+      const res = await axios.get(`/api/KhachHang/tim-kiem?sdt=${encodeURIComponent(sdt)}`);
+      customerResults.value = res.data;
+    } catch (e) {
+      customerResults.value = [];
+    }
+  }, 400);
+};
+
+const selectCustomer = (cust) => {
+  selectedCustomer.value = cust;
+  customerSearchText.value = "";
+  customerResults.value = [];
+};
+
+const clearCustomer = () => {
+  selectedCustomer.value = null;
+  customerSearchText.value = "";
+  customerResults.value = [];
+};
+
+const handleQuickAddCustomer = async () => {
+  const { value: formValues } = await swal.fire({
+    title: "Tạo khách hàng nhanh",
+    html: `
+      <input id="swal-kh-ten" class="form-control mb-2" placeholder="Tên khách hàng *">
+      <input id="swal-kh-sdt" class="form-control" value="${customerSearchText.value}" placeholder="Số điện thoại *">
+    `,
+    showCancelButton: true,
+    cancelButtonText: "Hủy",
+    confirmButtonText: "Lưu & Ghim",
+    preConfirm: () => {
+      const ten = document.getElementById("swal-kh-ten").value;
+      const sdt = document.getElementById("swal-kh-sdt").value;
+      if (!ten || !sdt) {
+        swal.showValidationMessage("Nhập Tên và SĐT!");
+        return false;
+      }
+      return { tenKhachHang: ten, soDienThoai: sdt };
+    },
+  });
+  if (formValues) {
+    try {
+      const res = await axios.post("/api/KhachHang", formValues);
+      selectCustomer(res.data);
+      swal.fire({ toast: true, position: "top-end", icon: "success", title: "Đã tạo & ghim khách hàng!", timer: 1500, showConfirmButton: false });
+    } catch (e) {
+      swal.fire("Lỗi", e.response?.data || "Không thể tạo", "error");
+    }
+  }
+};
+
 // MẢNG LƯU DANH SÁCH THÔNG BÁO
 const notificationList = ref([]);
 
@@ -376,7 +442,11 @@ const logout = () => {
 // --- ĐẢO HÀM NÀY LÊN TRÊN ĐỂ KHÔNG BỊ LỖI IS NOT DEFINED ---
 const thucHienThanhToanChinhThuc = async (banId, phuongThuc) => {
   try {
-    await axios.post(`/api/HoaDon/thanhtoan/${banId}?phuongThuc=${phuongThuc}`);
+    let url = `/api/HoaDon/thanhtoan/${banId}?phuongThuc=${phuongThuc}`;
+    if (selectedCustomer.value) {
+      url += `&khachHangId=${selectedCustomer.value.id}`;
+    }
+    await axios.post(url);
 
     pendingPayments.value = pendingPayments.value.filter(
       (p) => p.banId !== banId,
@@ -398,6 +468,7 @@ const thucHienThanhToanChinhThuc = async (banId, phuongThuc) => {
       activeTable.value.trangThai = "Trống";
       activeTable.value.timeOpen = null;
       activeRightTab.value = "tables";
+      clearCustomer(); // Reset khách khi thanh toán xong
     }
   } catch (e) {
     console.error(e);
@@ -608,6 +679,70 @@ connection.on("ThanhToanQRThanhCong", (banId) => {
           </div>
         </div>
 
+        <!-- THANH TÌM KIẾM KHÁCH HÀNG TÍCH ĐIỂM -->
+        <div class="border-bottom px-2 py-1" style="background: #fffbea">
+          <div v-if="!selectedCustomer" class="position-relative">
+            <div class="input-group input-group-sm">
+              <span class="input-group-text bg-white border-end-0">
+                <i class="bi bi-person-hearts text-warning"></i>
+              </span>
+              <input
+                v-model="customerSearchText"
+                @input="searchCustomer"
+                type="text"
+                class="form-control border-start-0"
+                placeholder="Nhập SĐT khách hàng để tích điểm..."
+              />
+            </div>
+            <!-- Dropdown kết quả -->
+            <div
+              v-if="customerResults.length > 0"
+              class="position-absolute w-100 bg-white border shadow-lg rounded-bottom"
+              style="z-index: 999; top: 100%"
+            >
+              <div
+                v-for="cust in customerResults"
+                :key="cust.id"
+                @click="selectCustomer(cust)"
+                class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom cursor-pointer hover-bg"
+              >
+                <div>
+                  <span class="fw-bold">{{ cust.tenKhachHang }}</span>
+                  <span class="text-muted ms-2 small">{{ cust.soDienThoai }}</span>
+                </div>
+                <span class="badge bg-success rounded-pill">
+                  <i class="bi bi-star-fill me-1"></i>{{ cust.diemHienTai }} điểm
+                </span>
+              </div>
+            </div>
+            <!-- Nút tạo nhanh khi không tìm thấy -->
+            <div
+              v-if="customerSearchText.length >= 3 && customerResults.length === 0"
+              class="position-absolute w-100 bg-white border shadow-lg rounded-bottom px-3 py-2 text-center"
+              style="z-index: 999; top: 100%"
+            >
+              <span class="text-muted small">Không tìm thấy — </span>
+              <a href="#" @click.prevent="handleQuickAddCustomer" class="fw-bold text-primary">
+                <i class="bi bi-plus-circle me-1"></i>Tạo khách hàng mới
+              </a>
+            </div>
+          </div>
+          <!-- Đã ghim khách hàng -->
+          <div v-else class="d-flex justify-content-between align-items-center">
+            <div>
+              <i class="bi bi-person-check-fill text-success me-1"></i>
+              <span class="fw-bold">{{ selectedCustomer.tenKhachHang }}</span>
+              <span class="text-muted small ms-1">{{ selectedCustomer.soDienThoai }}</span>
+              <span class="badge bg-success ms-2 rounded-pill">
+                <i class="bi bi-star-fill me-1"></i>{{ selectedCustomer.diemHienTai }} điểm
+              </span>
+            </div>
+            <button @click="clearCustomer" class="btn btn-sm btn-outline-danger rounded-pill px-2 py-0">
+              <i class="bi bi-x-lg"></i> Bỏ ghim
+            </button>
+          </div>
+        </div>
+
         <div class="d-flex text-muted small fw-bold border-bottom p-2 bg-light">
           <div style="width: 5%">#</div>
           <div style="width: 45%">TÊN HÀNG HÓA</div>
@@ -669,8 +804,12 @@ connection.on("ThanhToanQRThanhCong", (banId) => {
           <div
             class="p-2 d-flex justify-content-between align-items-center border-bottom"
           >
-            <div class="text-muted small">
-              <i class="bi bi-search"></i> Tìm khách hàng (F4)
+            <div v-if="selectedCustomer" class="small">
+              <i class="bi bi-person-check-fill text-success me-1"></i>
+              <span class="fw-bold">{{ selectedCustomer.tenKhachHang }}</span>
+            </div>
+            <div v-else class="text-muted small">
+              <i class="bi bi-person"></i> Khách vãng lai
             </div>
             <div class="text-center">
               <div class="small text-muted">Tổng cộng</div>
@@ -872,5 +1011,8 @@ connection.on("ThanhToanQRThanhCong", (banId) => {
 .product-card:active {
   transform: scale(0.96);
   transition: 0.1s;
+}
+.hover-bg:hover {
+  background-color: #f0f7ff;
 }
 </style>

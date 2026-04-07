@@ -242,7 +242,7 @@ namespace POS36.Api.Controllers
         // 5. THANH TOÁN KẾT HỢP TRỪ KHO & TẠO PHIẾU THU SỔ QUỸ
         // ==========================================
         [HttpPost("thanhtoan/{banId}")]
-        public async Task<IActionResult> ThanhToan(int banId, [FromQuery] string phuongThuc = "Tiền mặt")
+        public async Task<IActionResult> ThanhToan(int banId, [FromQuery] string phuongThuc = "Tiền mặt", [FromQuery] int? khachHangId = null)
         {
             int cuaHangId = GetCuaHangId();
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -284,14 +284,37 @@ namespace POS36.Api.Controllers
                     }
                 }
 
+                // Mặc định tên khách trên phiếu thu
+                string tenKhachHang = "Khách hàng lẻ";
+                int diemCong = 0;
+
+                // ============ TÍCH ĐIỂM CHO KHÁCH HÀNG ============
+                if (khachHangId.HasValue)
+                {
+                    var khachHang = await _context.KhachHangs
+                        .FirstOrDefaultAsync(k => k.Id == khachHangId.Value && k.CuaHangId == cuaHangId);
+
+                    if (khachHang != null)
+                    {
+                        hoaDon.KhachHangId = khachHang.Id;
+
+                        // Tỷ lệ tích điểm: 1 điểm = 20.000 VNĐ (cashback ~5%)
+                        diemCong = (int)(hoaDon.TongTien / 20000);
+                        khachHang.TongDiemTichLuy += diemCong; // Chỉ tăng, không bao giờ giảm
+                        khachHang.DiemHienTai += diemCong;     // Có thể bị trừ khi tiêu điểm
+
+                        tenKhachHang = khachHang.TenKhachHang;
+                    }
+                }
+
                 var phieuThu = new PhieuThuChi
                 {
                     CuaHangId = hoaDon.CuaHangId,
                     ChiNhanhId = hoaDon.ChiNhanhId,
                     MaChungTu = $"PT{DateTime.Now:ddMMyy}-{new Random().Next(1000, 9999)}",
                     LoaiPhieu = "Thu",
-                    PhuongThuc = phuongThuc, // Đồng bộ phương thức
-                    NguoiNopNhan = "Khách hàng lẻ",
+                    PhuongThuc = phuongThuc,
+                    NguoiNopNhan = tenKhachHang,
                     HangMuc = "Thu tiền bán hàng",
                     LyDo = $"Thanh toán hóa đơn cho {hoaDon.Ban?.TenBan ?? "Bàn ảo"}",
                     GiaTri = (double)hoaDon.TongTien,

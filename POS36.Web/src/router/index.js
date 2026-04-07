@@ -90,6 +90,11 @@ const routes = [
         component: () => import("../views/EmployeeSetup.vue"),
       },
       {
+        path: "customers",
+        name: "CustomerSetup",
+        component: () => import("../views/CustomerSetup.vue"),
+      },
+      {
         path: "orders",
         name: "admin-orders",
         component: () => import("../views/OrderList.vue"),
