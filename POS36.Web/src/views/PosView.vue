@@ -66,14 +66,20 @@ const clearCustomer = () => {
 
 const handleQuickAddCustomer = async () => {
   const { value: formValues } = await swal.fire({
-    title: "Tạo khách hàng nhanh",
+    title: "Tạo Khách Hàng Mới",
     html: `
+      <div class="text-start mb-2 fw-bold text-primary">Thông tin bắt buộc</div>
       <input id="swal-kh-ten" class="form-control mb-2" placeholder="Tên khách hàng *">
-      <input id="swal-kh-sdt" class="form-control" value="${customerSearchText.value}" placeholder="Số điện thoại *">
+      <input id="swal-kh-sdt" class="form-control mb-3" value="${customerSearchText.value}" placeholder="Số điện thoại *">
+      <div class="text-start mb-2 fw-bold text-secondary">Thông tin bổ sung</div>
+      <input id="swal-kh-email" class="form-control mb-2" type="email" placeholder="Email (Không bắt buộc)">
+      <input id="swal-kh-diachi" class="form-control mb-2" placeholder="Địa chỉ (Không bắt buộc)">
+      <input id="swal-kh-ngaysinh" class="form-control mb-2" type="date" title="Ngày sinh">
+      <textarea id="swal-kh-ghichu" class="form-control" rows="2" placeholder="Ghi chú (Không bắt buộc)"></textarea>
     `,
     showCancelButton: true,
     cancelButtonText: "Hủy",
-    confirmButtonText: "Lưu & Ghim",
+    confirmButtonText: "Lưu &amp; Ghim",
     preConfirm: () => {
       const ten = document.getElementById("swal-kh-ten").value;
       const sdt = document.getElementById("swal-kh-sdt").value;
@@ -81,7 +87,18 @@ const handleQuickAddCustomer = async () => {
         swal.showValidationMessage("Nhập Tên và SĐT!");
         return false;
       }
-      return { tenKhachHang: ten, soDienThoai: sdt };
+      const email = document.getElementById("swal-kh-email").value;
+      const diachi = document.getElementById("swal-kh-diachi").value;
+      const ngaysinh = document.getElementById("swal-kh-ngaysinh").value;
+      const ghichu = document.getElementById("swal-kh-ghichu").value;
+      return {
+        tenKhachHang: ten,
+        soDienThoai: sdt,
+        email: email || null,
+        diaChi: diachi || null,
+        ngaySinh: ngaysinh || null,
+        ghiChu: ghichu || null,
+      };
     },
   });
   if (formValues) {
