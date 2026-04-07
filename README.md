@@ -1,12 +1,12 @@
 <div align="center">
 
 ```
-██████╗  ██████╗  ███████╗ ██████╗  ██████╗
-██╔══██╗██╔═══██╗██╔════╝ ╚════██╗██╔════╝
-██████╔╝██║   ██║╚███████╗  ███╔╝ ███████╗
-██╔═══╝ ██║   ██║ ╚════██║ ███╔╝  ██╔═══██╗
-██║     ╚██████╔╝ ███████║██████╗ ╚██████╔╝
-╚═╝      ╚═════╝  ╚══════╝╚═════╝  ╚═════╝
+ ██████╗  ██████╗  ██████╗ ██████╗  ██████╗
+ ██╔══██╗██╔═══██╗██╔════╝ ╚════██╗ ██╔════╝
+ ██████╔╝██║   ██║╚█████╗   █████╔╝ ███████╗
+ ██╔═══╝ ██║   ██║ ╚═══██╗  ╚═══██╗ ██╔═══██╗
+ ██║     ╚██████╔╝██████╔╝ ██████╔╝ ╚██████╔╝
+ ╚═╝      ╚═════╝ ╚═════╝  ╚═════╝   ╚═════╝
 ```
 
 # 🍽️ POS36 — Hệ Thống Quản Lý Bán Hàng F&B
@@ -43,14 +43,14 @@
 
 ### Điểm Nổi Bật
 
-| Tính Năng | Mô Tả |
-|:---|:---|
-| 🤖 **AI Copilot tích hợp** | Trợ lý ảo Google Gemini 2.5 Flash, hỗ trợ phân tích dữ liệu kinh doanh theo thời gian thực |
-| 📡 **Real-time với SignalR** | Đồng bộ tức thời giữa Phục vụ → Bếp → Thu ngân, hỗ trợ thanh toán QR Bank real-time |
-| 🏪 **Multi-branch** | Quản lý nhiều chi nhánh trong một tài khoản Chủ cửa hàng |
-| 🔐 **RBAC bảo mật** | Phân quyền chi tiết theo vai trò: 5 loại tài khoản với màn hình riêng biệt |
-| 📊 **Báo cáo thông minh** | Dashboard, báo cáo doanh thu, sổ quỹ, kiểm kê kho tự động |
-| 🖨️ **In hóa đơn** | Cấu hình mẫu in linh hoạt, hỗ trợ QR Code thanh toán ngân hàng |
+| Tính Năng                    | Mô Tả                                                                                      |
+| :--------------------------- | :----------------------------------------------------------------------------------------- |
+| 🤖 **AI Copilot tích hợp**   | Trợ lý ảo Google Gemini 2.5 Flash, hỗ trợ phân tích dữ liệu kinh doanh theo thời gian thực |
+| 📡 **Real-time với SignalR** | Đồng bộ tức thời giữa Phục vụ → Bếp → Thu ngân, hỗ trợ thanh toán QR Bank real-time        |
+| 🏪 **Multi-branch**          | Quản lý nhiều chi nhánh trong một tài khoản Chủ cửa hàng                                   |
+| 🔐 **RBAC bảo mật**          | Phân quyền chi tiết theo vai trò: 5 loại tài khoản với màn hình riêng biệt                 |
+| 📊 **Báo cáo thông minh**    | Dashboard, báo cáo doanh thu, sổ quỹ, kiểm kê kho tự động                                  |
+| 🖨️ **In hóa đơn**            | Cấu hình mẫu in linh hoạt, hỗ trợ QR Code thanh toán ngân hàng                             |
 
 ---
 
@@ -58,32 +58,32 @@
 
 ### Backend (`POS36.Api`)
 
-| Package | Phiên Bản | Mục Đích |
-|:---|:---|:---|
-| **ASP.NET Core** | 9.0 | Framework Web API chính |
-| **Entity Framework Core** | 9.0 | ORM, quản lý Database |
-| **EF Core SQL Server** | 9.0 | Provider kết nối SQL Server |
-| **Microsoft.AspNetCore.Authentication.JwtBearer** | 9.0 | Xác thực JWT Token |
-| **Swashbuckle.AspNetCore** | 7.2.0 | Swagger UI tài liệu API |
-| **BCrypt.Net-Next** | 4.0.3 | Mã hóa mật khẩu |
-| **Serilog.AspNetCore** | 10.0.0 | Logging màu sắc cho Terminal |
-| **SignalR** | (Built-in) | Giao tiếp real-time |
+| Package                                           | Phiên Bản  | Mục Đích                     |
+| :------------------------------------------------ | :--------- | :--------------------------- |
+| **ASP.NET Core**                                  | 9.0        | Framework Web API chính      |
+| **Entity Framework Core**                         | 9.0        | ORM, quản lý Database        |
+| **EF Core SQL Server**                            | 9.0        | Provider kết nối SQL Server  |
+| **Microsoft.AspNetCore.Authentication.JwtBearer** | 9.0        | Xác thực JWT Token           |
+| **Swashbuckle.AspNetCore**                        | 7.2.0      | Swagger UI tài liệu API      |
+| **BCrypt.Net-Next**                               | 4.0.3      | Mã hóa mật khẩu              |
+| **Serilog.AspNetCore**                            | 10.0.0     | Logging màu sắc cho Terminal |
+| **SignalR**                                       | (Built-in) | Giao tiếp real-time          |
 
 ### Frontend (`POS36.Web`)
 
-| Package | Phiên Bản | Mục Đích |
-|:---|:---|:---|
-| **Vue.js** | ^3.5.30 | Framework UI chính |
-| **Vue Router** | ^5.0.3 | Điều hướng trang & Navigation Guards |
-| **Axios** | ^1.13.6 | HTTP Client gọi API |
-| **@microsoft/signalr** | ^10.0.0 | Kết nối SignalR real-time |
-| **Bootstrap** | ^5.3.8 | CSS Framework UI |
-| **Bootstrap Icons** | ^1.13.1 | Bộ icon |
-| **Chart.js + vue-chartjs** | ^4.5.1 | Biểu đồ doanh thu |
-| **SweetAlert2** | ^11.26.23 | Hộp thoại thông báo đẹp |
-| **@emailjs/browser** | ^4.4.1 | Gửi email OTP quên mật khẩu |
-| **xlsx** | ^0.18.5 | Xuất Excel báo cáo |
-| **Vite** | ^8.0.0 | Build tool & Dev server |
+| Package                    | Phiên Bản | Mục Đích                             |
+| :------------------------- | :-------- | :----------------------------------- |
+| **Vue.js**                 | ^3.5.30   | Framework UI chính                   |
+| **Vue Router**             | ^5.0.3    | Điều hướng trang & Navigation Guards |
+| **Axios**                  | ^1.13.6   | HTTP Client gọi API                  |
+| **@microsoft/signalr**     | ^10.0.0   | Kết nối SignalR real-time            |
+| **Bootstrap**              | ^5.3.8    | CSS Framework UI                     |
+| **Bootstrap Icons**        | ^1.13.1   | Bộ icon                              |
+| **Chart.js + vue-chartjs** | ^4.5.1    | Biểu đồ doanh thu                    |
+| **SweetAlert2**            | ^11.26.23 | Hộp thoại thông báo đẹp              |
+| **@emailjs/browser**       | ^4.4.1    | Gửi email OTP quên mật khẩu          |
+| **xlsx**                   | ^0.18.5   | Xuất Excel báo cáo                   |
+| **Vite**                   | ^8.0.0    | Build tool & Dev server              |
 
 ---
 
@@ -238,52 +238,59 @@ POS36/
 Hệ thống gồm **20 bảng** chia làm **6 phân hệ**:
 
 ### Phân Hệ 1 — Hệ Thống & Nhân Sự
+
 ```
 CuaHang ──< ChiNhanh ──< TaiKhoan >── NhanVien
                       └─ KhuVuc ──< Ban
 ```
-| Bảng | Mô Tả |
-|:---|:---|
-| `CuaHang` | Thông tin cửa hàng (TenCuaHang, SoDienThoai, NgayDangKy) |
-| `ChiNhanh` | Chi nhánh thuộc cửa hàng (TenChiNhanh, DiaChi) |
-| `TaiKhoan` | Thông tin đăng nhập (TenDangNhap, MatKhauHash BCrypt, VaiTro) |
-| `NhanVien` | Hồ sơ nhân viên (MaNhanVien, TenNhanVien, SoDienThoai, Email) |
-| `KhachHang` | Thông tin khách hàng |
+
+| Bảng        | Mô Tả                                                         |
+| :---------- | :------------------------------------------------------------ |
+| `CuaHang`   | Thông tin cửa hàng (TenCuaHang, SoDienThoai, NgayDangKy)      |
+| `ChiNhanh`  | Chi nhánh thuộc cửa hàng (TenChiNhanh, DiaChi)                |
+| `TaiKhoan`  | Thông tin đăng nhập (TenDangNhap, MatKhauHash BCrypt, VaiTro) |
+| `NhanVien`  | Hồ sơ nhân viên (MaNhanVien, TenNhanVien, SoDienThoai, Email) |
+| `KhachHang` | Thông tin khách hàng                                          |
 
 ### Phân Hệ 2 — Bán Hàng (Menu & Bàn)
-| Bảng | Mô Tả |
-|:---|:---|
-| `KhuVuc` | Khu vực trong chi nhánh (Tầng 1, Tầng 2, Sân vườn...) |
-| `Ban` | Bàn trong khu vực (MaBan, TenBan, TrangThai: Trống/Đang phục vụ) |
-| `DanhMuc` | Danh mục sản phẩm (Đồ uống, Món chính, Tráng miệng...) |
-| `SanPham` | Sản phẩm (TenSanPham, GiaBan, AnhUrl, TrangThai) |
+
+| Bảng      | Mô Tả                                                            |
+| :-------- | :--------------------------------------------------------------- |
+| `KhuVuc`  | Khu vực trong chi nhánh (Tầng 1, Tầng 2, Sân vườn...)            |
+| `Ban`     | Bàn trong khu vực (MaBan, TenBan, TrangThai: Trống/Đang phục vụ) |
+| `DanhMuc` | Danh mục sản phẩm (Đồ uống, Món chính, Tráng miệng...)           |
+| `SanPham` | Sản phẩm (TenSanPham, GiaBan, AnhUrl, TrangThai)                 |
 
 ### Phân Hệ 3 — Giao Dịch
-| Bảng | Mô Tả |
-|:---|:---|
-| `HoaDon` | Hóa đơn (BanId, TrangThai, TongTien, PhuongThucThanhToan, NgayThanhToan) |
-| `ChiTietHoaDon` | Chi tiết món (SanPhamId, SoLuong, DonGia, TrangThaiMon, GhiChu) |
-| `ThanhToan` | Lịch sử giao dịch thanh toán |
+
+| Bảng            | Mô Tả                                                                    |
+| :-------------- | :----------------------------------------------------------------------- |
+| `HoaDon`        | Hóa đơn (BanId, TrangThai, TongTien, PhuongThucThanhToan, NgayThanhToan) |
+| `ChiTietHoaDon` | Chi tiết món (SanPhamId, SoLuong, DonGia, TrangThaiMon, GhiChu)          |
+| `ThanhToan`     | Lịch sử giao dịch thanh toán                                             |
 
 ### Phân Hệ 4 — Quản Lý Kho
-| Bảng | Mô Tả |
-|:---|:---|
-| `TonKho` | Số lượng tồn kho theo chi nhánh (SanPhamId, ChiNhanhId, SoLuong) |
-| `PhieuNhap` | Phiếu nhập hàng (MaChungTu, NgayNhap, TrangThai) |
-| `ChiTietPhieuNhap` | Chi tiết phiếu nhập (SanPhamId, SoLuong, DonGiaNhap) |
-| `LichSuKho` | Log biến động tồn kho |
+
+| Bảng               | Mô Tả                                                            |
+| :----------------- | :--------------------------------------------------------------- |
+| `TonKho`           | Số lượng tồn kho theo chi nhánh (SanPhamId, ChiNhanhId, SoLuong) |
+| `PhieuNhap`        | Phiếu nhập hàng (MaChungTu, NgayNhap, TrangThai)                 |
+| `ChiTietPhieuNhap` | Chi tiết phiếu nhập (SanPhamId, SoLuong, DonGiaNhap)             |
+| `LichSuKho`        | Log biến động tồn kho                                            |
 
 ### Phân Hệ 5 — Kiểm Kê
-| Bảng | Mô Tả |
-|:---|:---|
-| `PhieuKiemKe` | Phiếu kiểm kê (MaChungTu, TrangThai: Nháp/Hoàn thành) |
-| `ChiTietKiemKe` | Chi tiết kiểm kê (TonKhoHienTai vs SoLuongKiemKe) |
+
+| Bảng            | Mô Tả                                                 |
+| :-------------- | :---------------------------------------------------- |
+| `PhieuKiemKe`   | Phiếu kiểm kê (MaChungTu, TrangThai: Nháp/Hoàn thành) |
+| `ChiTietKiemKe` | Chi tiết kiểm kê (TonKhoHienTai vs SoLuongKiemKe)     |
 
 ### Phân Hệ 6 — Sổ Quỹ & Cấu Hình
-| Bảng | Mô Tả |
-|:---|:---|
+
+| Bảng          | Mô Tả                                                        |
+| :------------ | :----------------------------------------------------------- |
 | `PhieuThuChi` | Phiếu thu/chi (LoaiPhieu, PhuongThuc, GiaTri, HangMuc, LyDo) |
-| `ThietLap` | Cấu hình dạng key-value JSON (MaThietLap, DuLieu) |
+| `ThietLap`    | Cấu hình dạng key-value JSON (MaThietLap, DuLieu)            |
 
 ---
 
@@ -294,97 +301,97 @@ CuaHang ──< ChiNhanh ──< TaiKhoan >── NhanVien
 
 ### 🔐 Auth (`/api/Auth`)
 
-| Method | Endpoint | Mô Tả | Auth |
-|:---:|:---|:---|:---:|
-| POST | `/auth/register` | Đăng ký cửa hàng mới (tạo CuaHang + ChiNhanh + NhanVien + TaiKhoan) | ❌ |
-| POST | `/auth/login` | Đăng nhập, trả về JWT Token + VaiTro | ❌ |
-| POST | `/auth/forgot-password` | Tra cứu email → trả về OTP code và tên đăng nhập | ❌ |
-| POST | `/auth/reset-password` | Xác nhận OTP → đổi mật khẩu mới | ❌ |
+| Method | Endpoint                | Mô Tả                                                               | Auth |
+| :----: | :---------------------- | :------------------------------------------------------------------ | :--: |
+|  POST  | `/auth/register`        | Đăng ký cửa hàng mới (tạo CuaHang + ChiNhanh + NhanVien + TaiKhoan) |  ❌  |
+|  POST  | `/auth/login`           | Đăng nhập, trả về JWT Token + VaiTro                                |  ❌  |
+|  POST  | `/auth/forgot-password` | Tra cứu email → trả về OTP code và tên đăng nhập                    |  ❌  |
+|  POST  | `/auth/reset-password`  | Xác nhận OTP → đổi mật khẩu mới                                     |  ❌  |
 
 ### 📄 Hóa Đơn (`/api/HoaDon`)
 
-| Method | Endpoint | Mô Tả |
-|:---:|:---|:---|
-| POST | `/hoadon/goimon` | Gọi món cho bàn (tạo/cập nhật HoaDon + broadcast SignalR xuống Bếp) |
-| GET | `/hoadon/ban/{banId}` | Lấy chi tiết hóa đơn đang mở của 1 bàn |
-| POST | `/hoadon/chuyenban` | Chuyển toàn bộ hóa đơn sang bàn khác |
-| POST | `/hoadon/ghepban` | Ghép 2 hóa đơn của 2 bàn vào 1 |
-| POST | `/hoadon/thanhtoan/{banId}` | Thanh toán: đổi trạng thái, trừ tồn kho, tạo Phiếu Thu, broadcast SignalR |
-| GET | `/hoadon/bep/danh-sach` | Lấy danh sách món "Chờ chế biến" cho màn hình Bếp |
-| PUT | `/hoadon/bep/xong/{chiTietId}` | Bếp đánh dấu món đã làm xong → broadcast SignalR |
-| GET | `/hoadon/danh-sach-admin` | Lấy danh sách hóa đơn cho Admin (lọc theo ngày, trạng thái, tìm kiếm) |
-| POST | `/hoadon/huymon` | Hủy món / trả đồ (giảm số lượng hoặc xóa khỏi hóa đơn) |
+| Method | Endpoint                       | Mô Tả                                                                     |
+| :----: | :----------------------------- | :------------------------------------------------------------------------ |
+|  POST  | `/hoadon/goimon`               | Gọi món cho bàn (tạo/cập nhật HoaDon + broadcast SignalR xuống Bếp)       |
+|  GET   | `/hoadon/ban/{banId}`          | Lấy chi tiết hóa đơn đang mở của 1 bàn                                    |
+|  POST  | `/hoadon/chuyenban`            | Chuyển toàn bộ hóa đơn sang bàn khác                                      |
+|  POST  | `/hoadon/ghepban`              | Ghép 2 hóa đơn của 2 bàn vào 1                                            |
+|  POST  | `/hoadon/thanhtoan/{banId}`    | Thanh toán: đổi trạng thái, trừ tồn kho, tạo Phiếu Thu, broadcast SignalR |
+|  GET   | `/hoadon/bep/danh-sach`        | Lấy danh sách món "Chờ chế biến" cho màn hình Bếp                         |
+|  PUT   | `/hoadon/bep/xong/{chiTietId}` | Bếp đánh dấu món đã làm xong → broadcast SignalR                          |
+|  GET   | `/hoadon/danh-sach-admin`      | Lấy danh sách hóa đơn cho Admin (lọc theo ngày, trạng thái, tìm kiếm)     |
+|  POST  | `/hoadon/huymon`               | Hủy món / trả đồ (giảm số lượng hoặc xóa khỏi hóa đơn)                    |
 
 ### 🛍️ Sản Phẩm & Menu (`/api/SanPham`, `/api/DanhMuc`, `/api/Menu`)
 
-| Method | Endpoint | Mô Tả |
-|:---:|:---|:---|
-| GET | `/sanpham` | Lấy danh sách sản phẩm |
-| POST | `/sanpham` | Thêm sản phẩm mới (hỗ trợ upload ảnh) |
-| PUT | `/sanpham/{id}` | Cập nhật sản phẩm |
-| DELETE | `/sanpham/{id}` | Xóa/ẩn sản phẩm |
-| GET | `/danhmuc` | Lấy danh sách danh mục |
-| POST | `/danhmuc` | Thêm danh mục |
-| PUT | `/danhmuc/{id}` | Sửa danh mục |
-| DELETE | `/danhmuc/{id}` | Xóa danh mục |
-| GET | `/menu` | Lấy menu (sản phẩm đang kích hoạt theo danh mục) |
+| Method | Endpoint        | Mô Tả                                            |
+| :----: | :-------------- | :----------------------------------------------- |
+|  GET   | `/sanpham`      | Lấy danh sách sản phẩm                           |
+|  POST  | `/sanpham`      | Thêm sản phẩm mới (hỗ trợ upload ảnh)            |
+|  PUT   | `/sanpham/{id}` | Cập nhật sản phẩm                                |
+| DELETE | `/sanpham/{id}` | Xóa/ẩn sản phẩm                                  |
+|  GET   | `/danhmuc`      | Lấy danh sách danh mục                           |
+|  POST  | `/danhmuc`      | Thêm danh mục                                    |
+|  PUT   | `/danhmuc/{id}` | Sửa danh mục                                     |
+| DELETE | `/danhmuc/{id}` | Xóa danh mục                                     |
+|  GET   | `/menu`         | Lấy menu (sản phẩm đang kích hoạt theo danh mục) |
 
 ### 🏠 Thiết Lập Sơ Đồ (`/api/ThietLap`)
 
-| Method | Endpoint | Mô Tả |
-|:---:|:---|:---|
-| POST | `/thietlap/chinhanh` | Thêm chi nhánh mới |
-| GET | `/thietlap/chinhanh` | Lấy danh sách chi nhánh |
-| POST | `/thietlap/khuvuc` | Thêm khu vực vào chi nhánh |
-| POST | `/thietlap/ban` | Thêm bàn vào khu vực |
-| GET | `/thietlap/sodoban/{chiNhanhId}` | Lấy sơ đồ bàn đầy đủ (KhuVuc → Bàn) |
-| GET | `/thietlap/{maThietLap}` | Lấy cấu hình (BankConfig, PrintConfig...) |
-| POST | `/thietlap` | Lưu cấu hình (Upsert) |
+| Method | Endpoint                         | Mô Tả                                     |
+| :----: | :------------------------------- | :---------------------------------------- |
+|  POST  | `/thietlap/chinhanh`             | Thêm chi nhánh mới                        |
+|  GET   | `/thietlap/chinhanh`             | Lấy danh sách chi nhánh                   |
+|  POST  | `/thietlap/khuvuc`               | Thêm khu vực vào chi nhánh                |
+|  POST  | `/thietlap/ban`                  | Thêm bàn vào khu vực                      |
+|  GET   | `/thietlap/sodoban/{chiNhanhId}` | Lấy sơ đồ bàn đầy đủ (KhuVuc → Bàn)       |
+|  GET   | `/thietlap/{maThietLap}`         | Lấy cấu hình (BankConfig, PrintConfig...) |
+|  POST  | `/thietlap`                      | Lưu cấu hình (Upsert)                     |
 
 ### 👥 Nhân Viên (`/api/NhanVien`)
 
-| Method | Endpoint | Mô Tả |
-|:---:|:---|:---|
-| GET | `/nhanvien` | Lấy danh sách nhân viên kèm tài khoản |
-| POST | `/nhanvien` | Thêm nhân viên + tạo tài khoản với vai trò chỉ định |
-| PUT | `/nhanvien/{id}` | Cập nhật thông tin nhân viên |
-| DELETE | `/nhanvien/{id}` | Xóa nhân viên |
+| Method | Endpoint         | Mô Tả                                               |
+| :----: | :--------------- | :-------------------------------------------------- |
+|  GET   | `/nhanvien`      | Lấy danh sách nhân viên kèm tài khoản               |
+|  POST  | `/nhanvien`      | Thêm nhân viên + tạo tài khoản với vai trò chỉ định |
+|  PUT   | `/nhanvien/{id}` | Cập nhật thông tin nhân viên                        |
+| DELETE | `/nhanvien/{id}` | Xóa nhân viên                                       |
 
 ### 📦 Kho Hàng (`/api/Kho`, `/api/NhapHang`, `/api/KiemKe`)
 
-| Method | Endpoint | Mô Tả |
-|:---:|:---|:---|
-| GET | `/kho` | Xem tồn kho hiện tại theo chi nhánh |
-| GET | `/nhaphang/danh-sach` | Danh sách phiếu nhập (lọc ngày, trạng thái) |
-| POST | `/nhaphang` | Tạo phiếu nhập hàng (cộng tồn kho nếu "Hoàn thành", tạo phiếu chi) |
-| GET | `/kiemke/danh-sach` | Danh sách phiếu kiểm kê |
-| GET | `/kiemke/san-pham-ton-kho` | Lấy toàn bộ sản phẩm kèm số lượng tồn để điền phiếu kiểm kê |
-| POST | `/kiemke` | Tạo phiếu kiểm kê (ghi đè tồn kho nếu "Hoàn thành") |
-| GET | `/kiemke/{id}` | Xem chi tiết 1 phiếu kiểm kê |
+| Method | Endpoint                   | Mô Tả                                                              |
+| :----: | :------------------------- | :----------------------------------------------------------------- |
+|  GET   | `/kho`                     | Xem tồn kho hiện tại theo chi nhánh                                |
+|  GET   | `/nhaphang/danh-sach`      | Danh sách phiếu nhập (lọc ngày, trạng thái)                        |
+|  POST  | `/nhaphang`                | Tạo phiếu nhập hàng (cộng tồn kho nếu "Hoàn thành", tạo phiếu chi) |
+|  GET   | `/kiemke/danh-sach`        | Danh sách phiếu kiểm kê                                            |
+|  GET   | `/kiemke/san-pham-ton-kho` | Lấy toàn bộ sản phẩm kèm số lượng tồn để điền phiếu kiểm kê        |
+|  POST  | `/kiemke`                  | Tạo phiếu kiểm kê (ghi đè tồn kho nếu "Hoàn thành")                |
+|  GET   | `/kiemke/{id}`             | Xem chi tiết 1 phiếu kiểm kê                                       |
 
 ### 💰 Sổ Quỹ & Báo Cáo
 
-| Method | Endpoint | Mô Tả |
-|:---:|:---|:---|
-| GET | `/thuchi/danh-sach` | Danh sách phiếu thu/chi + thống kê Tổng thu, Tổng chi, Tồn quỹ |
-| GET | `/dashboard/summary` | Thống kê Dashboard: doanh thu, bàn, kho, biểu đồ 7 ngày |
-| GET | `/baocao/...` | Các endpoint báo cáo doanh thu |
+| Method | Endpoint             | Mô Tả                                                          |
+| :----: | :------------------- | :------------------------------------------------------------- |
+|  GET   | `/thuchi/danh-sach`  | Danh sách phiếu thu/chi + thống kê Tổng thu, Tổng chi, Tồn quỹ |
+|  GET   | `/dashboard/summary` | Thống kê Dashboard: doanh thu, bàn, kho, biểu đồ 7 ngày        |
+|  GET   | `/baocao/...`        | Các endpoint báo cáo doanh thu                                 |
 
 ### 🤖 AI Copilot (`/api/AIChat`)
 
-| Method | Endpoint | Mô Tả |
-|:---:|:---|:---|
-| POST | `/aichat/ask` | Hỏi đáp AI Copilot theo vai trò (kèm live data kinh doanh cho Quản lý) |
-| POST | `/aichat/report` | Sinh báo cáo HTML từ AI dựa trên dữ liệu thực tế |
-| GET | `/aichat/models` | Liệt kê các models Gemini đang available |
+| Method | Endpoint         | Mô Tả                                                                  |
+| :----: | :--------------- | :--------------------------------------------------------------------- |
+|  POST  | `/aichat/ask`    | Hỏi đáp AI Copilot theo vai trò (kèm live data kinh doanh cho Quản lý) |
+|  POST  | `/aichat/report` | Sinh báo cáo HTML từ AI dựa trên dữ liệu thực tế                       |
+|  GET   | `/aichat/models` | Liệt kê các models Gemini đang available                               |
 
 ### 🏪 Cửa Hàng & Hồ Sơ
 
-| Method | Endpoint | Mô Tả |
-|:---:|:---|:---|
-| GET/PUT | `/cuahang` | Xem và cập nhật thông tin cửa hàng |
-| GET/PUT | `/profile` | Xem và cập nhật hồ sơ cá nhân |
-| POST | `/webhook/...` | Nghiệp vụ Webhook nhận thông báo chuyển khoản ngân hàng |
+| Method  | Endpoint       | Mô Tả                                                   |
+| :-----: | :------------- | :------------------------------------------------------ |
+| GET/PUT | `/cuahang`     | Xem và cập nhật thông tin cửa hàng                      |
+| GET/PUT | `/profile`     | Xem và cập nhật hồ sơ cá nhân                           |
+|  POST   | `/webhook/...` | Nghiệp vụ Webhook nhận thông báo chuyển khoản ngân hàng |
 
 ---
 
@@ -392,16 +399,16 @@ CuaHang ──< ChiNhanh ──< TaiKhoan >── NhanVien
 
 ### Nhóm 1 — Trang Công Khai (Public)
 
-| Route | View | Mô Tả |
-|:---|:---|:---|
-| `/` | `LandingPage.vue` | Trang chủ giới thiệu phần mềm POS36 |
-| `/features` | `FeaturesView.vue` | Giới thiệu tính năng |
-| `/pricing` | `PricingView.vue` | Bảng giá |
-| `/about` | `AboutView.vue` | Về chúng tôi |
-| `/solutions` | `SolutionsView.vue` | Giải pháp theo ngành |
-| `/privacy` | `PrivacyView.vue` | Chính sách bảo mật |
-| `/login` | `Login.vue` | Đăng nhập JWT |
-| `/register` | `Register.vue` | Đăng ký cửa hàng mới |
+| Route              | View                     | Mô Tả                               |
+| :----------------- | :----------------------- | :---------------------------------- |
+| `/`                | `LandingPage.vue`        | Trang chủ giới thiệu phần mềm POS36 |
+| `/features`        | `FeaturesView.vue`       | Giới thiệu tính năng                |
+| `/pricing`         | `PricingView.vue`        | Bảng giá                            |
+| `/about`           | `AboutView.vue`          | Về chúng tôi                        |
+| `/solutions`       | `SolutionsView.vue`      | Giải pháp theo ngành                |
+| `/privacy`         | `PrivacyView.vue`        | Chính sách bảo mật                  |
+| `/login`           | `Login.vue`              | Đăng nhập JWT                       |
+| `/register`        | `Register.vue`           | Đăng ký cửa hàng mới                |
 | `/forgot-password` | `ForgotPasswordView.vue` | Quên mật khẩu → OTP Email → Đặt lại |
 
 ### Nhóm 2 — Giao Diện Quản Trị (`/admin/*`) 🔐
@@ -409,34 +416,34 @@ CuaHang ──< ChiNhanh ──< TaiKhoan >── NhanVien
 > Yêu cầu vai trò: **Admin, ChuCuaHang, QuanLy**  
 > Shared layout: `AdminLayout.vue` (sidebar điều hướng)
 
-| Route | View | Mô Tả |
-|:---|:---|:---|
-| `/admin` | `DashboardOverview.vue` | Bảng điều khiển tổng quan, biểu đồ doanh thu 7 ngày |
-| `/admin/tables` | `TableSetup.vue` | Tạo/xóa chi nhánh, khu vực, bàn |
-| `/admin/products` | `ProductSetup.vue` | Quản lý sản phẩm (CRUD, upload ảnh, danh mục) |
-| `/admin/prices` | `PriceSetup.vue` | Thiết lập giá bán sản phẩm |
-| `/admin/import-stock` | `ImportStock.vue` | Danh sách phiếu nhập kho |
-| `/admin/import-create` | `CreateStock.vue` | Tạo phiếu nhập hàng mới |
-| `/admin/employees` | `EmployeeSetup.vue` | Quản lý nhân viên, cấp tài khoản |
-| `/admin/orders` | `OrderList.vue` | Lịch sử hóa đơn, xlx export, lọc tìm kiếm |
-| `/admin/inventory` | `InventoryCheck.vue` | Danh sách phiếu kiểm kê |
-| `/admin/inventory-create` | `InventoryCreate.vue` | Tạo phiếu kiểm kê, cân bằng kho |
-| `/admin/cashbook` | `Cashbook.vue` | Sổ quỹ, xem phiếu thu/chi |
-| `/admin/print-setup` | `PrintSetup.vue` | Tùy chỉnh mẫu in hóa đơn |
-| `/admin/bank-setup` | `BankSetup.vue` | Cấu hình QR Code ngân hàng |
-| `/admin/ai-report` | `AiReportView.vue` | Phân tích kinh doanh bằng AI |
-| `/admin/daily-summary` | `DailySummary.vue` | Tổng kết ca / ngày |
-| `/admin/sales-report` | `SalesReport.vue` | Báo cáo doanh thu |
-| `/admin/profile` | `ProfileView.vue` | Hồ sơ cá nhân |
-| `/admin/store-info` | `StoreInfoView.vue` | Thông tin và cài đặt cửa hàng |
+| Route                     | View                    | Mô Tả                                               |
+| :------------------------ | :---------------------- | :-------------------------------------------------- |
+| `/admin`                  | `DashboardOverview.vue` | Bảng điều khiển tổng quan, biểu đồ doanh thu 7 ngày |
+| `/admin/tables`           | `TableSetup.vue`        | Tạo/xóa chi nhánh, khu vực, bàn                     |
+| `/admin/products`         | `ProductSetup.vue`      | Quản lý sản phẩm (CRUD, upload ảnh, danh mục)       |
+| `/admin/prices`           | `PriceSetup.vue`        | Thiết lập giá bán sản phẩm                          |
+| `/admin/import-stock`     | `ImportStock.vue`       | Danh sách phiếu nhập kho                            |
+| `/admin/import-create`    | `CreateStock.vue`       | Tạo phiếu nhập hàng mới                             |
+| `/admin/employees`        | `EmployeeSetup.vue`     | Quản lý nhân viên, cấp tài khoản                    |
+| `/admin/orders`           | `OrderList.vue`         | Lịch sử hóa đơn, xlx export, lọc tìm kiếm           |
+| `/admin/inventory`        | `InventoryCheck.vue`    | Danh sách phiếu kiểm kê                             |
+| `/admin/inventory-create` | `InventoryCreate.vue`   | Tạo phiếu kiểm kê, cân bằng kho                     |
+| `/admin/cashbook`         | `Cashbook.vue`          | Sổ quỹ, xem phiếu thu/chi                           |
+| `/admin/print-setup`      | `PrintSetup.vue`        | Tùy chỉnh mẫu in hóa đơn                            |
+| `/admin/bank-setup`       | `BankSetup.vue`         | Cấu hình QR Code ngân hàng                          |
+| `/admin/ai-report`        | `AiReportView.vue`      | Phân tích kinh doanh bằng AI                        |
+| `/admin/daily-summary`    | `DailySummary.vue`      | Tổng kết ca / ngày                                  |
+| `/admin/sales-report`     | `SalesReport.vue`       | Báo cáo doanh thu                                   |
+| `/admin/profile`          | `ProfileView.vue`       | Hồ sơ cá nhân                                       |
+| `/admin/store-info`       | `StoreInfoView.vue`     | Thông tin và cài đặt cửa hàng                       |
 
 ### Nhóm 3 — Màn Hình Tác Nghiệp Fullscreen 🔐
 
-| Route | View | Dành Cho | Mô Tả |
-|:---|:---|:---|:---|
-| `/pos` | `PosView.vue` | 💰 **Thu Ngân** | Màn hình POS: chọn bàn, xem món, áp mã giảm giá, thanh toán tiền mặt/QR |
-| `/order` | `OrderView.vue` | 📝 **Phục Vụ** | Ghi nhận gọi món tại bàn, gửi xuống bếp, hủy món |
-| `/kitchen` | `KitchenView.vue` | 🍳 **Bếp (KDS)** | Nhận order real-time, cập nhật trạng thái món "Đã xong" |
+| Route      | View              | Dành Cho         | Mô Tả                                                                   |
+| :--------- | :---------------- | :--------------- | :---------------------------------------------------------------------- |
+| `/pos`     | `PosView.vue`     | 💰 **Thu Ngân**  | Màn hình POS: chọn bàn, xem món, áp mã giảm giá, thanh toán tiền mặt/QR |
+| `/order`   | `OrderView.vue`   | 📝 **Phục Vụ**   | Ghi nhận gọi món tại bàn, gửi xuống bếp, hủy món                        |
+| `/kitchen` | `KitchenView.vue` | 🍳 **Bếp (KDS)** | Nhận order real-time, cập nhật trạng thái món "Đã xong"                 |
 
 ---
 
@@ -461,6 +468,7 @@ User đăng nhập → Nhận JWT Token + VaiTro
 ```
 
 **Quy tắc Navigation Guard:**
+
 - Truy cập `/admin/*` mà không phải Admin/QuanLy/ChuCuaHang → tự động redirect về đúng màn hình theo vai trò
 - Chưa đăng nhập mà vào trang cần auth → redirect về `/login`
 - Token lưu tại: `localStorage["pos36_token"]`, vai trò tại `localStorage["pos36_role"]`
@@ -608,20 +616,20 @@ AiReportView.vue / (Chatbox trong các view)
 
 ### Các Sự Kiện SignalR
 
-| Sự Kiện (Event) | Chiều | Mô Tả |
-|:---|:---:|:---|
-| `CoDonHangMoi` | Server → All | Có đơn gọi món mới / Có thanh toán xong → Bếp & tất cả reload bàn |
-| `MonAnDaXong` | Server → All | Bếp xác nhận 1 món đã làm xong |
-| `YeuCauThanhToan` | Client → All | Nhân viên yêu cầu thu ngân ra tính tiền cho bàn |
-| `CoYeuCauThanhToan` | Server → All | Broadcast yêu cầu thanh toán |
-| `SendOrderToKitchen` | Client → All | Gửi order trực tiếp qua SignalR (bổ sung) |
-| `ReceiveNewOrder` | Server → All | Bếp nhận order mới |
-| `YeuCauMoQR` | Client → All | Thu ngân yêu cầu mở QR thanh toán |
-| `NhanYeuCauMoQR` | Server → All | Nhân viên nhận lệnh hiển thị QR cho khách |
-| `HuyMoQR` | Client → All | Hủy yêu cầu QR (khách đổi ý) |
-| `NhanHuyMoQR` | Server → All | Broadcast hủy QR |
-| `XacNhanTienVe` | Client → All | Webhook báo chuyển khoản thành công |
-| `ThanhToanQRThanhCong` | Server → All | Broadcast QR thanh toán thành công → Thu ngân auto-confirm |
+| Sự Kiện (Event)        |    Chiều     | Mô Tả                                                             |
+| :--------------------- | :----------: | :---------------------------------------------------------------- |
+| `CoDonHangMoi`         | Server → All | Có đơn gọi món mới / Có thanh toán xong → Bếp & tất cả reload bàn |
+| `MonAnDaXong`          | Server → All | Bếp xác nhận 1 món đã làm xong                                    |
+| `YeuCauThanhToan`      | Client → All | Nhân viên yêu cầu thu ngân ra tính tiền cho bàn                   |
+| `CoYeuCauThanhToan`    | Server → All | Broadcast yêu cầu thanh toán                                      |
+| `SendOrderToKitchen`   | Client → All | Gửi order trực tiếp qua SignalR (bổ sung)                         |
+| `ReceiveNewOrder`      | Server → All | Bếp nhận order mới                                                |
+| `YeuCauMoQR`           | Client → All | Thu ngân yêu cầu mở QR thanh toán                                 |
+| `NhanYeuCauMoQR`       | Server → All | Nhân viên nhận lệnh hiển thị QR cho khách                         |
+| `HuyMoQR`              | Client → All | Hủy yêu cầu QR (khách đổi ý)                                      |
+| `NhanHuyMoQR`          | Server → All | Broadcast hủy QR                                                  |
+| `XacNhanTienVe`        | Client → All | Webhook báo chuyển khoản thành công                               |
+| `ThanhToanQRThanhCong` | Server → All | Broadcast QR thanh toán thành công → Thu ngân auto-confirm        |
 
 ---
 
@@ -629,12 +637,12 @@ AiReportView.vue / (Chatbox trong các view)
 
 ### Yêu Cầu Hệ Thống
 
-| Công Cụ | Phiên Bản | Link |
-|:---|:---|:---|
-| .NET SDK | 9.0+ | [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/9.0) |
-| Node.js | LTS (18+) | [nodejs.org](https://nodejs.org/) |
-| SQL Server | 2019+ | [Microsoft SQL Server](https://www.microsoft.com/sql-server) |
-| Git | Latest | [git-scm.com](https://git-scm.com/) |
+| Công Cụ    | Phiên Bản | Link                                                                     |
+| :--------- | :-------- | :----------------------------------------------------------------------- |
+| .NET SDK   | 9.0+      | [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/9.0) |
+| Node.js    | LTS (18+) | [nodejs.org](https://nodejs.org/)                                        |
+| SQL Server | 2019+     | [Microsoft SQL Server](https://www.microsoft.com/sql-server)             |
+| Git        | Latest    | [git-scm.com](https://git-scm.com/)                                      |
 
 ### Bước 1 — Clone Repository
 
@@ -646,12 +654,14 @@ cd POS36
 ### Bước 2 — Thiết Lập Cơ Sở Dữ Liệu
 
 **Cách A — Dùng Script SQL (Nhanh nhất):**
+
 ```sql
 -- Mở SQL Server Management Studio
 -- Chạy file: Pos36DB.sql
 ```
 
 **Cách B — EF Core Migration:**
+
 ```bash
 cd POS36.Api
 # Sửa ConnectionString trong appsettings.json trỏ đến SQL Server của bạn
