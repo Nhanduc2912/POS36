@@ -315,14 +315,7 @@ onMounted(() => {
                       tin cá nhân</router-link
                     >
                   </li>
-                  <li>
-                    <router-link
-                      class="dropdown-item"
-                      to="/admin/store-settings"
-                      ><i class="bi bi-sliders me-2 text-muted"></i> Thiết lập
-                      cửa hàng</router-link
-                    >
-                  </li>
+
                   <li>
                     <router-link class="dropdown-item" to="/admin/print-setup"
                       ><i class="bi bi-printer me-2 text-muted"></i> Thiết lập

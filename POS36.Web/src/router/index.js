@@ -144,11 +144,6 @@ const routes = [
         name: "AdminStoreInfo",
         component: () => import("../views/StoreInfoView.vue"),
       },
-      {
-        path: "store-settings",
-        name: "AdminStoreSettings",
-        component: () => import("../views/StoreSettingView.vue"),
-      },
     ],
   },
 
