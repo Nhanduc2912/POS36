@@ -108,6 +108,7 @@ POS36/
 │   │   ├── BanController.cs        # Trạng thái bàn
 │   │   ├── KhuVucController.cs     # Quản lý khu vực
 │   │   ├── NhanVienController.cs   # Quản lý nhân viên & tài khoản
+│   │   ├── KhachHangController.cs  # Quản lý khách hàng hội viên, điểm
 │   │   ├── KhoController.cs        # Thông tin tồn kho
 │   │   ├── NhapHangController.cs   # Phiếu nhập hàng, cập nhật tồn kho
 │   │   ├── KiemKeController.cs     # Phiếu kiểm kê, cân bằng kho
@@ -130,7 +131,7 @@ POS36/
 │   │   ├── ChiNhanh.cs             # Bảng chi nhánh
 │   │   ├── TaiKhoan.cs             # Bảng tài khoản đăng nhập
 │   │   ├── NhanVien.cs             # Bảng hồ sơ nhân viên
-│   │   ├── KhachHang.cs            # Bảng khách hàng
+│   │   ├── KhachHang.cs            # Bảng khách hàng (Tích điểm hội viên)
 │   │   ├── KhuVuc.cs               # Bảng khu vực
 │   │   ├── Ban.cs                  # Bảng bàn
 │   │   ├── DanhMuc.cs              # Bảng danh mục sản phẩm
@@ -206,6 +207,7 @@ POS36/
     │   │   ├── PriceSetup.vue          # Cấu hình giá bán
     │   │   ├── TableSetup.vue          # Thiết lập sơ đồ bàn
     │   │   ├── EmployeeSetup.vue       # Quản lý nhân viên & tài khoản
+    │   │   ├── CustomerSetup.vue       # Quản lý khách hàng hội viên
     │   │   ├── ImportStock.vue         # Danh sách phiếu nhập kho
     │   │   ├── CreateStock.vue         # Tạo phiếu nhập hàng mới
     │   │   ├── InventoryCheck.vue      # Danh sách phiếu kiểm kê
@@ -250,7 +252,7 @@ CuaHang ──< ChiNhanh ──< TaiKhoan >── NhanVien
 | `ChiNhanh`  | Chi nhánh thuộc cửa hàng (TenChiNhanh, DiaChi)                |
 | `TaiKhoan`  | Thông tin đăng nhập (TenDangNhap, MatKhauHash BCrypt, VaiTro) |
 | `NhanVien`  | Hồ sơ nhân viên (MaNhanVien, TenNhanVien, SoDienThoai, Email) |
-| `KhachHang` | Thông tin khách hàng                                          |
+| `KhachHang` | Khách hàng hội viên (TongDiemTichLuy, DiemHienTai)            |
 
 ### Phân Hệ 2 — Bán Hàng (Menu & Bàn)
 
@@ -357,6 +359,15 @@ CuaHang ──< ChiNhanh ──< TaiKhoan >── NhanVien
 |  PUT   | `/nhanvien/{id}` | Cập nhật thông tin nhân viên                        |
 | DELETE | `/nhanvien/{id}` | Xóa nhân viên                                       |
 
+### 💎 Khách Hàng & Tích Điểm (`/api/KhachHang`)
+
+| Method | Endpoint | Mô Tả |
+| :----: | :------- | :---- |
+| GET | `/khachhang` | Lấy danh sách khách hàng & quản lý điểm |
+| POST | `/khachhang` | Thêm khách hàng mới |
+| PUT | `/khachhang/{id}` | Cập nhật thông tin khách hàng hội viên |
+| DELETE | `/khachhang/{id}` | Xóa khách hàng |
+
 ### 📦 Kho Hàng (`/api/Kho`, `/api/NhapHang`, `/api/KiemKe`)
 
 | Method | Endpoint                   | Mô Tả                                                              |
@@ -425,6 +436,7 @@ CuaHang ──< ChiNhanh ──< TaiKhoan >── NhanVien
 | `/admin/import-stock`     | `ImportStock.vue`       | Danh sách phiếu nhập kho                            |
 | `/admin/import-create`    | `CreateStock.vue`       | Tạo phiếu nhập hàng mới                             |
 | `/admin/employees`        | `EmployeeSetup.vue`     | Quản lý nhân viên, cấp tài khoản                    |
+| `/admin/customers`        | `CustomerSetup.vue`     | Quản lý khách hàng, theo dõi điểm tích lũy          |
 | `/admin/orders`           | `OrderList.vue`         | Lịch sử hóa đơn, xlx export, lọc tìm kiếm           |
 | `/admin/inventory`        | `InventoryCheck.vue`    | Danh sách phiếu kiểm kê                             |
 | `/admin/inventory-create` | `InventoryCreate.vue`   | Tạo phiếu kiểm kê, cân bằng kho                     |
@@ -441,7 +453,7 @@ CuaHang ──< ChiNhanh ──< TaiKhoan >── NhanVien
 
 | Route      | View              | Dành Cho         | Mô Tả                                                                   |
 | :--------- | :---------------- | :--------------- | :---------------------------------------------------------------------- |
-| `/pos`     | `PosView.vue`     | 💰 **Thu Ngân**  | Màn hình POS: chọn bàn, xem món, áp mã giảm giá, thanh toán tiền mặt/QR |
+| `/pos`     | `PosView.vue`     | 💰 **Thu Ngân**  | Màn hình POS: chọn bàn, thanh toán, **tìm khách hàng tích điểm**        |
 | `/order`   | `OrderView.vue`   | 📝 **Phục Vụ**   | Ghi nhận gọi món tại bàn, gửi xuống bếp, hủy món                        |
 | `/kitchen` | `KitchenView.vue` | 🍳 **Bếp (KDS)** | Nhận order real-time, cập nhật trạng thái món "Đã xong"                 |
 
@@ -535,6 +547,7 @@ ForgotPasswordView.vue
     │
     ├── Xem sơ đồ bàn → Bấm bàn "Đang phục vụ"
     ├── GET /hoadon/ban/{banId} → Xem chi tiết hóa đơn
+    ├── (Tùy chọn) Tìm Khách Hàng để tích điểm (1 điểm = 20,000đ)
     ├── (Tùy chọn) Hủy món → POST /hoadon/huymon
     ├── (Tùy chọn) Chuyển bàn → POST /hoadon/chuyenban
     ├── (Tùy chọn) Ghép bàn → POST /hoadon/ghepban
@@ -543,6 +556,7 @@ ForgotPasswordView.vue
                         ├── HoaDon.TrangThai = "Đã thanh toán"
                         ├── Ban.TrangThai = "Trống"
                         ├── TonKho -= SoLuong từng món
+                        ├── KhachHang.DiemHienTai += (TongTien / 20.000)
                         ├── Tạo PhieuThuChi (LoaiPhieu="Thu")
                         └── SignalR Broadcast → Cập nhật màu sắc bàn trên tất cả màn hình
 ```
