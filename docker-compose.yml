@@ -1,0 +1,37 @@
+
+
+services:
+  # THÙNG 1: DATABASE SQL SERVER
+  pos36-db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Pos36_Secret_Password_123! # Mật khẩu sa
+    ports:
+      - "1433:1433" # Mở cổng database ra ngoài
+    volumes:
+      - pos36_sql_data:/var/opt/mssql # Lưu lại dữ liệu không bị mất khi tắt máy
+
+  # THÙNG 2: BACKEND C# (.NET 9)
+  pos36-api:
+    build:
+      context: ./POS36.Api # Thư mục chứa code C#
+      dockerfile: Dockerfile
+    ports:
+      - "5198:8080"
+    depends_on:
+      - pos36-db # Phải đợi Database chạy lên trước thì Backend mới chạy
+    environment:
+      # Bí quyết ở đây: Đổi chữ 'localhost' thành tên của cái thùng database 'pos36-db'
+      - ConnectionStrings__DefaultConnection=Server=pos36-db;Database=POS36_Db;User Id=sa;Password=Pos36_Secret_Password_123!;TrustServerCertificate=True;
+
+  # THÙNG 3: FRONTEND VUE 3
+  pos36-vue:
+    build:
+      context: ./POS36.Web # Thư mục chứa code Vue
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80" # Trỏ ra cổng 5173 quen thuộc của sếp
+
+volumes:
+  pos36_sql_data: # Khai báo ổ cứng ảo cho SQL
