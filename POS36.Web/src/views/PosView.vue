@@ -1014,26 +1014,28 @@ connection.on("ThanhToanQRThanhCong", (banId) => {
           </div>
 
           <div class="row g-1 p-1">
+            <!-- Dòng 1: Báo chế biến (Quan trọng nhất) -->
+            <div class="col-12">
+              <button
+                @click="handleBaoCheBien"
+                :disabled="!activeTable || currentOrder.length === 0"
+                class="btn w-100 rounded-0 py-2 fw-bold"
+                :class="currentOrder.filter(i => !i.isSent).length > 0 ? 'btn-warning text-dark' : 'btn-dark'"
+              >
+                <i class="bi bi-bell-fill me-1"></i> Báo chế biến
+                <span v-if="currentOrder.filter(i => !i.isSent).length > 0" class="badge bg-danger ms-1">
+                  {{ currentOrder.filter(i => !i.isSent).length }}
+                </span>
+              </button>
+            </div>
+            <!-- Dòng 2: Chuyển bàn & Tách bàn -->
             <div class="col-6">
               <button
                 @click="handleChuyenBan"
                 :disabled="!activeTable || activeTable.trangThai !== 'Đang phục vụ'"
                 class="btn btn-dark w-100 rounded-0 py-2 small"
               >
-                <i class="bi bi-arrow-left-right"></i> Chuyển bàn
-              </button>
-            </div>
-            <div class="col-6">
-              <button
-                @click="handleBaoCheBien"
-                :disabled="!activeTable || currentOrder.length === 0"
-                class="btn w-100 rounded-0 py-2 small fw-bold"
-                :class="currentOrder.filter(i => !i.isSent).length > 0 ? 'btn-warning text-dark' : 'btn-dark'"
-              >
-                <i class="bi bi-bell-fill"></i> Báo chế biến
-                <span v-if="currentOrder.filter(i => !i.isSent).length > 0" class="badge bg-danger ms-1">
-                  {{ currentOrder.filter(i => !i.isSent).length }}
-                </span>
+                <i class="bi bi-arrow-left-right me-1"></i> Chuyển bàn
               </button>
             </div>
             <div class="col-6">
@@ -1042,12 +1044,7 @@ connection.on("ThanhToanQRThanhCong", (banId) => {
                 :disabled="!activeTable || activeTable.trangThai !== 'Đang phục vụ'"
                 class="btn btn-dark w-100 rounded-0 py-2 small"
               >
-                <i class="bi bi-subtract"></i> Tách bàn
-              </button>
-            </div>
-            <div class="col-6">
-              <button class="btn btn-dark w-100 rounded-0 py-2 small">
-                <i class="bi bi-printer"></i> Tạm tính [F3]
+                <i class="bi bi-subtract me-1"></i> Tách bàn
               </button>
             </div>
             <div class="col-12 mt-1">
