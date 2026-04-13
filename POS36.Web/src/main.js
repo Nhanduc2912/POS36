@@ -10,7 +10,7 @@ import { globalState } from "./store"; // Nhớ import globalState
 
 // THÊM ĐOẠN NÀY: Cấu hình Axios tự động kẹp Token vào mọi Request
 import axios from "axios";
-axios.defaults.baseURL = "http://localhost:5198"; // Đặt URL gốc của Backend
+axios.defaults.baseURL = "http://localhost:5098"; // Đặt URL gốc của Backend
 axios.interceptors.request.use(
   (config) => {
     // 1. Bật Loader chặn màn hình

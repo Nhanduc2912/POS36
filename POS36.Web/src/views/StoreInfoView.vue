@@ -98,7 +98,7 @@ const isLoading = ref(false);
 const fetchStoreInfo = async () => {
   try {
     const token = localStorage.getItem("pos36_token");
-    const res = await axios.get("http://localhost:5198/api/CuaHang/info", {
+    const res = await axios.get("http://localhost:5098/api/CuaHang/info", {
       headers: { Authorization: `Bearer ${token}` },
     });
     store.value = res.data;
@@ -118,7 +118,7 @@ const updateStoreInfo = async () => {
   try {
     const token = localStorage.getItem("pos36_token");
     await axios.put(
-      "http://localhost:5198/api/CuaHang/update-info",
+      "http://localhost:5098/api/CuaHang/update-info",
       {
         tenCuaHang: store.value.tenCuaHang,
         soDienThoai: store.value.soDienThoai,

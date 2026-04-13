@@ -471,7 +471,7 @@ import { globalState } from "../store";
 import AiCopilot from "../components/AiCopilot.vue";
 const router = useRouter();
 const swal = inject("$swal");
-const backendUrl = "http://localhost:5198";
+const backendUrl = "http://localhost:5098";
 
 const isMobile = ref(window.innerWidth < 768);
 const tenNhanVien = ref(

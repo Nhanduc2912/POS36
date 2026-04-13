@@ -89,7 +89,7 @@ const isLoading = ref(false);
 const reportContainer = ref(null);
 
 // 👉 SỬA CHỖ NÀY ĐỂ TRỎ VỀ ĐÚNG BACKEND IP (GIỐNG BÊN AICOPILOT.VUE)
-const backendUrl = "http://localhost:5198"; // Sếp nhớ đổi thành IP mạng LAN (ví dụ 192.168.1.xxx:5198) nếu test trên máy khác
+const backendUrl = "http://localhost:5098"; // Sếp nhớ đổi thành IP mạng LAN (ví dụ 192.168.1.xxx:5098) nếu test trên máy khác
 
 const generateReport = async () => {
   if (!prompt.value.trim()) return;

@@ -18,7 +18,7 @@ services:
       context: ./POS36.Api # Thư mục chứa code C#
       dockerfile: Dockerfile
     ports:
-      - "5198:8080"
+      - "5098:8080"
     depends_on:
       - pos36-db # Phải đợi Database chạy lên trước thì Backend mới chạy
     environment:
@@ -31,7 +31,7 @@ services:
       context: ./POS36.Web # Thư mục chứa code Vue
       dockerfile: Dockerfile
     ports:
-      - "5173:80" # Trỏ ra cổng 5173 quen thuộc của sếp
+      - "3000:80" # Đã đổi sang cổng 3000 để tránh trùng lặp
 
 volumes:
   pos36_sql_data: # Khai báo ổ cứng ảo cho SQL

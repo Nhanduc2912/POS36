@@ -10,7 +10,7 @@ import { printReceipt } from "../utils/printer";
 const pendingPayments = ref([]);
 const swal = inject("$swal");
 const router = useRouter();
-const backendUrl = "http://localhost:5198";
+const backendUrl = "http://localhost:5098";
 import AiCopilot from "../components/AiCopilot.vue";
 // --- THÔNG TIN NHÂN VIÊN & PHÂN QUYỀN ---
 const tenNhanVien = ref(localStorage.getItem("tenNhanVien") || "Nhân viên");

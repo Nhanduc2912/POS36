@@ -9,7 +9,7 @@ class SignalRService {
     if (this.connection) return;
 
     this.connection = new signalR.HubConnectionBuilder()
-      .withUrl("http://:5198/kitchenHub", {
+      .withUrl("http://:5098/kitchenHub", {
         accessTokenFactory: () => localStorage.getItem("token"),
       })
       .withAutomaticReconnect()

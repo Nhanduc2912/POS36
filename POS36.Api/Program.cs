@@ -19,7 +19,7 @@ namespace POS36.Api
             // ========================================================
             // 1. MÀN HÌNH KHỞI ĐỘNG (BOOT SCREEN) CHUẨN ENTERPRISE
             // ========================================================
-            Console.Clear();
+            try { Console.Clear(); } catch { }
             Console.ForegroundColor = ConsoleColor.DarkYellow;
             Console.WriteLine(@"
     ██████╗  ██████╗  ██████╗ ██████╗  ██████╗ 
