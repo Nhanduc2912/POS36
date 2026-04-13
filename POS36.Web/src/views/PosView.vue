@@ -347,6 +347,18 @@ const handleBaoCheBien = async () => {
       timer: 1500,
     });
 
+  const result = await swal.fire({
+    title: `🔔 Báo bếp chế biến`,
+    html: `<p class="mb-1">Xác nhận gửi <strong>${unsentCount} món mới</strong> xuống bếp?</p><p class="text-muted small">Bàn: <strong>${activeTable.value.tenBan}</strong></p>`,
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "Gửi bếp ngay",
+    cancelButtonText: "Hủy",
+    confirmButtonColor: "#f37021",
+  });
+
+  if (!result.isConfirmed) return;
+
   const success = await saveNewOrdersToDatabase();
 
   if (success) {
@@ -357,25 +369,161 @@ const handleBaoCheBien = async () => {
     activeTable.value.tamTinh = totalAmount.value;
     tables.value = [...tables.value];
 
-    if (!isThuNgan) {
-      swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "success",
-        title: "Đã gửi bếp",
-        timer: 1500,
-        showConfirmButton: false,
-      });
-    } else {
-      swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "info",
-        title: "Đã cập nhật đơn",
-        timer: 1000,
-        showConfirmButton: false,
-      });
-    }
+    swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: `✅ Đã báo bếp ${unsentCount} món từ ${activeTable.value.tenBan}`,
+      timer: 2000,
+      showConfirmButton: false,
+    });
+  }
+};
+
+// --- CHUYỂN BÀN ---
+const handleChuyenBan = async () => {
+  if (!activeTable.value || activeTable.value.trangThai !== "Đang phục vụ") {
+    return swal.fire("Chú ý", "Bàn hiện tại chưa có khách để chuyển!", "warning");
+  }
+
+  // Lấy các bàn trống còn lại
+  const banTrong = tables.value.filter(
+    (b) => b.trangThai === "Trống" && b.id !== activeTable.value.id
+  );
+
+  if (banTrong.length === 0) {
+    return swal.fire("Hết bàn", "Không còn bàn trống nào để chuyển!", "warning");
+  }
+
+  const options = banTrong.map((b) => `<option value="${b.id}">${b.tenBan}</option>`).join("");
+
+  const { value: denBanId, isConfirmed } = await swal.fire({
+    title: `🔀 Chuyển bàn`,
+    html: `
+      <p class="mb-2">Từ: <strong>${activeTable.value.tenBan}</strong></p>
+      <label class="form-label fw-bold">Chuyển sang bàn:</label>
+      <select id="swal-den-ban" class="form-select">${options}</select>
+    `,
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "Chuyển bàn",
+    cancelButtonText: "Hủy",
+    confirmButtonColor: "#3f51b5",
+    preConfirm: () => {
+      const val = document.getElementById("swal-den-ban").value;
+      if (!val) { swal.showValidationMessage("Vui lòng chọn bàn!"); return false; }
+      return parseInt(val);
+    },
+  });
+
+  if (!isConfirmed) return;
+
+  try {
+    const res = await axios.post("/api/HoaDon/chuyenban", {
+      tuBanId: activeTable.value.id,
+      denBanId: denBanId,
+    });
+
+    const tenBanMoi = banTrong.find((b) => b.id === denBanId)?.tenBan || "";
+
+    // Cập nhật state local
+    const donHienTai = ordersByTable.value[activeTable.value.id] || [];
+    ordersByTable.value[denBanId] = donHienTai;
+    ordersByTable.value[activeTable.value.id] = [];
+
+    // Refresh danh sách bàn từ server
+    await fetchTables(globalState.value.activeBranchId);
+
+    // Chuyển sang bàn mới
+    const banMoi = tables.value.find((b) => b.id === denBanId);
+    if (banMoi) await openTable(banMoi);
+
+    swal.fire({
+      toast: true, position: "top-end", icon: "success",
+      title: `✅ Đã chuyển sang ${tenBanMoi}`,
+      timer: 2000, showConfirmButton: false,
+    });
+  } catch (e) {
+    swal.fire("Lỗi", e.response?.data || "Không thể chuyển bàn!", "error");
+  }
+};
+
+// --- TÁCH BÀN ---
+const handleTachBan = async () => {
+  if (!activeTable.value || activeTable.value.trangThai !== "Đang phục vụ") {
+    return swal.fire("Chú ý", "Bàn hiện tại chưa có khách để tách!", "warning");
+  }
+
+  const sentItems = currentOrder.value.filter((i) => i.isSent && i.chiTietId);
+  if (sentItems.length === 0) {
+    return swal.fire("Chú ý", "Chưa có món nào đã được gửi bếp để tách bàn!", "warning");
+  }
+
+  const banTrong = tables.value.filter(
+    (b) => b.trangThai === "Trống" && b.id !== activeTable.value.id
+  );
+  if (banTrong.length === 0) {
+    return swal.fire("Hết bàn", "Không còn bàn trống nào để tách sang!", "warning");
+  }
+
+  const monCheckboxes = sentItems
+    .map((i) => `
+      <div class="form-check text-start border-bottom py-1">
+        <input class="form-check-input tach-check" type="checkbox" value="${i.chiTietId}" id="tach-${i.chiTietId}">
+        <label class="form-check-label" for="tach-${i.chiTietId}">
+          <strong>${i.name}</strong> <span class="text-muted">x${i.qty}</span>
+          <span class="float-end text-danger">${(i.price * i.qty).toLocaleString("vi-VN")}đ</span>
+        </label>
+      </div>`)
+    .join("");
+
+  const optionsBan = banTrong.map((b) => `<option value="${b.id}">${b.tenBan}</option>`).join("");
+
+  const { value: formVal, isConfirmed } = await swal.fire({
+    title: `⚡ Tách bàn từ ${activeTable.value.tenBan}`,
+    width: 500,
+    html: `
+      <label class="form-label fw-bold mb-1">Tách sang bàn trống:</label>
+      <select id="swal-tach-den-ban" class="form-select mb-3">${optionsBan}</select>
+      <label class="form-label fw-bold mb-1">Chọn món cần tách:</label>
+      <div style="max-height:220px;overflow-y:auto;border:1px solid #dee2e6;border-radius:6px;padding:4px 8px">
+        ${monCheckboxes}
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: "Tách bàn",
+    cancelButtonText: "Hủy",
+    confirmButtonColor: "#dc3545",
+    preConfirm: () => {
+      const denBanId = parseInt(document.getElementById("swal-tach-den-ban").value);
+      const checked = [...document.querySelectorAll(".tach-check:checked")].map((el) => parseInt(el.value));
+      if (!checked.length) { swal.showValidationMessage("Vui lòng chọn ít nhất 1 món!"); return false; }
+      return { denBanId, danhSachChiTietId: checked };
+    },
+  });
+
+  if (!isConfirmed || !formVal) return;
+
+  try {
+    await axios.post("/api/HoaDon/tachban", {
+      tuBanId: activeTable.value.id,
+      denBanId: formVal.denBanId,
+      danhSachChiTietId: formVal.danhSachChiTietId,
+    });
+
+    const tenBanMoi = banTrong.find((b) => b.id === formVal.denBanId)?.tenBan || "";
+
+    // Refresh lại bàn và đơn hiện tại
+    await fetchTables(globalState.value.activeBranchId);
+    await openTable(activeTable.value);
+
+    swal.fire({
+      toast: true, position: "top-end", icon: "success",
+      title: `✅ Đã tách ${formVal.danhSachChiTietId.length} món sang ${tenBanMoi}`,
+      timer: 2000, showConfirmButton: false,
+    });
+  } catch (e) {
+    swal.fire("Lỗi", e.response?.data || "Không thể tách bàn!", "error");
   }
 };
 
@@ -838,20 +986,33 @@ connection.on("ThanhToanQRThanhCong", (banId) => {
 
           <div class="row g-1 p-1">
             <div class="col-6">
-              <button class="btn btn-dark w-100 rounded-0 py-2 small">
+              <button
+                @click="handleChuyenBan"
+                :disabled="!activeTable || activeTable.trangThai !== 'Đang phục vụ'"
+                class="btn btn-dark w-100 rounded-0 py-2 small"
+              >
                 <i class="bi bi-arrow-left-right"></i> Chuyển bàn
               </button>
             </div>
             <div class="col-6">
               <button
                 @click="handleBaoCheBien"
-                class="btn btn-dark w-100 rounded-0 py-2 small"
+                :disabled="!activeTable || currentOrder.length === 0"
+                class="btn w-100 rounded-0 py-2 small fw-bold"
+                :class="currentOrder.filter(i => !i.isSent).length > 0 ? 'btn-warning text-dark' : 'btn-dark'"
               >
-                <i class="bi bi-bell"></i> Báo chế biến [F9]
+                <i class="bi bi-bell-fill"></i> Báo chế biến
+                <span v-if="currentOrder.filter(i => !i.isSent).length > 0" class="badge bg-danger ms-1">
+                  {{ currentOrder.filter(i => !i.isSent).length }}
+                </span>
               </button>
             </div>
             <div class="col-6">
-              <button class="btn btn-dark w-100 rounded-0 py-2 small">
+              <button
+                @click="handleTachBan"
+                :disabled="!activeTable || activeTable.trangThai !== 'Đang phục vụ'"
+                class="btn btn-dark w-100 rounded-0 py-2 small"
+              >
                 <i class="bi bi-subtract"></i> Tách bàn
               </button>
             </div>

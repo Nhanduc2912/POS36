@@ -239,6 +239,87 @@ namespace POS36.Api.Controllers
         }
 
         // ==========================================
+        // 4b. TÁCH BÀN — Tách một số món sang bàn trống khác
+        // ==========================================
+        [HttpPost("tachban")]
+        public async Task<IActionResult> TachBan(TachBanDto request)
+        {
+            int cuaHangId = GetCuaHangId();
+
+            var tuBan = await _context.Bans.FirstOrDefaultAsync(b => b.Id == request.TuBanId && b.CuaHangId == cuaHangId);
+            var denBan = await _context.Bans.FirstOrDefaultAsync(b => b.Id == request.DenBanId && b.CuaHangId == cuaHangId);
+
+            if (tuBan == null || denBan == null) return BadRequest("Bàn không tồn tại.");
+            if (tuBan.TrangThai != "Đang phục vụ") return BadRequest("Bàn nguồn chưa có khách.");
+            if (denBan.TrangThai == "Đang phục vụ") return BadRequest("Bàn đích đang có khách, vui lòng chọn bàn trống.");
+            if (request.DanhSachChiTietId == null || !request.DanhSachChiTietId.Any())
+                return BadRequest("Chưa chọn món nào để tách.");
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var hoaDonGoc = await _context.HoaDons
+                    .Include(h => h.ChiTietHoaDons)
+                    .FirstOrDefaultAsync(h => h.BanId == request.TuBanId && h.TrangThai == "Đang phục vụ" && h.CuaHangId == cuaHangId);
+
+                if (hoaDonGoc == null) return BadRequest("Không tìm thấy hóa đơn bàn nguồn.");
+
+                // Lấy các chi tiết cần tách
+                var monTach = hoaDonGoc.ChiTietHoaDons
+                    .Where(ct => request.DanhSachChiTietId.Contains(ct.Id))
+                    .ToList();
+
+                if (!monTach.Any()) return BadRequest("Không tìm thấy món cần tách trong hóa đơn.");
+
+                decimal tongTienTach = monTach.Sum(ct => ct.DonGia * ct.SoLuong);
+
+                // Tạo hóa đơn mới cho bàn đích
+                var hoaDonMoi = new HoaDon
+                {
+                    CuaHangId = cuaHangId,
+                    ChiNhanhId = hoaDonGoc.ChiNhanhId,
+                    BanId = request.DenBanId,
+                    NgayTao = DateTime.Now,
+                    TrangThai = "Đang phục vụ",
+                    TongTien = tongTienTach
+                };
+                _context.HoaDons.Add(hoaDonMoi);
+                await _context.SaveChangesAsync(); // Để lấy Id
+
+                // Chuyển các chi tiết sang hóa đơn mới
+                foreach (var ct in monTach)
+                {
+                    ct.HoaDonId = hoaDonMoi.Id;
+                }
+
+                hoaDonGoc.TongTien -= tongTienTach;
+                denBan.TrangThai = "Đang phục vụ";
+
+                // Nếu bàn gốc không còn món nào thì đặt thành trống
+                var conLai = hoaDonGoc.ChiTietHoaDons.Except(monTach).ToList();
+                if (!conLai.Any())
+                {
+                    hoaDonGoc.TrangThai = "Đã hủy";
+                    tuBan.TrangThai = "Trống";
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                if (_hubContext != null)
+                    await _hubContext.Clients.All.SendAsync("CoDonHangMoi", new { message = "Tách bàn" });
+
+                return Ok(new { message = $"Đã tách bàn thành công sang {denBan.TenBan}!" });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, $"Lỗi hệ thống: {ex.Message}");
+            }
+        }
+
+
+        // ==========================================
         // 5. THANH TOÁN KẾT HỢP TRỪ KHO & TẠO PHIẾU THU SỔ QUỸ
         // ==========================================
         [HttpPost("thanhtoan/{banId}")]

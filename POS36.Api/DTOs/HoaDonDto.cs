@@ -28,4 +28,12 @@ namespace POS36.Api.DTOs
         [Required] public int TuBanId { get; set; }
         [Required] public int DenBanId { get; set; }
     }
+
+    public class TachBanDto
+    {
+        [Required] public int TuBanId { get; set; }
+        [Required] public int DenBanId { get; set; }
+        // Danh sách ChiTietId của các món muốn tách sang bàn mới
+        [Required] public List<int> DanhSachChiTietId { get; set; } = new();
+    }
 }
