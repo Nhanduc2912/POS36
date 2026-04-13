@@ -29,6 +29,32 @@ const formatPrice = (price) =>
     price || 0,
   );
 
+// --- TÌM KIẾM & LỌC THỰC ĐƠN ---
+const menuSearchText = ref("");
+const categories = ref([]);
+const activeCategoryId = ref(null); // null = Tất cả
+
+const filteredProducts = computed(() => {
+  let list = products.value;
+  if (activeCategoryId.value) {
+    list = list.filter((p) => p.danhMucId === activeCategoryId.value);
+  }
+  const keyword = menuSearchText.value.trim().toLowerCase();
+  if (keyword) {
+    list = list.filter((p) => p.tenSanPham.toLowerCase().includes(keyword));
+  }
+  return list;
+});
+
+const fetchCategories = async () => {
+  try {
+    const res = await axios.get("/api/DanhMuc");
+    categories.value = res.data;
+  } catch (e) {
+    console.error("Lỗi tải danh mục", e);
+  }
+};
+
 // --- KHÁCH HÀNG TÍCH ĐIỂM ---
 const customerSearchText = ref("");
 const customerResults = ref([]);
@@ -204,6 +230,7 @@ const getBranchIdAndFetch = async () => {
   if (branchId) {
     await fetchTables(branchId);
     await fetchProducts(branchId);
+    await fetchCategories();
   }
 };
 
@@ -760,6 +787,8 @@ connection.on("ThanhToanQRThanhCong", (banId) => {
             ><i class="bi bi-search text-muted"></i
           ></span>
           <input
+            v-model="menuSearchText"
+            @focus="activeRightTab = 'menu'"
             type="text"
             class="form-control border-0"
             placeholder="Tìm thực đơn - F1"
@@ -1102,40 +1131,85 @@ connection.on("ThanhToanQRThanhCong", (banId) => {
 
         <div
           v-if="activeRightTab === 'menu'"
-          class="flex-grow-1 p-2 overflow-auto bg-white"
+          class="flex-grow-1 d-flex flex-column bg-white h-100 overflow-hidden"
         >
-          <div class="row g-2">
-            <div
-              v-for="prod in products"
-              :key="prod.id"
-              class="col-xl-3 col-lg-4 col-md-4 col-sm-6"
-            >
-              <div
-                @click="addItem(prod)"
-                class="card h-100 border-0 cursor-pointer position-relative rounded-2 shadow-sm overflow-hidden product-card"
+          <!-- THANH TÌM KIẾM + LỌC NHÓM -->
+          <div class="border-bottom px-2 pt-2 pb-1 bg-light">
+            <div class="input-group input-group-sm mb-2">
+              <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+              <input
+                v-model="menuSearchText"
+                type="text"
+                class="form-control"
+                placeholder="Tìm món ăn, thức uống..."
+              />
+              <button v-if="menuSearchText" @click="menuSearchText = ''" class="btn btn-outline-secondary" type="button">
+                <i class="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div class="d-flex gap-1 overflow-auto pb-1 flex-nowrap category-pills">
+              <button
+                @click="activeCategoryId = null"
+                class="btn btn-sm rounded-pill px-3 flex-shrink-0"
+                :class="activeCategoryId === null ? 'btn-primary' : 'btn-outline-secondary'"
               >
-                <div class="bg-light" style="height: 100px; width: 100%">
-                  <img
-                    v-if="prod.hinhAnh"
-                    :src="backendUrl + prod.hinhAnh"
-                    class="w-100 h-100"
-                    style="object-fit: cover"
-                  />
-                  <div
-                    v-else
-                    class="w-100 h-100 d-flex align-items-center justify-content-center"
-                  >
-                    <i class="bi bi-image text-muted fs-3"></i>
-                  </div>
-                </div>
-                <span
-                  class="position-absolute top-0 end-0 badge bg-danger m-1 shadow-sm"
-                  >{{ prod.giaBan.toLocaleString("vi-VN") }}</span
+                Tất cả <span class="badge bg-white text-dark ms-1">{{ products.length }}</span>
+              </button>
+              <button
+                v-for="cat in categories"
+                :key="cat.id"
+                @click="activeCategoryId = cat.id"
+                class="btn btn-sm rounded-pill px-3 flex-shrink-0"
+                :class="activeCategoryId === cat.id ? 'btn-primary' : 'btn-outline-secondary'"
+              >
+                {{ cat.tenDanhMuc }}
+                <span class="badge ms-1" :class="activeCategoryId === cat.id ? 'bg-white text-primary' : 'bg-secondary text-white'">
+                  {{ products.filter(p => p.danhMucId === cat.id).length }}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <!-- KẾT QUẢ LỌC -->
+          <div class="flex-grow-1 p-2 overflow-auto">
+            <div v-if="filteredProducts.length === 0" class="text-center text-muted py-5">
+              <i class="bi bi-emoji-frown fs-1 d-block mb-2 opacity-50"></i>
+              <p class="small">Không tìm thấy sản phẩm nào{{ menuSearchText ? ' cho "' + menuSearchText + '"' : '' }}</p>
+            </div>
+            <div class="row g-2">
+              <div
+                v-for="prod in filteredProducts"
+                :key="prod.id"
+                class="col-xl-3 col-lg-4 col-md-4 col-sm-6"
+              >
+                <div
+                  @click="addItem(prod)"
+                  class="card h-100 border-0 cursor-pointer position-relative rounded-2 shadow-sm overflow-hidden product-card"
                 >
-                <div class="card-body p-2 text-center bg-white border-top">
-                  <span class="fw-bold text-dark small text-truncate d-block">{{
-                    prod.tenSanPham
-                  }}</span>
+                  <div class="bg-light" style="height: 100px; width: 100%">
+                    <img
+                      v-if="prod.hinhAnh"
+                      :src="backendUrl + prod.hinhAnh"
+                      class="w-100 h-100"
+                      style="object-fit: cover"
+                    />
+                    <div
+                      v-else
+                      class="w-100 h-100 d-flex align-items-center justify-content-center"
+                    >
+                      <i class="bi bi-image text-muted fs-3"></i>
+                    </div>
+                  </div>
+                  <span
+                    class="position-absolute top-0 end-0 badge bg-danger m-1 shadow-sm"
+                    >{{ prod.giaBan.toLocaleString("vi-VN") }}</span
+                  >
+                  <div class="card-body p-2 text-center bg-white border-top">
+                    <span class="fw-bold text-dark small text-truncate d-block">{{
+                      prod.tenSanPham
+                    }}</span>
+                    <span class="text-muted" style="font-size:0.65rem">{{ prod.tenDanhMuc }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1190,7 +1264,22 @@ connection.on("ThanhToanQRThanhCong", (banId) => {
   transform: scale(0.96);
   transition: 0.1s;
 }
+.product-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  transform: translateY(-1px);
+  transition: 0.15s ease;
+}
 .hover-bg:hover {
   background-color: #f0f7ff;
+}
+.category-pills::-webkit-scrollbar {
+  height: 4px;
+}
+.category-pills::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+.category-pills::-webkit-scrollbar-track {
+  background: transparent;
 }
 </style>
