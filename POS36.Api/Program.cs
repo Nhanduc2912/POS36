@@ -202,7 +202,7 @@ namespace POS36.Api
                 app.MapHub<POS36.Api.Hubs.KitchenHub>("/kitchenHub");
                 app.MapControllers();
 
-                Log.Information("🟢 BỘ MÁY ĐÃ SẴN SÀNG! Đang lắng nghe luồng dữ liệu tại cổng 5198...");
+                Log.Information("🟢 BỘ MÁY ĐÃ SẴN SÀNG! Đang lắng nghe luồng dữ liệu tại cổng 5098...");
                 app.Run();
             }
             catch (Exception ex)
