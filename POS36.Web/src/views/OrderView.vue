@@ -236,20 +236,29 @@
                           {{ formatPrice(item.donGia) }} x {{ item.soLuong }}
                         </div>
                       </div>
-                      <div class="text-end">
-                        <span class="fw-bold text-secondary">{{
-                          formatPrice(item.thanhTien)
-                        }}</span
-                        ><br />
-                        <span
-                          class="badge"
-                          :class="{
-                            'bg-secondary':
-                              item.trangThaiMon === 'Chờ chế biến',
-                            'bg-success': item.trangThaiMon === 'Đã Xong',
-                          }"
-                          >{{ item.trangThaiMon }}</span
+                      <div class="text-end d-flex align-items-center gap-2">
+                        <div>
+                          <span class="fw-bold text-secondary">{{
+                            formatPrice(item.thanhTien)
+                          }}</span
+                          ><br />
+                          <span
+                            class="badge"
+                            :class="{
+                              'bg-secondary':
+                                item.trangThaiMon === 'Chờ chế biến',
+                              'bg-success': item.trangThaiMon === 'Đã Xong',
+                            }"
+                            >{{ item.trangThaiMon }}</span
+                          >
+                        </div>
+                        <button
+                          class="btn btn-sm btn-outline-danger rounded-circle px-2"
+                          @click="handleOrderCancelItem(item)"
+                          title="Hủy món"
                         >
+                          <i class="bi bi-trash"></i>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -259,16 +268,16 @@
           </div>
 
           <div
-            class="modal-footer border-0 bg-white"
+            class="modal-footer border-0 bg-white d-block"
             v-if="selectedTable?.trangThai !== 'Trống'"
           >
-            <div class="row w-100 g-2">
+            <div class="row w-100 g-2 mx-0">
               <div class="col-6">
                 <button
                   class="btn btn-outline-info w-100 fw-bold rounded-3"
                   @click="openMenu"
                 >
-                  GỌI THÊM
+                  <i class="bi bi-cart-plus me-1"></i> GỌI THÊM
                 </button>
               </div>
               <div class="col-6">
@@ -276,7 +285,31 @@
                   class="btn btn-danger w-100 fw-bold rounded-3"
                   @click="requestPayment"
                 >
-                  BÁO THU NGÂN
+                  <i class="bi bi-megaphone me-1"></i> BÁO THU NGÂN
+                </button>
+              </div>
+              <div class="col-4">
+                <button
+                  class="btn btn-outline-dark w-100 rounded-3 small"
+                  @click="handleOrderChuyenBan"
+                >
+                  <i class="bi bi-arrow-left-right"></i> Chuyển bàn
+                </button>
+              </div>
+              <div class="col-4">
+                <button
+                  class="btn btn-outline-dark w-100 rounded-3 small"
+                  @click="handleOrderTachBan"
+                >
+                  <i class="bi bi-subtract"></i> Tách bàn
+                </button>
+              </div>
+              <div class="col-4">
+                <button
+                  class="btn btn-outline-warning w-100 rounded-3 small fw-bold"
+                  @click="handleOrderBaoCheBien"
+                >
+                  <i class="bi bi-bell-fill"></i> Báo bếp
                 </button>
               </div>
             </div>
@@ -321,14 +354,27 @@
             <div
               v-for="item in filteredProducts"
               :key="item.id"
-              class="card border-0 shadow-sm rounded-4 menu-item-card"
+              class="card border-0 shadow-sm rounded-4 menu-item-card overflow-hidden"
               @click="addToCart(item)"
             >
+              <div class="bg-light" style="height: 80px; width: 100%">
+                <img
+                  v-if="item.hinhAnh"
+                  :src="backendUrl + item.hinhAnh"
+                  class="w-100 h-100"
+                  style="object-fit: cover"
+                />
+                <div
+                  v-else
+                  class="w-100 h-100 d-flex align-items-center justify-content-center"
+                >
+                  <i class="bi bi-cup-hot text-info fs-3"></i>
+                </div>
+              </div>
               <div
-                class="card-body p-2 text-center d-flex flex-column justify-content-between h-100"
+                class="p-2 text-center d-flex flex-column justify-content-between"
               >
-                <i class="bi bi-cup-hot text-info fs-3 my-1"></i>
-                <h6 class="fw-bold mb-1 lh-sm" style="font-size: 0.8rem">
+                <h6 class="fw-bold mb-1 lh-sm text-truncate" style="font-size: 0.8rem">
                   {{ item.tenSanPham }}
                 </h6>
                 <span class="text-success fw-bold fs-7">{{
@@ -720,6 +766,159 @@ const requestPayment = async () => {
         }
       }
     });
+};
+
+// --- HỦY MÓN (NV ORDER) ---
+const handleOrderCancelItem = async (item) => {
+  const { value: formValues } = await swal.fire({
+    title: "Hủy / Trả đồ",
+    html: `
+      <div class="d-flex justify-content-center align-items-center mb-3">
+         <span class="fs-5 fw-bold text-danger me-2">Số lượng hủy:</span>
+         <input id="cancel-qty" type="number" class="form-control w-25 text-center fw-bold" value="1" min="1" max="${item.soLuong}">
+      </div>
+      <div class="text-start fw-bold mb-2">Lý do:</div>
+      <div class="d-flex gap-2 mb-3">
+         <input type="radio" class="btn-check" name="reason" id="r1" value="Khách yêu cầu" checked>
+         <label class="btn btn-outline-secondary w-50" for="r1">Khách yêu cầu</label>
+         <input type="radio" class="btn-check" name="reason" id="r2" value="Lỗi thao tác">
+         <label class="btn btn-outline-secondary w-50" for="r2">Lỗi thao tác</label>
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: "Đồng ý Hủy",
+    confirmButtonColor: "#dc3545",
+    preConfirm: () => {
+      const qty = parseInt(document.getElementById("cancel-qty").value);
+      const reason = document.querySelector('input[name="reason"]:checked').value;
+      if (qty > item.soLuong) {
+        swal.showValidationMessage("Vượt quá SL thực tế!");
+        return false;
+      }
+      return { qty, reason };
+    },
+  });
+
+  if (formValues) {
+    try {
+      await axios.post("/api/HoaDon/huymon", {
+        chiTietId: item.chiTietId,
+        soLuongHuy: formValues.qty,
+        lyDo: formValues.reason,
+      });
+      swal.fire({
+        toast: true, position: "top-end", icon: "success",
+        title: `Đã hủy ${formValues.qty} ${item.tenSanPham}`,
+        timer: 2000, showConfirmButton: false,
+      });
+      await fetchBillDetails(selectedTable.value.id);
+      await fetchStructure(globalState.value.activeBranchId);
+    } catch (e) {
+      swal.fire("Lỗi", "Không thể hủy món!", "error");
+    }
+  }
+};
+
+// --- CHUYỂN BÀN (NV ORDER) ---
+const handleOrderChuyenBan = async () => {
+  if (!selectedTable.value) return;
+  const banTrong = tables.value.filter(
+    (b) => b.trangThai === "Trống" && b.id !== selectedTable.value.id
+  );
+  if (banTrong.length === 0) {
+    return swal.fire("Hết bàn", "Không còn bàn trống nào!", "warning");
+  }
+  const options = banTrong.map((b) => `<option value="${b.id}">${b.tenBan}</option>`).join("");
+  const { value: denBanId, isConfirmed } = await swal.fire({
+    title: `🔀 Chuyển bàn`,
+    html: `<p class="mb-2">Từ: <strong>${selectedTable.value.tenBan}</strong></p>
+      <label class="form-label fw-bold">Chuyển sang:</label>
+      <select id="swal-den-ban" class="form-select">${options}</select>`,
+    showCancelButton: true,
+    confirmButtonText: "Chuyển bàn",
+    confirmButtonColor: "#3f51b5",
+    preConfirm: () => {
+      const val = document.getElementById("swal-den-ban").value;
+      if (!val) { swal.showValidationMessage("Chọn bàn!"); return false; }
+      return parseInt(val);
+    },
+  });
+  if (!isConfirmed) return;
+  try {
+    await axios.post("/api/HoaDon/chuyenban", {
+      tuBanId: selectedTable.value.id,
+      denBanId: denBanId,
+    });
+    tableModal.hide();
+    await fetchStructure(globalState.value.activeBranchId);
+    swal.fire({ toast: true, position: "top-end", icon: "success", title: "Đã chuyển bàn!", timer: 2000, showConfirmButton: false });
+  } catch (e) {
+    swal.fire("Lỗi", e.response?.data || "Không thể chuyển bàn!", "error");
+  }
+};
+
+// --- TÁCH BÀN (NV ORDER) ---
+const handleOrderTachBan = async () => {
+  if (!selectedTable.value || !currentBill.value) return;
+  const sentItems = currentBill.value.danhSachMon || [];
+  if (sentItems.length === 0) {
+    return swal.fire("Chú ý", "Chưa có món nào để tách!", "warning");
+  }
+  const banTrong = tables.value.filter(
+    (b) => b.trangThai === "Trống" && b.id !== selectedTable.value.id
+  );
+  if (banTrong.length === 0) {
+    return swal.fire("Hết bàn", "Không còn bàn trống nào!", "warning");
+  }
+  const monCheckboxes = sentItems.map((i) => `
+    <div class="form-check text-start border-bottom py-1">
+      <input class="form-check-input tach-check" type="checkbox" value="${i.chiTietId}" id="tach-${i.chiTietId}">
+      <label class="form-check-label" for="tach-${i.chiTietId}">
+        <strong>${i.tenSanPham}</strong> <span class="text-muted">x${i.soLuong}</span>
+        <span class="float-end text-danger">${formatPrice(i.thanhTien)}</span>
+      </label>
+    </div>`).join("");
+  const optionsBan = banTrong.map((b) => `<option value="${b.id}">${b.tenBan}</option>`).join("");
+
+  const { value: formVal, isConfirmed } = await swal.fire({
+    title: `⚡ Tách bàn từ ${selectedTable.value.tenBan}`,
+    width: 500,
+    html: `
+      <label class="form-label fw-bold mb-1">Tách sang bàn trống:</label>
+      <select id="swal-tach-den-ban" class="form-select mb-3">${optionsBan}</select>
+      <label class="form-label fw-bold mb-1">Chọn món cần tách:</label>
+      <div style="max-height:220px;overflow-y:auto;border:1px solid #dee2e6;border-radius:6px;padding:4px 8px">
+        ${monCheckboxes}
+      </div>`,
+    showCancelButton: true,
+    confirmButtonText: "Tách bàn",
+    confirmButtonColor: "#dc3545",
+    preConfirm: () => {
+      const denBanId = parseInt(document.getElementById("swal-tach-den-ban").value);
+      const checked = [...document.querySelectorAll(".tach-check:checked")].map((el) => parseInt(el.value));
+      if (!checked.length) { swal.showValidationMessage("Chọn ít nhất 1 món!"); return false; }
+      return { denBanId, danhSachChiTietId: checked };
+    },
+  });
+  if (!isConfirmed || !formVal) return;
+  try {
+    await axios.post("/api/HoaDon/tachban", {
+      tuBanId: selectedTable.value.id,
+      denBanId: formVal.denBanId,
+      danhSachChiTietId: formVal.danhSachChiTietId,
+    });
+    tableModal.hide();
+    await fetchStructure(globalState.value.activeBranchId);
+    swal.fire({ toast: true, position: "top-end", icon: "success", title: `Đã tách ${formVal.danhSachChiTietId.length} món!`, timer: 2000, showConfirmButton: false });
+  } catch (e) {
+    swal.fire("Lỗi", e.response?.data || "Không thể tách bàn!", "error");
+  }
+};
+
+// --- BÁO CHẾ BIẾN (NV ORDER) ---
+const handleOrderBaoCheBien = () => {
+  // NV Order thì mở thực đơn để gọi món rồi gửi bếp
+  openMenu();
 };
 
 const toggleNotifications = () => {
