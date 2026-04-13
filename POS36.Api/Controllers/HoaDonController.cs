@@ -607,6 +607,12 @@ namespace POS36.Api.Controllers
 
                 await transaction.CommitAsync();
 
+                // Phát sự kiện SignalR để tất cả màn hình cập nhật realtime
+                if (_hubContext != null)
+                {
+                    await _hubContext.Clients.All.SendAsync("CoDonHangMoi", new { message = "Hủy món" });
+                }
+
                 return Ok(new { message = "Hủy món thành công!" });
             }
             catch (Exception ex)
