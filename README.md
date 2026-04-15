@@ -17,6 +17,9 @@
 [![Vue.js](https://img.shields.io/badge/Frontend-Vue.js%203-42b883?style=for-the-badge&logo=vuedotjs)](https://vuejs.org/)
 [![SQL Server](https://img.shields.io/badge/Database-SQL%20Server-CC2927?style=for-the-badge&logo=microsoftsqlserver)](https://www.microsoft.com/sql-server)
 [![SignalR](https://img.shields.io/badge/Realtime-SignalR-ff6b35?style=for-the-badge)](https://dotnet.microsoft.com/apps/aspnet/signalr)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker)](https://www.docker.com/)
+
+[🚀 Bắt Đầu Nhanh](#-cài-đặt-nhanh-với-docker) · [📖 Tài Liệu](#-mục-lục) · [🎯 Tính Năng](#-tính-năng-nổi-bật) · [🏗️ Kiến Trúc](#-kiến-trúc-hệ-thống)
 
 </div>
 
@@ -24,730 +27,1341 @@
 
 ## 📋 Mục Lục
 
-- [Giới thiệu](#-giới-thiệu)
+- [Giới Thiệu](#-giới-thiệu)
+- [Tính Năng Nổi Bật](#-tính-năng-nổi-bật)
+- [Kiến Trúc Hệ Thống](#-kiến-trúc-hệ-thống)
+- [Mô Hình Dữ Liệu (ERD)](#-mô-hình-dữ-liệu-erd)
+- [Use Case Diagram](#-use-case-diagram)
+- [Cài Đặt Nhanh với Docker](#-cài-đặt-nhanh-với-docker)
+- [Cài Đặt Thủ Công](#-cài-đặt-thủ-công)
+- [Cài Đặt Tự Động (Windows)](#-cài-đặt-tự-động-windows)
 - [Công Nghệ Sử Dụng](#-công-nghệ-sử-dụng)
-- [Cấu Trúc Dự Án](#-cấu-trúc-dự-án)
-- [Mô Hình Dữ Liệu](#-mô-hình-dữ-liệu)
-- [Toàn Bộ API Endpoints](#-toàn-bộ-api-endpoints)
-- [Hệ Thống Giao Diện (Views)](#-hệ-thống-giao-diện-views)
-- [Phân Quyền & Luồng Điều Hướng](#-phân-quyền--luồng-điều-hướng)
-- [Luồng Hoạt Động Chi Tiết](#-luồng-hoạt-động-chi-tiết)
-- [Hệ thống Real-time (SignalR)](#-hệ-thống-real-time-signalr)
-- [Cài Đặt & Khởi Chạy](#-cài-đặt--khởi-chạy)
+- [API Documentation](#-api-documentation)
+- [Phân Quyền & Bảo Mật](#-phân-quyền--bảo-mật)
+- [Luồng Hoạt Động](#-luồng-hoạt-động)
+- [Đóng Góp](#-đóng-góp)
 
 ---
 
 ## 🚀 Giới Thiệu
 
-**POS36** là một hệ thống quản lý bán hàng (Point of Sale) thế hệ mới, được thiết kế chuyên biệt cho mô hình kinh doanh F&B (Food & Beverage). Điểm nổi bật của hệ thống là kiến trúc đa vai trò — mỗi bộ phận trong nhà hàng có một màn hình riêng, được tối ưu hóa cho đúng công việc của họ.
+**POS36** là hệ thống quản lý bán hàng (Point of Sale) thế hệ mới, được thiết kế chuyên biệt cho mô hình kinh doanh F&B (Food & Beverage). Hệ thống cung cấp giải pháp toàn diện từ gọi món, quản lý bếp, thanh toán đến báo cáo kinh doanh với giao diện tối ưu cho từng vai trò.
 
-### Điểm Nổi Bật
+### 🎯 Vấn Đề Giải Quyết
 
-| Tính Năng                    | Mô Tả                                                                                      |
-| :--------------------------- | :----------------------------------------------------------------------------------------- |
-| 🤖 **AI Copilot tích hợp**   | Trợ lý ảo Google Gemini 2.5 Flash, hỗ trợ phân tích dữ liệu kinh doanh theo thời gian thực |
-| 📡 **Real-time với SignalR** | Đồng bộ tức thời giữa Phục vụ → Bếp → Thu ngân, hỗ trợ thanh toán QR Bank real-time        |
-| 🏪 **Multi-branch**          | Quản lý nhiều chi nhánh trong một tài khoản Chủ cửa hàng                                   |
-| 🔐 **RBAC bảo mật**          | Phân quyền chi tiết theo vai trò: 5 loại tài khoản với màn hình riêng biệt                 |
-| 📊 **Báo cáo thông minh**    | Dashboard, báo cáo doanh thu, sổ quỹ, kiểm kê kho tự động                                  |
-| 🖨️ **In hóa đơn**            | Cấu hình mẫu in linh hoạt, hỗ trợ QR Code thanh toán ngân hàng                             |
+- ✅ Đồng bộ thông tin giữa Phục vụ - Bếp - Thu ngân theo thời gian thực
+- ✅ Quản lý nhiều chi nhánh trong một hệ thống
+- ✅ Theo dõi tồn kho, kiểm kê tự động
+- ✅ Báo cáo doanh thu chi tiết, phân tích kinh doanh bằng AI
+- ✅ Thanh toán linh hoạt (Tiền mặt, Chuyển khoản, QR Code)
+- ✅ Quản lý khách hàng thân thiết, tích điểm
 
 ---
 
-## 🛠️ Công Nghệ Sử Dụng
+## ✨ Tính Năng Nổi Bật
 
-### Backend (`POS36.Api`)
+### 🤖 AI Copilot Tích Hợp
+- Trợ lý ảo **Google Gemini 2.5 Flash** hỗ trợ phân tích dữ liệu kinh doanh
+- Tự động sinh báo cáo HTML từ dữ liệu thực tế
+- Tư vấn kinh doanh theo thời gian thực
 
-| Package                                           | Phiên Bản  | Mục Đích                     |
-| :------------------------------------------------ | :--------- | :--------------------------- |
-| **ASP.NET Core**                                  | 9.0        | Framework Web API chính      |
-| **Entity Framework Core**                         | 9.0        | ORM, quản lý Database        |
-| **EF Core SQL Server**                            | 9.0        | Provider kết nối SQL Server  |
-| **Microsoft.AspNetCore.Authentication.JwtBearer** | 9.0        | Xác thực JWT Token           |
-| **Swashbuckle.AspNetCore**                        | 7.2.0      | Swagger UI tài liệu API      |
-| **BCrypt.Net-Next**                               | 4.0.3      | Mã hóa mật khẩu              |
-| **Serilog.AspNetCore**                            | 10.0.0     | Logging màu sắc cho Terminal |
-| **SignalR**                                       | (Built-in) | Giao tiếp real-time          |
+### 📡 Real-time với SignalR
+- Đồng bộ tức thời: Phục vụ gọi món → Bếp nhận ngay lập tức
+- Cập nhật trạng thái bàn real-time
+- Thông báo thanh toán QR Code tự động
 
-### Frontend (`POS36.Web`)
+### 🏪 Multi-Branch Management
+- Quản lý nhiều chi nhánh trong một tài khoản
+- Theo dõi tồn kho riêng biệt cho từng chi nhánh
+- Báo cáo doanh thu tổng hợp và chi tiết
 
-| Package                    | Phiên Bản | Mục Đích                             |
-| :------------------------- | :-------- | :----------------------------------- |
-| **Vue.js**                 | ^3.5.30   | Framework UI chính                   |
-| **Vue Router**             | ^5.0.3    | Điều hướng trang & Navigation Guards |
-| **Axios**                  | ^1.13.6   | HTTP Client gọi API                  |
-| **@microsoft/signalr**     | ^10.0.0   | Kết nối SignalR real-time            |
-| **Bootstrap**              | ^5.3.8    | CSS Framework UI                     |
-| **Bootstrap Icons**        | ^1.13.1   | Bộ icon                              |
-| **Chart.js + vue-chartjs** | ^4.5.1    | Biểu đồ doanh thu                    |
-| **SweetAlert2**            | ^11.26.23 | Hộp thoại thông báo đẹp              |
-| **@emailjs/browser**       | ^4.4.1    | Gửi email OTP quên mật khẩu          |
-| **xlsx**                   | ^0.18.5   | Xuất Excel báo cáo                   |
-| **Vite**                   | ^8.0.0    | Build tool & Dev server              |
+### 🔐 Phân Quyền Chi Tiết (RBAC)
+5 loại tài khoản với màn hình riêng biệt:
+- **Chủ Cửa Hàng**: Toàn quyền quản lý
+- **Quản Lý**: Quản lý chi nhánh, báo cáo
+- **Thu Ngân**: Thanh toán, in hóa đơn
+- **Phục Vụ**: Gọi món, chuyển/ghép bàn
+- **Bếp**: Nhận order, cập nhật trạng thái món
+
+### 📊 Báo Cáo Thông Minh
+- Dashboard tổng quan với biểu đồ doanh thu 7 ngày
+- Báo cáo doanh thu theo ngày/tháng/năm
+- Sổ quỹ tự động (Thu/Chi)
+- Báo cáo tồn kho, kiểm kê
+
+### 💳 Thanh Toán Linh Hoạt
+- Tiền mặt, Chuyển khoản, Thẻ
+- QR Code ngân hàng tự động
+- Webhook nhận thông báo chuyển khoản
+- In hóa đơn với mẫu tùy chỉnh
+
+### 👥 Quản Lý Khách Hàng
+- Hệ thống tích điểm thành viên
+- Lịch sử mua hàng chi tiết
+- Phân tích hành vi khách hàng
 
 ---
 
-## 📂 Cấu Trúc Dự Án
+## 🏗️ Kiến Trúc Hệ Thống
 
+```mermaid
+graph TB
+    subgraph "Frontend - Vue.js 3"
+        A[Landing Page]
+        B[Admin Dashboard]
+        C[POS - Thu Ngân]
+        D[Order - Phục Vụ]
+        E[Kitchen - Bếp]
+    end
+    
+    subgraph "Backend - ASP.NET Core 9"
+        F[API Controllers]
+        G[SignalR Hub]
+        H[JWT Authentication]
+        I[Entity Framework Core]
+    end
+    
+    subgraph "External Services"
+        J[Google Gemini AI]
+        K[EmailJS]
+        L[Bank Webhook]
+    end
+    
+    M[(SQL Server Database)]
+    
+    A --> F
+    B --> F
+    C --> F
+    D --> F
+    E --> F
+    
+    C -.SignalR.-> G
+    D -.SignalR.-> G
+    E -.SignalR.-> G
+    
+    F --> H
+    F --> I
+    F --> J
+    F --> K
+    L --> F
+    
+    I --> M
+    
+    style A fill:#42b883
+    style B fill:#42b883
+    style C fill:#42b883
+    style D fill:#42b883
+    style E fill:#42b883
+    style F fill:#512BD4
+    style G fill:#ff6b35
+    style M fill:#CC2927
 ```
-POS36/
-│
-├── 📄 README.md
-├── 📄 BAO_CAO_DU_AN.md            # Báo cáo tổng quan dự án
-├── 📄 BAO_CAO_CHI_TIET_HE_THONG.md # Phân tích luồng hệ thống chi tiết
-├── 📄 Pos36DB.sql                  # Script SQL khởi tạo Database
-├── 🔧 ngrok.exe                    # Tool tunnel cho dev/demo
-│
-├── 📁 POS36.Api/                   # ── BACKEND (ASP.NET Core 9.0) ──
-│   ├── Controllers/
-│   │   ├── AuthController.cs       # Đăng ký, đăng nhập, quên mật khẩu OTP
-│   │   ├── HoaDonController.cs     # Gọi món, thanh toán, chuyển/ghép bàn
-│   │   ├── SanPhamController.cs    # CRUD sản phẩm, upload ảnh
-│   │   ├── DanhMucController.cs    # Quản lý danh mục sản phẩm
-│   │   ├── MenuController.cs       # Quản lý thực đơn hiển thị
-│   │   ├── BanController.cs        # Trạng thái bàn
-│   │   ├── KhuVucController.cs     # Quản lý khu vực
-│   │   ├── NhanVienController.cs   # Quản lý nhân viên & tài khoản
-│   │   ├── KhachHangController.cs  # Quản lý khách hàng hội viên, điểm
-│   │   ├── KhoController.cs        # Thông tin tồn kho
-│   │   ├── NhapHangController.cs   # Phiếu nhập hàng, cập nhật tồn kho
-│   │   ├── KiemKeController.cs     # Phiếu kiểm kê, cân bằng kho
-│   │   ├── ThuChiController.cs     # Sổ quỹ, phiếu thu/chi
-│   │   ├── DashboardController.cs  # Thống kê tổng quan Dashboard
-│   │   ├── BaoCaoController.cs     # Báo cáo doanh thu
-│   │   ├── ReportController.cs     # Báo cáo bổ sung
-│   │   ├── AIChatController.cs     # AI Copilot (Google Gemini 2.5 Flash)
-│   │   ├── ThietLapController.cs   # Cấu hình: Chi nhánh, Khu vực, Bàn, Mẫu in
-│   │   ├── ChiNhanhController.cs   # Quản lý chi nhánh
-│   │   ├── CuaHangController.cs    # Thông tin cửa hàng
-│   │   ├── ProfileController.cs    # Hồ sơ cá nhân người dùng
-│   │   ├── ThanhToanController.cs  # Lịch sử thanh toán
-│   │   ├── WebhookController.cs    # Webhook nhận thông báo chuyển khoản ngân hàng
-│   │   └── Hubs/
-│   │       └── KitchenHub.cs       # SignalR Hub trung tâm (Bếp, QR, Thu ngân)
-│   │
-│   ├── Models/                     # Entities / Database Schema
-│   │   ├── CuaHang.cs              # Bảng cửa hàng
-│   │   ├── ChiNhanh.cs             # Bảng chi nhánh
-│   │   ├── TaiKhoan.cs             # Bảng tài khoản đăng nhập
-│   │   ├── NhanVien.cs             # Bảng hồ sơ nhân viên
-│   │   ├── KhachHang.cs            # Bảng khách hàng (Tích điểm hội viên)
-│   │   ├── KhuVuc.cs               # Bảng khu vực
-│   │   ├── Ban.cs                  # Bảng bàn
-│   │   ├── DanhMuc.cs              # Bảng danh mục sản phẩm
-│   │   ├── SanPham.cs              # Bảng sản phẩm
-│   │   ├── HoaDon.cs               # Bảng hóa đơn
-│   │   ├── ChiTietHoaDon.cs        # Bảng chi tiết món trong hóa đơn
-│   │   ├── ThanhToan.cs            # Bảng thanh toán
-│   │   ├── TonKho.cs               # Bảng tồn kho
-│   │   ├── PhieuNhap.cs            # Bảng phiếu nhập hàng
-│   │   ├── ChiTietPhieuNhap.cs     # Bảng chi tiết phiếu nhập
-│   │   ├── LichSuKho.cs            # Bảng lịch sử biến động kho
-│   │   ├── PhieuKiemKe.cs          # Bảng phiếu kiểm kê
-│   │   ├── ChiTietKiemKe.cs        # Bảng chi tiết kiểm kê
-│   │   ├── PhieuThuChi.cs          # Bảng phiếu thu/chi (Sổ quỹ)
-│   │   └── ThietLap.cs             # Bảng lưu cấu hình (JSON dạng key-value)
-│   │
-│   ├── DTOs/                       # Data Transfer Objects
-│   │   ├── AuthDto.cs              # Register, Login, ForgotPassword, ResetPassword
-│   │   ├── HoaDonDto.cs            # TaoDonHang, ChuyenBan, GhepBan
-│   │   ├── SanPhamDTO.cs           # Thêm/Sửa sản phẩm
-│   │   ├── DanhMucDTO.cs           # Danh mục
-│   │   ├── MenuDto.cs              # Menu
-│   │   ├── NhanVienDto.cs          # Nhân viên
-│   │   ├── KhoDto.cs               # Kho
-│   │   ├── KiemKeDto.cs            # Kiểm kê
-│   │   ├── ThanhToanDto.cs         # Thanh toán
-│   │   ├── BaoCaoDto.cs            # Báo cáo
-│   │   └── ThietLapDto.cs          # Thiết lập (Chi nhánh, Khu vực, Bàn, Cấu hình)
-│   │
-│   ├── Data/
-│   │   └── AppDbContext.cs         # EF Core DbContext — 6 phân hệ, 20 bảng
-│   │
-│   ├── Prompts/                    # System Prompts cho AI Copilot
-│   │   ├── Chat_Order.md           # Prompt cho nhân viên Order
-│   │   ├── Chat_ThuNgan.md         # Prompt cho Thu ngân
-│   │   ├── Chat_QuanLy.md          # Prompt cho Quản lý/Admin (kèm live data)
-│   │   └── ReportCopilot.md        # Prompt sinh báo cáo HTML
-│   │
-│   ├── Migrations/                 # EF Core Database migrations
-│   ├── Program.cs                  # Startup: DI, JWT, CORS, Serilog, Middleware
-│   └── appsettings.json            # Cấu hình: ConnectionString, JWT Key, Gemini API Key
-│
-└── 📁 POS36.Web/                   # ── FRONTEND (Vue.js 3 + Vite) ──
-    ├── src/
-    │   ├── main.js                 # Entry point, khai báo App, Router, Bootstrap
-    │   ├── App.vue                 # Root component
-    │   ├── store.js                # Simple state (chiNhanhId đang chọn)
-    │   ├── style.css               # Global styles
-    │   │
-    │   ├── router/
-    │   │   └── index.js            # Tất cả routes + Navigation Guards phân quyền
-    │   │
-    │   ├── services/
-    │   │   └── signalr.js          # Khởi tạo & quản lý kết nối SignalR Hub
-    │   │
-    │   ├── views/
-    │   │   ├── Home/               # Nhóm trang công khai (Landing)
-    │   │   │   ├── LandingPage.vue     # Trang chủ giới thiệu phần mềm
-    │   │   │   ├── FeaturesView.vue    # Trang tính năng
-    │   │   │   ├── PricingView.vue     # Trang giá cả
-    │   │   │   ├── AboutView.vue       # Trang giới thiệu
-    │   │   │   ├── SolutionsView.vue   # Trang giải pháp
-    │   │   │   └── PrivacyView.vue     # Trang chính sách bảo mật
-    │   │   │
-    │   │   ├── Login.vue               # Đăng nhập
-    │   │   ├── Register.vue            # Đăng ký cửa hàng mới
-    │   │   ├── ForgotPasswordView.vue  # Quên mật khẩu (OTP qua Email)
-    │   │   │
-    │   │   ├── AdminLayout.vue         # Layout Quản trị (sidebar menu)
-    │   │   ├── DashboardOverview.vue   # Dashboard tổng quan + Chart 7 ngày
-    │   │   ├── OrderList.vue           # Danh sách hóa đơn, lọc/tìm kiếm
-    │   │   ├── ProductSetup.vue        # Quản lý sản phẩm (CRUD + ảnh)
-    │   │   ├── PriceSetup.vue          # Cấu hình giá bán
-    │   │   ├── TableSetup.vue          # Thiết lập sơ đồ bàn
-    │   │   ├── EmployeeSetup.vue       # Quản lý nhân viên & tài khoản
-    │   │   ├── CustomerSetup.vue       # Quản lý khách hàng hội viên
-    │   │   ├── ImportStock.vue         # Danh sách phiếu nhập kho
-    │   │   ├── CreateStock.vue         # Tạo phiếu nhập hàng mới
-    │   │   ├── InventoryCheck.vue      # Danh sách phiếu kiểm kê
-    │   │   ├── InventoryCreate.vue     # Tạo phiếu kiểm kê mới
-    │   │   ├── Cashbook.vue            # Sổ quỹ (Thu/Chi)
-    │   │   ├── PrintSetup.vue          # Cấu hình mẫu in hóa đơn
-    │   │   ├── BankSetup.vue           # Cấu hình tài khoản ngân hàng (QR)
-    │   │   ├── AiReportView.vue        # Báo cáo AI (Google Gemini)
-    │   │   ├── DailySummary.vue        # Tổng kết ca / ngày
-    │   │   ├── SalesReport.vue         # Báo cáo doanh thu
-    │   │   ├── ProfileView.vue         # Hồ sơ cá nhân
-    │   │   ├── StoreInfoView.vue       # Thông tin cửa hàng
-    │   │   │
-    │   │   ├── PosView.vue             # 💰 Màn hình Thu ngân (POS)
-    │   │   ├── OrderView.vue           # 📝 Màn hình Phục vụ / Gọi món
-    │   │   └── KitchenView.vue         # 🍳 Màn hình Bếp (KDS)
-    │   │
-    │   ├── components/             # Shared components
-    │   └── utils/                  # Utilities
-    │
-    ├── package.json
-    ├── vite.config.js
-    └── index.html
+
+### Luồng Dữ Liệu Chính
+
+```mermaid
+sequenceDiagram
+    participant PV as Phục Vụ (Order)
+    participant API as Backend API
+    participant Hub as SignalR Hub
+    participant Bep as Bếp (Kitchen)
+    participant TN as Thu Ngân (POS)
+    participant DB as Database
+    
+    PV->>API: POST /hoadon/goimon
+    API->>DB: Tạo/Cập nhật HoaDon
+    API->>Hub: Broadcast "CoDonHangMoi"
+    Hub-->>Bep: Thông báo món mới
+    Bep->>API: PUT /hoadon/bep/xong/{id}
+    API->>Hub: Broadcast "MonDaXong"
+    Hub-->>PV: Cập nhật trạng thái
+    Hub-->>TN: Sẵn sàng thanh toán
+    TN->>API: POST /hoadon/thanhtoan/{banId}
+    API->>DB: Cập nhật trạng thái + Trừ kho
+    API->>Hub: Broadcast "BanDaThanhToan"
 ```
 
 ---
 
-## 🗄️ Mô Hình Dữ Liệu
+## 🗄️ Mô Hình Dữ Liệu (ERD)
 
-Hệ thống gồm **20 bảng** chia làm **6 phân hệ**:
+### Sơ Đồ ERD Tổng Quan
 
-### Phân Hệ 1 — Hệ Thống & Nhân Sự
-
+```mermaid
+erDiagram
+    CuaHang ||--o{ ChiNhanh : "có nhiều"
+    CuaHang ||--o{ TaiKhoan : "quản lý"
+    ChiNhanh ||--o{ KhuVuc : "chia thành"
+    ChiNhanh ||--o{ TonKho : "lưu trữ"
+    KhuVuc ||--o{ Ban : "chứa"
+    Ban ||--o{ HoaDon : "phục vụ"
+    TaiKhoan ||--|| NhanVien : "thuộc về"
+    DanhMuc ||--o{ SanPham : "phân loại"
+    SanPham ||--o{ ChiTietHoaDon : "được gọi"
+    SanPham ||--o{ TonKho : "tồn kho"
+    HoaDon ||--o{ ChiTietHoaDon : "bao gồm"
+    HoaDon ||--o{ ThanhToan : "thanh toán"
+    HoaDon }o--|| KhachHang : "của"
+    ChiNhanh ||--o{ PhieuNhap : "nhập hàng"
+    PhieuNhap ||--o{ ChiTietPhieuNhap : "chi tiết"
+    ChiNhanh ||--o{ PhieuKiemKe : "kiểm kê"
+    PhieuKiemKe ||--o{ ChiTietKiemKe : "chi tiết"
+    ChiNhanh ||--o{ PhieuThuChi : "thu chi"
+    
+    CuaHang {
+        int Id PK
+        string TenCuaHang
+        string SoDienThoai
+        datetime NgayDangKy
+    }
+    
+    ChiNhanh {
+        int Id PK
+        int CuaHangId FK
+        string TenChiNhanh
+        string DiaChi
+    }
+    
+    TaiKhoan {
+        int Id PK
+        int CuaHangId FK
+        int ChiNhanhId FK
+        int NhanVienId FK
+        string TenDangNhap
+        string MatKhauHash
+        string VaiTro
+    }
+    
+    NhanVien {
+        int Id PK
+        int CuaHangId FK
+        string MaNhanVien
+        string TenNhanVien
+        string SoDienThoai
+        string Email
+    }
+    
+    KhachHang {
+        int Id PK
+        int CuaHangId FK
+        string TenKhachHang
+        string SoDienThoai
+        int TongDiemTichLuy
+        int DiemHienTai
+    }
+    
+    Ban {
+        int Id PK
+        int KhuVucId FK
+        string MaBan
+        string TenBan
+        string TrangThai
+    }
+    
+    HoaDon {
+        int Id PK
+        int BanId FK
+        int KhachHangId FK
+        decimal TongTien
+        string TrangThai
+        string PhuongThucThanhToan
+        datetime NgayTao
+        datetime NgayThanhToan
+    }
+    
+    SanPham {
+        int Id PK
+        int DanhMucId FK
+        string TenSanPham
+        decimal GiaBan
+        string HinhAnh
+        bool TrangThai
+    }
+    
+    ChiTietHoaDon {
+        int Id PK
+        int HoaDonId FK
+        int SanPhamId FK
+        int SoLuong
+        decimal DonGia
+        string TrangThaiMon
+        string GhiChu
+    }
 ```
-CuaHang ──< ChiNhanh ──< TaiKhoan >── NhanVien
-                      └─ KhuVuc ──< Ban
-```
 
-| Bảng        | Mô Tả                                                         |
-| :---------- | :------------------------------------------------------------ |
-| `CuaHang`   | Thông tin cửa hàng (TenCuaHang, SoDienThoai, NgayDangKy)      |
-| `ChiNhanh`  | Chi nhánh thuộc cửa hàng (TenChiNhanh, DiaChi)                |
-| `TaiKhoan`  | Thông tin đăng nhập (TenDangNhap, MatKhauHash BCrypt, VaiTro) |
-| `NhanVien`  | Hồ sơ nhân viên (MaNhanVien, TenNhanVien, SoDienThoai, Email) |
-| `KhachHang` | Khách hàng hội viên (TongDiemTichLuy, DiemHienTai)            |
+### Phân Hệ Dữ Liệu
 
-### Phân Hệ 2 — Bán Hàng (Menu & Bàn)
+#### 1️⃣ Phân Hệ Quản Trị & Nhân Sự
+- `CuaHang`: Thông tin cửa hàng
+- `ChiNhanh`: Chi nhánh
+- `TaiKhoan`: Đăng nhập & phân quyền
+- `NhanVien`: Hồ sơ nhân viên
+- `KhachHang`: Khách hàng thành viên
 
-| Bảng      | Mô Tả                                                            |
-| :-------- | :--------------------------------------------------------------- |
-| `KhuVuc`  | Khu vực trong chi nhánh (Tầng 1, Tầng 2, Sân vườn...)            |
-| `Ban`     | Bàn trong khu vực (MaBan, TenBan, TrangThai: Trống/Đang phục vụ) |
-| `DanhMuc` | Danh mục sản phẩm (Đồ uống, Món chính, Tráng miệng...)           |
-| `SanPham` | Sản phẩm (TenSanPham, GiaBan, AnhUrl, TrangThai)                 |
+#### 2️⃣ Phân Hệ Bán Hàng
+- `KhuVuc`: Khu vực (Tầng 1, Tầng 2...)
+- `Ban`: Bàn ăn
+- `DanhMuc`: Danh mục sản phẩm
+- `SanPham`: Sản phẩm/Món ăn
+- `HoaDon`: Hóa đơn
+- `ChiTietHoaDon`: Chi tiết món trong hóa đơn
+- `ThanhToan`: Lịch sử thanh toán
 
-### Phân Hệ 3 — Giao Dịch
+#### 3️⃣ Phân Hệ Kho
+- `TonKho`: Tồn kho theo chi nhánh
+- `PhieuNhap`: Phiếu nhập hàng
+- `ChiTietPhieuNhap`: Chi tiết phiếu nhập
+- `LichSuKho`: Lịch sử biến động kho
 
-| Bảng            | Mô Tả                                                                    |
-| :-------------- | :----------------------------------------------------------------------- |
-| `HoaDon`        | Hóa đơn (BanId, TrangThai, TongTien, PhuongThucThanhToan, NgayThanhToan) |
-| `ChiTietHoaDon` | Chi tiết món (SanPhamId, SoLuong, DonGia, TrangThaiMon, GhiChu)          |
-| `ThanhToan`     | Lịch sử giao dịch thanh toán                                             |
+#### 4️⃣ Phân Hệ Kiểm Kê
+- `PhieuKiemKe`: Phiếu kiểm kê
+- `ChiTietKiemKe`: Chi tiết kiểm kê
 
-### Phân Hệ 4 — Quản Lý Kho
+#### 5️⃣ Phân Hệ Tài Chính
+- `PhieuThuChi`: Sổ quỹ thu/chi
 
-| Bảng               | Mô Tả                                                            |
-| :----------------- | :--------------------------------------------------------------- |
-| `TonKho`           | Số lượng tồn kho theo chi nhánh (SanPhamId, ChiNhanhId, SoLuong) |
-| `PhieuNhap`        | Phiếu nhập hàng (MaChungTu, NgayNhap, TrangThai)                 |
-| `ChiTietPhieuNhap` | Chi tiết phiếu nhập (SanPhamId, SoLuong, DonGiaNhap)             |
-| `LichSuKho`        | Log biến động tồn kho                                            |
-
-### Phân Hệ 5 — Kiểm Kê
-
-| Bảng            | Mô Tả                                                 |
-| :-------------- | :---------------------------------------------------- |
-| `PhieuKiemKe`   | Phiếu kiểm kê (MaChungTu, TrangThai: Nháp/Hoàn thành) |
-| `ChiTietKiemKe` | Chi tiết kiểm kê (TonKhoHienTai vs SoLuongKiemKe)     |
-
-### Phân Hệ 6 — Sổ Quỹ & Cấu Hình
-
-| Bảng          | Mô Tả                                                        |
-| :------------ | :----------------------------------------------------------- |
-| `PhieuThuChi` | Phiếu thu/chi (LoaiPhieu, PhuongThuc, GiaTri, HangMuc, LyDo) |
-| `ThietLap`    | Cấu hình dạng key-value JSON (MaThietLap, DuLieu)            |
+#### 6️⃣ Phân Hệ Cấu Hình
+- `ThietLap`: Cấu hình hệ thống (JSON)
 
 ---
 
-## 🔌 Toàn Bộ API Endpoints
+## 🎭 Use Case Diagram
 
-> Base URL: `http://localhost:5198/api`  
-> Tất cả endpoints trừ Auth đều yêu cầu Header: `Authorization: Bearer <JWT_TOKEN>`
+```mermaid
+graph TB
+    subgraph "Actors"
+        CCH[Chủ Cửa Hàng]
+        QL[Quản Lý]
+        TN[Thu Ngân]
+        PV[Phục Vụ]
+        BEP[Bếp]
+        KH[Khách Hàng]
+    end
+    
+    subgraph "Quản Trị Hệ Thống"
+        UC1[Đăng ký cửa hàng]
+        UC2[Quản lý chi nhánh]
+        UC3[Quản lý nhân viên]
+        UC4[Phân quyền tài khoản]
+        UC5[Cấu hình hệ thống]
+    end
+    
+    subgraph "Quản Lý Sản Phẩm"
+        UC6[Quản lý danh mục]
+        UC7[Quản lý sản phẩm]
+        UC8[Thiết lập giá bán]
+        UC9[Upload hình ảnh]
+    end
+    
+    subgraph "Bán Hàng"
+        UC10[Thiết lập sơ đồ bàn]
+        UC11[Gọi món]
+        UC12[Chuyển bàn]
+        UC13[Ghép bàn]
+        UC14[Hủy món]
+        UC15[Chế biến món]
+        UC16[Thanh toán]
+        UC17[In hóa đơn]
+    end
+    
+    subgraph "Quản Lý Kho"
+        UC18[Nhập hàng]
+        UC19[Kiểm kê kho]
+        UC20[Xem tồn kho]
+        UC21[Lịch sử biến động]
+    end
+    
+    subgraph "Tài Chính"
+        UC22[Quản lý sổ quỹ]
+        UC23[Phiếu thu/chi]
+        UC24[Báo cáo doanh thu]
+        UC25[Dashboard]
+    end
+    
+    subgraph "Khách Hàng"
+        UC26[Đăng ký thành viên]
+        UC27[Tích điểm]
+        UC28[Đổi điểm]
+    end
+    
+    subgraph "AI & Báo Cáo"
+        UC29[AI Copilot]
+        UC30[Báo cáo AI]
+        UC31[Phân tích kinh doanh]
+    end
+    
+    CCH --> UC1
+    CCH --> UC2
+    CCH --> UC3
+    CCH --> UC4
+    CCH --> UC5
+    
+    QL --> UC6
+    QL --> UC7
+    QL --> UC8
+    QL --> UC9
+    QL --> UC10
+    
+    PV --> UC11
+    PV --> UC12
+    PV --> UC13
+    PV --> UC14
+    
+    BEP --> UC15
+    
+    TN --> UC16
+    TN --> UC17
+    TN --> UC26
+    TN --> UC27
+    
+    QL --> UC18
+    QL --> UC19
+    QL --> UC20
+    QL --> UC21
+    
+    QL --> UC22
+    QL --> UC23
+    QL --> UC24
+    QL --> UC25
+    
+    CCH --> UC29
+    CCH --> UC30
+    CCH --> UC31
+    
+    KH -.-> UC26
+    KH -.-> UC27
+    KH -.-> UC28
+    
+    style CCH fill:#ff6b6b
+    style QL fill:#4ecdc4
+    style TN fill:#45b7d1
+    style PV fill:#96ceb4
+    style BEP fill:#ffeaa7
+    style KH fill:#dfe6e9
+```
 
-### 🔐 Auth (`/api/Auth`)
+### Chi Tiết Use Cases
 
-| Method | Endpoint                | Mô Tả                                                               | Auth |
-| :----: | :---------------------- | :------------------------------------------------------------------ | :--: |
-|  POST  | `/auth/register`        | Đăng ký cửa hàng mới (tạo CuaHang + ChiNhanh + NhanVien + TaiKhoan) |  ❌  |
-|  POST  | `/auth/login`           | Đăng nhập, trả về JWT Token + VaiTro                                |  ❌  |
-|  POST  | `/auth/forgot-password` | Tra cứu email → trả về OTP code và tên đăng nhập                    |  ❌  |
-|  POST  | `/auth/reset-password`  | Xác nhận OTP → đổi mật khẩu mới                                     |  ❌  |
+#### 🔐 Quản Trị Hệ Thống
+| Use Case | Actor | Mô Tả |
+|----------|-------|-------|
+| Đăng ký cửa hàng | Chủ Cửa Hàng | Tạo tài khoản mới, khởi tạo chi nhánh đầu tiên |
+| Quản lý chi nhánh | Chủ Cửa Hàng | Thêm/sửa/xóa chi nhánh |
+| Quản lý nhân viên | Chủ Cửa Hàng, Quản Lý | CRUD nhân viên, cấp tài khoản |
+| Phân quyền | Chủ Cửa Hàng | Gán vai trò cho nhân viên |
+| Cấu hình | Chủ Cửa Hàng, Quản Lý | Thiết lập mẫu in, QR ngân hàng |
 
-### 📄 Hóa Đơn (`/api/HoaDon`)
+#### 🛍️ Bán Hàng
+| Use Case | Actor | Mô Tả |
+|----------|-------|-------|
+| Gọi món | Phục Vụ | Chọn bàn, thêm món, gửi xuống bếp |
+| Chuyển bàn | Phục Vụ | Di chuyển hóa đơn sang bàn khác |
+| Ghép bàn | Phục Vụ | Gộp 2 hóa đơn thành 1 |
+| Chế biến món | Bếp | Nhận order, đánh dấu món xong |
+| Thanh toán | Thu Ngân | Tính tiền, chọn phương thức, in hóa đơn |
 
-| Method | Endpoint                       | Mô Tả                                                                     |
-| :----: | :----------------------------- | :------------------------------------------------------------------------ |
-|  POST  | `/hoadon/goimon`               | Gọi món cho bàn (tạo/cập nhật HoaDon + broadcast SignalR xuống Bếp)       |
-|  GET   | `/hoadon/ban/{banId}`          | Lấy chi tiết hóa đơn đang mở của 1 bàn                                    |
-|  POST  | `/hoadon/chuyenban`            | Chuyển toàn bộ hóa đơn sang bàn khác                                      |
-|  POST  | `/hoadon/ghepban`              | Ghép 2 hóa đơn của 2 bàn vào 1                                            |
-|  POST  | `/hoadon/thanhtoan/{banId}`    | Thanh toán: đổi trạng thái, trừ tồn kho, tạo Phiếu Thu, broadcast SignalR |
-|  GET   | `/hoadon/bep/danh-sach`        | Lấy danh sách món "Chờ chế biến" cho màn hình Bếp                         |
-|  PUT   | `/hoadon/bep/xong/{chiTietId}` | Bếp đánh dấu món đã làm xong → broadcast SignalR                          |
-|  GET   | `/hoadon/danh-sach-admin`      | Lấy danh sách hóa đơn cho Admin (lọc theo ngày, trạng thái, tìm kiếm)     |
-|  POST  | `/hoadon/huymon`               | Hủy món / trả đồ (giảm số lượng hoặc xóa khỏi hóa đơn)                    |
+#### 📦 Quản Lý Kho
+| Use Case | Actor | Mô Tả |
+|----------|-------|-------|
+| Nhập hàng | Quản Lý | Tạo phiếu nhập, cập nhật tồn kho |
+| Kiểm kê | Quản Lý | Đối chiếu tồn kho thực tế |
+| Xem tồn kho | Quản Lý | Theo dõi số lượng tồn |
 
-### 🛍️ Sản Phẩm & Menu (`/api/SanPham`, `/api/DanhMuc`, `/api/Menu`)
-
-| Method | Endpoint        | Mô Tả                                            |
-| :----: | :-------------- | :----------------------------------------------- |
-|  GET   | `/sanpham`      | Lấy danh sách sản phẩm                           |
-|  POST  | `/sanpham`      | Thêm sản phẩm mới (hỗ trợ upload ảnh)            |
-|  PUT   | `/sanpham/{id}` | Cập nhật sản phẩm                                |
-| DELETE | `/sanpham/{id}` | Xóa/ẩn sản phẩm                                  |
-|  GET   | `/danhmuc`      | Lấy danh sách danh mục                           |
-|  POST  | `/danhmuc`      | Thêm danh mục                                    |
-|  PUT   | `/danhmuc/{id}` | Sửa danh mục                                     |
-| DELETE | `/danhmuc/{id}` | Xóa danh mục                                     |
-|  GET   | `/menu`         | Lấy menu (sản phẩm đang kích hoạt theo danh mục) |
-
-### 🏠 Thiết Lập Sơ Đồ (`/api/ThietLap`)
-
-| Method | Endpoint                         | Mô Tả                                     |
-| :----: | :------------------------------- | :---------------------------------------- |
-|  POST  | `/thietlap/chinhanh`             | Thêm chi nhánh mới                        |
-|  GET   | `/thietlap/chinhanh`             | Lấy danh sách chi nhánh                   |
-|  POST  | `/thietlap/khuvuc`               | Thêm khu vực vào chi nhánh                |
-|  POST  | `/thietlap/ban`                  | Thêm bàn vào khu vực                      |
-|  GET   | `/thietlap/sodoban/{chiNhanhId}` | Lấy sơ đồ bàn đầy đủ (KhuVuc → Bàn)       |
-|  GET   | `/thietlap/{maThietLap}`         | Lấy cấu hình (BankConfig, PrintConfig...) |
-|  POST  | `/thietlap`                      | Lưu cấu hình (Upsert)                     |
-
-### 👥 Nhân Viên (`/api/NhanVien`)
-
-| Method | Endpoint         | Mô Tả                                               |
-| :----: | :--------------- | :-------------------------------------------------- |
-|  GET   | `/nhanvien`      | Lấy danh sách nhân viên kèm tài khoản               |
-|  POST  | `/nhanvien`      | Thêm nhân viên + tạo tài khoản với vai trò chỉ định |
-|  PUT   | `/nhanvien/{id}` | Cập nhật thông tin nhân viên                        |
-| DELETE | `/nhanvien/{id}` | Xóa nhân viên                                       |
-
-### 💎 Khách Hàng & Tích Điểm (`/api/KhachHang`)
-
-| Method | Endpoint | Mô Tả |
-| :----: | :------- | :---- |
-| GET | `/khachhang` | Lấy danh sách khách hàng & quản lý điểm |
-| POST | `/khachhang` | Thêm khách hàng mới |
-| PUT | `/khachhang/{id}` | Cập nhật thông tin khách hàng hội viên |
-| DELETE | `/khachhang/{id}` | Xóa khách hàng |
-
-### 📦 Kho Hàng (`/api/Kho`, `/api/NhapHang`, `/api/KiemKe`)
-
-| Method | Endpoint                   | Mô Tả                                                              |
-| :----: | :------------------------- | :----------------------------------------------------------------- |
-|  GET   | `/kho`                     | Xem tồn kho hiện tại theo chi nhánh                                |
-|  GET   | `/nhaphang/danh-sach`      | Danh sách phiếu nhập (lọc ngày, trạng thái)                        |
-|  POST  | `/nhaphang`                | Tạo phiếu nhập hàng (cộng tồn kho nếu "Hoàn thành", tạo phiếu chi) |
-|  GET   | `/kiemke/danh-sach`        | Danh sách phiếu kiểm kê                                            |
-|  GET   | `/kiemke/san-pham-ton-kho` | Lấy toàn bộ sản phẩm kèm số lượng tồn để điền phiếu kiểm kê        |
-|  POST  | `/kiemke`                  | Tạo phiếu kiểm kê (ghi đè tồn kho nếu "Hoàn thành")                |
-|  GET   | `/kiemke/{id}`             | Xem chi tiết 1 phiếu kiểm kê                                       |
-
-### 💰 Sổ Quỹ & Báo Cáo
-
-| Method | Endpoint             | Mô Tả                                                          |
-| :----: | :------------------- | :------------------------------------------------------------- |
-|  GET   | `/thuchi/danh-sach`  | Danh sách phiếu thu/chi + thống kê Tổng thu, Tổng chi, Tồn quỹ |
-|  GET   | `/dashboard/summary` | Thống kê Dashboard: doanh thu, bàn, kho, biểu đồ 7 ngày        |
-|  GET   | `/baocao/...`        | Các endpoint báo cáo doanh thu                                 |
-
-### 🤖 AI Copilot (`/api/AIChat`)
-
-| Method | Endpoint         | Mô Tả                                                                  |
-| :----: | :--------------- | :--------------------------------------------------------------------- |
-|  POST  | `/aichat/ask`    | Hỏi đáp AI Copilot theo vai trò (kèm live data kinh doanh cho Quản lý) |
-|  POST  | `/aichat/report` | Sinh báo cáo HTML từ AI dựa trên dữ liệu thực tế                       |
-|  GET   | `/aichat/models` | Liệt kê các models Gemini đang available                               |
-
-### 🏪 Cửa Hàng & Hồ Sơ
-
-| Method  | Endpoint       | Mô Tả                                                   |
-| :-----: | :------------- | :------------------------------------------------------ |
-| GET/PUT | `/cuahang`     | Xem và cập nhật thông tin cửa hàng                      |
-| GET/PUT | `/profile`     | Xem và cập nhật hồ sơ cá nhân                           |
-|  POST   | `/webhook/...` | Nghiệp vụ Webhook nhận thông báo chuyển khoản ngân hàng |
+#### 💰 Tài Chính
+| Use Case | Actor | Mô Tả |
+|----------|-------|-------|
+| Sổ quỹ | Quản Lý | Quản lý thu/chi, xem tồn quỹ |
+| Báo cáo | Chủ Cửa Hàng, Quản Lý | Doanh thu, lợi nhuận, top sản phẩm |
+| Dashboard | Chủ Cửa Hàng, Quản Lý | Tổng quan kinh doanh |
 
 ---
 
-## 🖥️ Hệ Thống Giao Diện (Views)
+## 🐳 Cài Đặt Nhanh với Docker
 
-### Nhóm 1 — Trang Công Khai (Public)
+### Yêu Cầu
+- Docker Desktop (Windows/Mac) hoặc Docker Engine (Linux)
+- 4GB RAM trở lên
+- 10GB dung lượng ổ cứng
 
-| Route              | View                     | Mô Tả                               |
-| :----------------- | :----------------------- | :---------------------------------- |
-| `/`                | `LandingPage.vue`        | Trang chủ giới thiệu phần mềm POS36 |
-| `/features`        | `FeaturesView.vue`       | Giới thiệu tính năng                |
-| `/pricing`         | `PricingView.vue`        | Bảng giá                            |
-| `/about`           | `AboutView.vue`          | Về chúng tôi                        |
-| `/solutions`       | `SolutionsView.vue`      | Giải pháp theo ngành                |
-| `/privacy`         | `PrivacyView.vue`        | Chính sách bảo mật                  |
-| `/login`           | `Login.vue`              | Đăng nhập JWT                       |
-| `/register`        | `Register.vue`           | Đăng ký cửa hàng mới                |
-| `/forgot-password` | `ForgotPasswordView.vue` | Quên mật khẩu → OTP Email → Đặt lại |
-
-### Nhóm 2 — Giao Diện Quản Trị (`/admin/*`) 🔐
-
-> Yêu cầu vai trò: **Admin, ChuCuaHang, QuanLy**  
-> Shared layout: `AdminLayout.vue` (sidebar điều hướng)
-
-| Route                     | View                    | Mô Tả                                               |
-| :------------------------ | :---------------------- | :-------------------------------------------------- |
-| `/admin`                  | `DashboardOverview.vue` | Bảng điều khiển tổng quan, biểu đồ doanh thu 7 ngày |
-| `/admin/tables`           | `TableSetup.vue`        | Tạo/xóa chi nhánh, khu vực, bàn                     |
-| `/admin/products`         | `ProductSetup.vue`      | Quản lý sản phẩm (CRUD, upload ảnh, danh mục)       |
-| `/admin/prices`           | `PriceSetup.vue`        | Thiết lập giá bán sản phẩm                          |
-| `/admin/import-stock`     | `ImportStock.vue`       | Danh sách phiếu nhập kho                            |
-| `/admin/import-create`    | `CreateStock.vue`       | Tạo phiếu nhập hàng mới                             |
-| `/admin/employees`        | `EmployeeSetup.vue`     | Quản lý nhân viên, cấp tài khoản                    |
-| `/admin/customers`        | `CustomerSetup.vue`     | Quản lý khách hàng, theo dõi điểm tích lũy          |
-| `/admin/orders`           | `OrderList.vue`         | Lịch sử hóa đơn, xlx export, lọc tìm kiếm           |
-| `/admin/inventory`        | `InventoryCheck.vue`    | Danh sách phiếu kiểm kê                             |
-| `/admin/inventory-create` | `InventoryCreate.vue`   | Tạo phiếu kiểm kê, cân bằng kho                     |
-| `/admin/cashbook`         | `Cashbook.vue`          | Sổ quỹ, xem phiếu thu/chi                           |
-| `/admin/print-setup`      | `PrintSetup.vue`        | Tùy chỉnh mẫu in hóa đơn                            |
-| `/admin/bank-setup`       | `BankSetup.vue`         | Cấu hình QR Code ngân hàng                          |
-| `/admin/ai-report`        | `AiReportView.vue`      | Phân tích kinh doanh bằng AI                        |
-| `/admin/daily-summary`    | `DailySummary.vue`      | Tổng kết ca / ngày                                  |
-| `/admin/sales-report`     | `SalesReport.vue`       | Báo cáo doanh thu                                   |
-| `/admin/profile`          | `ProfileView.vue`       | Hồ sơ cá nhân                                       |
-| `/admin/store-info`       | `StoreInfoView.vue`     | Thông tin và cài đặt cửa hàng                       |
-
-### Nhóm 3 — Màn Hình Tác Nghiệp Fullscreen 🔐
-
-| Route      | View              | Dành Cho         | Mô Tả                                                                   |
-| :--------- | :---------------- | :--------------- | :---------------------------------------------------------------------- |
-| `/pos`     | `PosView.vue`     | 💰 **Thu Ngân**  | Màn hình POS: chọn bàn, thanh toán, **tìm khách hàng tích điểm**        |
-| `/order`   | `OrderView.vue`   | 📝 **Phục Vụ**   | Ghi nhận gọi món tại bàn, gửi xuống bếp, hủy món                        |
-| `/kitchen` | `KitchenView.vue` | 🍳 **Bếp (KDS)** | Nhận order real-time, cập nhật trạng thái món "Đã xong"                 |
-
----
-
-## 🔐 Phân Quyền & Luồng Điều Hướng
-
-Hệ thống sử dụng **Vue Router Navigation Guards** kết hợp **JWT Claims** để bảo vệ routes.
-
-```
-User đăng nhập → Nhận JWT Token + VaiTro
-       │
-       ├── VaiTro = "Admin" / "ChuCuaHang" / "QuanLy"
-       │         → Chuyển đến /admin (Dashboard quản trị)
-       │
-       ├── VaiTro = "ThuNgan"
-       │         → Chuyển đến /pos (Màn hình thu ngân)
-       │
-       ├── VaiTro = "Order"
-       │         → Chuyển đến /order (Màn hình gọi món)
-       │
-       └── VaiTro = "Bep"
-                 → Chuyển đến /kitchen (Màn hình bếp)
-```
-
-**Quy tắc Navigation Guard:**
-
-- Truy cập `/admin/*` mà không phải Admin/QuanLy/ChuCuaHang → tự động redirect về đúng màn hình theo vai trò
-- Chưa đăng nhập mà vào trang cần auth → redirect về `/login`
-- Token lưu tại: `localStorage["pos36_token"]`, vai trò tại `localStorage["pos36_role"]`
-
----
-
-## 🔄 Luồng Hoạt Động Chi Tiết
-
-### 1. Luồng Đăng Ký Cửa Hàng
-
-```
-Register.vue → POST /auth/register
-                  │
-                  ├── Tạo CuaHang (tên, SĐT)
-                  ├── Tạo ChiNhanh mặc định ("Chi nhánh Trung tâm")
-                  ├── Tạo KhuVuc mặc định ("Tầng 1")
-                  ├── Tạo hồ sơ NhanVien (chủ cửa hàng)
-                  └── Tạo TaiKhoan (VaiTro = "ChuCuaHang", mật khẩu BCrypt)
-```
-
-### 2. Luồng Quên Mật Khẩu (OTP Email)
-
-```
-ForgotPasswordView.vue
-    │
-    ├── Step 1: Nhập email → POST /auth/forgot-password
-    │            └── Server tra email trong bảng NhanVien
-    │                → Sinh OTP 6 số, lưu RAM Cache
-    │                → Trả về {otp, tenDangNhap, tenNhanVien}
-    │
-    ├── Step 2: Vue dùng EmailJS gửi OTP đến email người dùng
-    │
-    ├── Step 3: Người dùng nhập OTP nhận được
-    │
-    └── Step 4: POST /auth/reset-password
-                 └── Xác nhận OTP → Hash mật khẩu mới → Xóa OTP khỏi cache
-```
-
-### 3. Luồng Bán Hàng Chính (Order → Kitchen → POS)
-
-```
-[Nhân Viên Phục Vụ] OrderView.vue
-    │
-    ├── Chọn bàn → Load menu theo chi nhánh
-    ├── Thêm các món vào giỏ
-    └── Bấm "Gọi món" → POST /hoadon/goimon
-                           │
-                           ├── Kiểm tra/Tạo HoaDon cho bàn
-                           ├── Thêm ChiTietHoaDon (TrangThaiMon = "Chờ chế biến")
-                           ├── Cộng TongTien trên HoaDon
-                           ├── Cập nhật TrangThai bàn = "Đang phục vụ"
-                           └── SignalR Broadcast "CoDonHangMoi" → Bếp
-                                              ↓
-[Màn Hình Bếp] KitchenView.vue
-    │
-    ├── Nhận sự kiện "CoDonHangMoi" → Reload danh sách
-    ├── GET /hoadon/bep/danh-sach (lọc TrangThaiMon = "Chờ chế biến")
-    ├── Hiển thị: Tên bàn | Tên món | Số lượng | Ghi chú | Chờ X phút
-    └── Bấm "✓ Xong" → PUT /hoadon/bep/xong/{chiTietId}
-                           └── TrangThaiMon = "Đã Xong"
-                           └── SignalR Broadcast "MonAnDaXong"
-                                              ↓
-[Thu Ngân] PosView.vue
-    │
-    ├── Xem sơ đồ bàn → Bấm bàn "Đang phục vụ"
-    ├── GET /hoadon/ban/{banId} → Xem chi tiết hóa đơn
-    ├── (Tùy chọn) Tìm Khách Hàng để tích điểm (1 điểm = 20,000đ)
-    ├── (Tùy chọn) Hủy món → POST /hoadon/huymon
-    ├── (Tùy chọn) Chuyển bàn → POST /hoadon/chuyenban
-    ├── (Tùy chọn) Ghép bàn → POST /hoadon/ghepban
-    └── Thanh toán → POST /hoadon/thanhtoan/{banId}?phuongThuc=Tiền mặt
-                        │
-                        ├── HoaDon.TrangThai = "Đã thanh toán"
-                        ├── Ban.TrangThai = "Trống"
-                        ├── TonKho -= SoLuong từng món
-                        ├── KhachHang.DiemHienTai += (TongTien / 20.000)
-                        ├── Tạo PhieuThuChi (LoaiPhieu="Thu")
-                        └── SignalR Broadcast → Cập nhật màu sắc bàn trên tất cả màn hình
-```
-
-### 4. Luồng Thanh Toán QR Ngân Hàng (Real-time)
-
-```
-[Thu Ngân] PosView.vue
-    │
-    └── Chọn "Thanh toán QR" → SignalR gửi "YeuCauMoQR" (banId, soTien, maChungTu)
-                                        ↓
-[Nhân Viên] OrderView.vue
-    │
-    └── Nhận "NhanYeuCauMoQR" → Hiển thị QR Code ngân hàng cho khách quét
-    └── Khách quét → Chuyển khoản → Webhook của ngân hàng POST /webhook/...
-                                        ↓
-WebhookController.cs
-    │
-    └── Phân tích nội dung CK → SignalR gửi "ThanhToanQRThanhCong"
-                                        ↓
-[Thu Ngân] PosView.vue
-    └── Nhận signal → Tự động xác nhận thanh toán thành công
-```
-
-### 5. Luồng Nhập Kho
-
-```
-CreateStock.vue
-    │
-    ├── Chọn chi nhánh, tìm kiếm sản phẩm
-    ├── Điền số lượng và giá nhập
-    └── POST /nhaphang (TrangThai = "Hoàn thành")
-            │
-            ├── Tạo PhieuNhap + ChiTietPhieuNhap
-            ├── TonKho += SoLuong cho mỗi sản phẩm
-            └── Tạo PhieuThuChi (LoaiPhieu="Chi") nếu có TienThanhToan > 0
-```
-
-### 6. Luồng Kiểm Kê Kho
-
-```
-InventoryCreate.vue
-    │
-    ├── GET /kiemke/san-pham-ton-kho → Load danh sách SP + tồn kho hệ thống
-    ├── Nhân viên đếm thực tế, điền vào "Số lượng kiểm kê"
-    └── POST /kiemke (TrangThai = "Hoàn thành")
-            │
-            ├── Tạo PhieuKiemKe + ChiTietKiemKe (lưu cả tồn hệ thống vs thực tế)
-            └── TonKho = SoLuongKiemKe (ghi đè hoàn toàn để cân bằng kho)
-```
-
-### 7. Luồng AI Copilot
-
-```
-AiReportView.vue / (Chatbox trong các view)
-    │
-    ├── Người dùng nhập câu hỏi
-    └── POST /aichat/ask { question, role }
-            │
-            ├── Chọn System Prompt theo vai trò (Order/ThuNgan/QuanLy)
-            ├── Nếu là Quản lý → Query DB lấy dữ liệu live (doanh thu hôm nay/tháng)
-            ├── Gửi prompt tổng hợp đến Google Gemini 2.5 Flash API
-            └── Trả về câu trả lời AI cho người dùng
-```
-
----
-
-## 📡 Hệ Thống Real-time (SignalR)
-
-**Hub URL:** `ws://localhost:5198/kitchenHub`
-
-### Các Sự Kiện SignalR
-
-| Sự Kiện (Event)        |    Chiều     | Mô Tả                                                             |
-| :--------------------- | :----------: | :---------------------------------------------------------------- |
-| `CoDonHangMoi`         | Server → All | Có đơn gọi món mới / Có thanh toán xong → Bếp & tất cả reload bàn |
-| `MonAnDaXong`          | Server → All | Bếp xác nhận 1 món đã làm xong                                    |
-| `YeuCauThanhToan`      | Client → All | Nhân viên yêu cầu thu ngân ra tính tiền cho bàn                   |
-| `CoYeuCauThanhToan`    | Server → All | Broadcast yêu cầu thanh toán                                      |
-| `SendOrderToKitchen`   | Client → All | Gửi order trực tiếp qua SignalR (bổ sung)                         |
-| `ReceiveNewOrder`      | Server → All | Bếp nhận order mới                                                |
-| `YeuCauMoQR`           | Client → All | Thu ngân yêu cầu mở QR thanh toán                                 |
-| `NhanYeuCauMoQR`       | Server → All | Nhân viên nhận lệnh hiển thị QR cho khách                         |
-| `HuyMoQR`              | Client → All | Hủy yêu cầu QR (khách đổi ý)                                      |
-| `NhanHuyMoQR`          | Server → All | Broadcast hủy QR                                                  |
-| `XacNhanTienVe`        | Client → All | Webhook báo chuyển khoản thành công                               |
-| `ThanhToanQRThanhCong` | Server → All | Broadcast QR thanh toán thành công → Thu ngân auto-confirm        |
-
----
-
-## ⚙️ Cài Đặt & Khởi Chạy
-
-### Yêu Cầu Hệ Thống
-
-| Công Cụ    | Phiên Bản | Link                                                                     |
-| :--------- | :-------- | :----------------------------------------------------------------------- |
-| .NET SDK   | 9.0+      | [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/9.0) |
-| Node.js    | LTS (18+) | [nodejs.org](https://nodejs.org/)                                        |
-| SQL Server | 2019+     | [Microsoft SQL Server](https://www.microsoft.com/sql-server)             |
-| Git        | Latest    | [git-scm.com](https://git-scm.com/)                                      |
-
-### Bước 1 — Clone Repository
+### Bước 1: Clone Repository
 
 ```bash
-git clone https://github.com/Nhanduc2912/POS36.git
+git clone https://github.com/your-repo/POS36.git
 cd POS36
 ```
 
-### Bước 2 — Thiết Lập Cơ Sở Dữ Liệu
+### Bước 2: Chạy Docker Compose
 
-**Cách A — Dùng Script SQL (Nhanh nhất):**
-
-```sql
--- Mở SQL Server Management Studio
--- Chạy file: Pos36DB.sql
+```bash
+docker-compose up -d
 ```
 
-**Cách B — EF Core Migration:**
+### Bước 3: Khởi Tạo Database
+
+Đợi khoảng 30 giây để SQL Server khởi động, sau đó chạy:
+
+```bash
+# Windows PowerShell
+docker exec -it pos36-db /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "Pos36_Secret_Password_123!" -i /Pos36DB.sql
+
+# Linux/Mac
+docker exec -it pos36-db /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'Pos36_Secret_Password_123!' -i /Pos36DB.sql
+```
+
+### Bước 4: Truy Cập Ứng Dụng
+
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:5098
+- **Swagger UI**: http://localhost:5098/swagger
+
+### Dừng Hệ Thống
+
+```bash
+docker-compose down
+```
+
+### Xóa Dữ Liệu (Reset)
+
+```bash
+docker-compose down -v
+```
+
+---
+
+## 🛠️ Cài Đặt Thủ Công
+
+### Yêu Cầu Hệ Thống
+
+#### Backend
+- .NET 9.0 SDK
+- SQL Server 2019 trở lên (hoặc SQL Server Express)
+- Visual Studio 2022 / VS Code
+
+#### Frontend
+- Node.js 18+ và npm
+- VS Code (khuyến nghị)
+
+### Bước 1: Cài Đặt SQL Server
+
+#### Windows
+1. Tải SQL Server Express: https://www.microsoft.com/sql-server/sql-server-downloads
+2. Cài đặt với Windows Authentication
+3. Tải SQL Server Management Studio (SSMS)
+
+#### Linux/Mac
+```bash
+# Sử dụng Docker
+docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=YourStrong@Passw0rd" \
+   -p 1433:1433 --name sqlserver \
+   -d mcr.microsoft.com/mssql/server:2022-latest
+```
+
+### Bước 2: Tạo Database
+
+1. Mở SSMS hoặc Azure Data Studio
+2. Kết nối đến SQL Server
+3. Mở file `Pos36DB.sql`
+4. Thực thi script để tạo database
+
+### Bước 3: Cấu Hình Backend
 
 ```bash
 cd POS36.Api
-# Sửa ConnectionString trong appsettings.json trỏ đến SQL Server của bạn
-dotnet ef database update
 ```
 
-### Bước 3 — Cấu Hình Backend
-
-Mở file `POS36.Api/appsettings.json` và điền thông tin:
+Sửa file `appsettings.json`:
 
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=TEN_SERVER_CUA_BAN;Database=POS36_Db;Trusted_Connection=True;TrustServerCertificate=True;"
-  },
-  "GeminiAI": {
-    "ApiKey": "NHẬP_GEMINI_API_KEY_CỦA_BẠN"
+    "DefaultConnection": "Server=localhost;Database=POS36_Db;User Id=sa;Password=YourPassword;TrustServerCertificate=True;"
   },
   "Jwt": {
-    "Key": "ChuoiBiMatCuaPOS36PhaiDaiVaKhoDoan1234567890!!!",
-    "Issuer": "POS36Server",
+    "Key": "your-secret-key-at-least-32-characters-long",
+    "Issuer": "POS36Api",
     "Audience": "POS36Client"
-  }
+  },
+  "GeminiApiKey": "your-google-gemini-api-key"
 }
 ```
 
-> 💡 Lấy Gemini API Key miễn phí tại: [Google AI Studio](https://aistudio.google.com/)
-
-### Bước 4 — Khởi Chạy Backend
+Cài đặt dependencies và chạy:
 
 ```bash
-cd POS36.Api
 dotnet restore
+dotnet ef database update
 dotnet run
 ```
 
-Backend sẽ chạy tại: `http://localhost:5198`  
-Swagger UI: `http://localhost:5198/swagger`
+Backend sẽ chạy tại: http://localhost:5198
 
-### Bước 5 — Khởi Chạy Frontend
+### Bước 4: Cấu Hình Frontend
 
 ```bash
 cd POS36.Web
 npm install
+```
+
+Tạo file `.env`:
+
+```env
+VITE_API_URL=http://localhost:5198/api
+VITE_SIGNALR_URL=http://localhost:5198/kitchenHub
+```
+
+Chạy development server:
+
+```bash
 npm run dev
 ```
 
-Frontend sẽ chạy tại: `http://localhost:5173`
+Frontend sẽ chạy tại: http://localhost:5173
 
-### Bước 6 — Đăng Ký & Sử Dụng
+### Bước 5: Build Production
 
-1. Truy cập `http://localhost:5173/register`
-2. Điền tên cửa hàng, số điện thoại, tài khoản admin đầu tiên
-3. Đăng nhập tại `/login` với tài khoản vừa tạo (vai trò: **ChuCuaHang**)
-4. Vào `/admin` → thiết lập chi nhánh, khu vực, bàn, sản phẩm
-5. Tạo tài khoản nhân viên tại `/admin/employees` với các vai trò phù hợp
+#### Backend
+```bash
+cd POS36.Api
+dotnet publish -c Release -o ./publish
+```
+
+#### Frontend
+```bash
+cd POS36.Web
+npm run build
+```
 
 ---
 
-## 📜 Ghi Chú Phát Triển
+## ⚡ Cài Đặt Tự Động (Windows)
 
-- **Serilog** được cấu hình với themed console log — terminal sẽ hiển thị đầy đủ: icon trạng thái, thời gian phản hồi, IP, thiết bị, tên đăng nhập cho mỗi request
-- Tất cả thao tác phức tạp (thanh toán, nhập kho, kiểm kê) sử dụng **Database Transaction** (`BeginTransactionAsync`) để đảm bảo tính toàn vẹn dữ liệu
-- **Cascade Delete** toàn bộ bị tắt (`DeleteBehavior.Restrict`) — phải xóa thủ công theo thứ tự để tránh mất dữ liệu nghiệp vụ
-- File `ngrok.exe` đi kèm trong repo để dễ dàng tạo public URL demo/test
+Tôi đã tạo các file BAT để tự động hóa quá trình cài đặt và chạy.
+
+### File 1: `setup.bat` - Cài Đặt Tự Động
+
+
+Tạo file `setup.bat` trong thư mục gốc:
+
+```batch
+@echo off
+chcp 65001 >nul
+echo ╔════════════════════════════════════════════════════════════╗
+echo ║         POS36 - Cài Đặt Tự Động                           ║
+echo ║         Hệ Thống Quản Lý Bán Hàng F&B                      ║
+echo ╚════════════════════════════════════════════════════════════╝
+echo.
+
+REM Kiểm tra quyền Administrator
+net session >nul 2>&1
+if %errorLevel% neq 0 (
+    echo [ERROR] Vui lòng chạy file này với quyền Administrator!
+    pause
+    exit /b 1
+)
+
+echo [1/6] Kiểm tra .NET SDK...
+dotnet --version >nul 2>&1
+if %errorLevel% neq 0 (
+    echo [ERROR] Chưa cài đặt .NET 9.0 SDK!
+    echo Vui lòng tải tại: https://dotnet.microsoft.com/download/dotnet/9.0
+    pause
+    exit /b 1
+)
+echo [OK] .NET SDK đã cài đặt
+
+echo.
+echo [2/6] Kiểm tra Node.js...
+node --version >nul 2>&1
+if %errorLevel% neq 0 (
+    echo [ERROR] Chưa cài đặt Node.js!
+    echo Vui lòng tải tại: https://nodejs.org/
+    pause
+    exit /b 1
+)
+echo [OK] Node.js đã cài đặt
+
+echo.
+echo [3/6] Kiểm tra SQL Server...
+sqlcmd -? >nul 2>&1
+if %errorLevel% neq 0 (
+    echo [WARNING] Chưa cài đặt SQL Server hoặc sqlcmd!
+    echo Bạn có thể:
+    echo   1. Cài SQL Server Express: https://www.microsoft.com/sql-server/sql-server-downloads
+    echo   2. Hoặc sử dụng Docker: docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=Pos36_Secret_Password_123!" -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest
+    echo.
+    set /p continue="Tiếp tục cài đặt? (y/n): "
+    if /i not "%continue%"=="y" exit /b 1
+) else (
+    echo [OK] SQL Server đã cài đặt
+)
+
+echo.
+echo [4/6] Cài đặt Backend Dependencies...
+cd POS36.Api
+dotnet restore
+if %errorLevel% neq 0 (
+    echo [ERROR] Lỗi khi cài đặt Backend dependencies!
+    pause
+    exit /b 1
+)
+echo [OK] Backend dependencies đã cài đặt
+
+echo.
+echo [5/6] Cài đặt Frontend Dependencies...
+cd ..\POS36.Web
+call npm install
+if %errorLevel% neq 0 (
+    echo [ERROR] Lỗi khi cài đặt Frontend dependencies!
+    pause
+    exit /b 1
+)
+echo [OK] Frontend dependencies đã cài đặt
+
+echo.
+echo [6/6] Tạo Database...
+cd ..
+echo Vui lòng cấu hình Connection String trong POS36.Api\appsettings.json
+echo Sau đó chạy: dotnet ef database update -p POS36.Api
+echo.
+
+echo ╔════════════════════════════════════════════════════════════╗
+echo ║  Cài đặt hoàn tất!                                         ║
+echo ║  Chạy file run.bat để khởi động hệ thống                   ║
+echo ╚════════════════════════════════════════════════════════════╝
+pause
+```
+
+### File 2: `run.bat` - Chạy Hệ Thống
+
+Tạo file `run.bat` trong thư mục gốc:
+
+```batch
+@echo off
+chcp 65001 >nul
+echo ╔════════════════════════════════════════════════════════════╗
+echo ║         POS36 - Khởi Động Hệ Thống                        ║
+echo ╚════════════════════════════════════════════════════════════╝
+echo.
+
+REM Tạo thư mục logs nếu chưa có
+if not exist "logs" mkdir logs
+
+echo [1/2] Khởi động Backend API...
+start "POS36 Backend" cmd /k "cd POS36.Api && dotnet run > ..\logs\backend.log 2>&1"
+timeout /t 5 /nobreak >nul
+
+echo [2/2] Khởi động Frontend...
+start "POS36 Frontend" cmd /k "cd POS36.Web && npm run dev > ..\logs\frontend.log 2>&1"
+
+echo.
+echo ╔════════════════════════════════════════════════════════════╗
+echo ║  Hệ thống đang khởi động...                                ║
+echo ║                                                            ║
+echo ║  Backend API:  http://localhost:5198                       ║
+echo ║  Swagger UI:   http://localhost:5198/swagger               ║
+echo ║  Frontend:     http://localhost:5173                       ║
+echo ║                                                            ║
+echo ║  Đóng cửa sổ này để dừng hệ thống                          ║
+echo ╚════════════════════════════════════════════════════════════╝
+echo.
+echo Nhấn Ctrl+C để dừng...
+pause >nul
+```
+
+### File 3: `stop.bat` - Dừng Hệ Thống
+
+Tạo file `stop.bat` trong thư mục gốc:
+
+```batch
+@echo off
+chcp 65001 >nul
+echo ╔════════════════════════════════════════════════════════════╗
+echo ║         POS36 - Dừng Hệ Thống                             ║
+echo ╚════════════════════════════════════════════════════════════╝
+echo.
+
+echo Đang dừng Backend...
+taskkill /FI "WindowTitle eq POS36 Backend*" /F >nul 2>&1
+
+echo Đang dừng Frontend...
+taskkill /FI "WindowTitle eq POS36 Frontend*" /F >nul 2>&1
+
+echo Đang dừng các process Node.js và dotnet...
+taskkill /IM node.exe /F >nul 2>&1
+taskkill /IM dotnet.exe /F >nul 2>&1
+
+echo.
+echo [OK] Hệ thống đã dừng!
+timeout /t 2 /nobreak >nul
+```
+
+### File 4: `build.bat` - Build Production
+
+Tạo file `build.bat` trong thư mục gốc:
+
+```batch
+@echo off
+chcp 65001 >nul
+echo ╔════════════════════════════════════════════════════════════╗
+echo ║         POS36 - Build Production                           ║
+echo ╚════════════════════════════════════════════════════════════╝
+echo.
+
+echo [1/2] Build Backend...
+cd POS36.Api
+dotnet publish -c Release -o ..\publish\backend
+if %errorLevel% neq 0 (
+    echo [ERROR] Lỗi khi build Backend!
+    pause
+    exit /b 1
+)
+echo [OK] Backend build thành công
+
+echo.
+echo [2/2] Build Frontend...
+cd ..\POS36.Web
+call npm run build
+if %errorLevel% neq 0 (
+    echo [ERROR] Lỗi khi build Frontend!
+    pause
+    exit /b 1
+)
+xcopy /E /I /Y dist ..\publish\frontend
+echo [OK] Frontend build thành công
+
+cd ..
+echo.
+echo ╔════════════════════════════════════════════════════════════╗
+echo ║  Build hoàn tất!                                           ║
+echo ║  Files nằm trong thư mục: publish\                         ║
+echo ╚════════════════════════════════════════════════════════════╝
+pause
+```
+
+### Hướng Dẫn Sử Dụng
+
+1. **Lần đầu cài đặt**:
+   ```
+   Chuột phải vào setup.bat → Run as Administrator
+   ```
+
+2. **Chạy hệ thống**:
+   ```
+   Double click vào run.bat
+   ```
+
+3. **Dừng hệ thống**:
+   ```
+   Double click vào stop.bat
+   ```
+
+4. **Build production**:
+   ```
+   Double click vào build.bat
+   ```
+
+---
+
+## 🔧 Công Nghệ Sử Dụng
+
+### Backend Stack
+
+| Công Nghệ | Phiên Bản | Mục Đích |
+|-----------|-----------|----------|
+| ASP.NET Core | 9.0 | Web API Framework |
+| Entity Framework Core | 9.0 | ORM - Object Relational Mapping |
+| SQL Server | 2022 | Relational Database |
+| JWT Bearer | 9.0 | Authentication & Authorization |
+| SignalR | Built-in | Real-time Communication |
+| BCrypt.Net | 4.0.3 | Password Hashing |
+| Serilog | 10.0.0 | Structured Logging |
+| Swashbuckle | 7.2.0 | API Documentation (Swagger) |
+
+### Frontend Stack
+
+| Công Nghệ | Phiên Bản | Mục Đích |
+|-----------|-----------|----------|
+| Vue.js | 3.5.30 | Progressive JavaScript Framework |
+| Vue Router | 5.0.3 | Client-side Routing |
+| Vite | 8.0.0 | Build Tool & Dev Server |
+| Axios | 1.13.6 | HTTP Client |
+| Bootstrap | 5.3.8 | CSS Framework |
+| Chart.js | 4.5.1 | Data Visualization |
+| SweetAlert2 | 11.26.23 | Beautiful Alerts |
+| XLSX | 0.18.5 | Excel Export |
+| SignalR Client | 10.0.0 | Real-time Client |
+
+### External Services
+
+| Service | Mục Đích |
+|---------|----------|
+| Google Gemini 2.5 Flash | AI Copilot & Report Generation |
+| EmailJS | OTP Email Delivery |
+| Bank Webhook | Payment Notification |
+
+---
+
+## 📡 API Documentation
+
+### Base URL
+```
+http://localhost:5198/api
+```
+
+### Authentication
+Tất cả endpoints (trừ Auth) yêu cầu JWT Token trong header:
+```
+Authorization: Bearer <your_jwt_token>
+```
+
+### Endpoints Chính
+
+#### 🔐 Authentication
+
+```http
+POST /api/auth/register
+Content-Type: application/json
+
+{
+  "tenCuaHang": "Nhà hàng ABC",
+  "soDienThoai": "0123456789",
+  "tenNhanVien": "Nguyễn Văn A",
+  "email": "admin@example.com",
+  "tenDangNhap": "admin",
+  "matKhau": "Password123!"
+}
+```
+
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "tenDangNhap": "admin",
+  "matKhau": "Password123!"
+}
+
+Response:
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "vaiTro": "ChuCuaHang",
+  "tenNhanVien": "Nguyễn Văn A"
+}
+```
+
+#### 🍽️ Gọi Món
+
+```http
+POST /api/hoadon/goimon
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "banId": 1,
+  "chiTietHoaDons": [
+    {
+      "sanPhamId": 5,
+      "soLuong": 2,
+      "ghiChu": "Không hành"
+    },
+    {
+      "sanPhamId": 8,
+      "soLuong": 1,
+      "ghiChu": "Ít đường"
+    }
+  ]
+}
+```
+
+#### 💰 Thanh Toán
+
+```http
+POST /api/hoadon/thanhtoan/1
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "phuongThucThanhToan": "Tiền mặt",
+  "khachHangId": 5,
+  "diemSuDung": 100
+}
+```
+
+#### 📦 Nhập Hàng
+
+```http
+POST /api/nhaphang
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "chiNhanhId": 1,
+  "chiTietPhieuNhaps": [
+    {
+      "sanPhamId": 10,
+      "soLuong": 50,
+      "donGiaNhap": 15000
+    }
+  ],
+  "trangThai": "Hoàn thành"
+}
+```
+
+#### 🤖 AI Copilot
+
+```http
+POST /api/aichat/ask
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "message": "Phân tích doanh thu tuần này",
+  "vaiTro": "QuanLy"
+}
+```
+
+### Swagger UI
+
+Truy cập tài liệu API đầy đủ tại:
+```
+http://localhost:5198/swagger
+```
+
+---
+
+## 🔐 Phân Quyền & Bảo Mật
+
+### Vai Trò Hệ Thống
+
+| Vai Trò | Quyền Hạn | Màn Hình Mặc Định |
+|---------|-----------|-------------------|
+| **ChuCuaHang** | Toàn quyền quản lý | `/admin` (Dashboard) |
+| **QuanLy** | Quản lý chi nhánh, báo cáo, kho | `/admin` (Dashboard) |
+| **ThuNgan** | Thanh toán, in hóa đơn, khách hàng | `/pos` (POS) |
+| **Order** | Gọi món, chuyển/ghép bàn | `/order` (Order) |
+| **Bep** | Nhận order, cập nhật trạng thái món | `/kitchen` (Kitchen) |
+
+### Ma Trận Phân Quyền
+
+| Chức Năng | Chủ CH | Quản Lý | Thu Ngân | Phục Vụ | Bếp |
+|-----------|--------|---------|----------|---------|-----|
+| Quản lý chi nhánh | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Quản lý nhân viên | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Quản lý sản phẩm | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Thiết lập sơ đồ bàn | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Gọi món | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Chuyển/Ghép bàn | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Thanh toán | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Chế biến món | ✅ | ✅ | ❌ | ❌ | ✅ |
+| Nhập hàng | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Kiểm kê | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Sổ quỹ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Báo cáo | ✅ | ✅ | ❌ | ❌ | ❌ |
+| AI Copilot | ✅ | ✅ | ❌ | ❌ | ❌ |
+
+### Bảo Mật
+
+#### 1. Authentication
+- JWT Token với expiration time
+- Refresh token mechanism
+- Password hashing với BCrypt (cost factor: 12)
+
+#### 2. Authorization
+- Role-based access control (RBAC)
+- Route guards trên Frontend
+- API endpoint protection
+
+#### 3. Data Security
+- SQL Injection prevention (EF Core parameterized queries)
+- XSS protection
+- CORS configuration
+- HTTPS enforcement (Production)
+
+#### 4. Password Policy
+- Minimum 8 characters
+- At least 1 uppercase letter
+- At least 1 number
+- At least 1 special character
+
+---
+
+## 🔄 Luồng Hoạt Động
+
+### 1. Luồng Đăng Ký & Đăng Nhập
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant F as Frontend
+    participant A as API
+    participant DB as Database
+    
+    U->>F: Nhập thông tin đăng ký
+    F->>A: POST /auth/register
+    A->>DB: Tạo CuaHang, ChiNhanh, NhanVien, TaiKhoan
+    DB-->>A: Success
+    A-->>F: {message: "Đăng ký thành công"}
+    F-->>U: Chuyển đến trang đăng nhập
+    
+    U->>F: Nhập username/password
+    F->>A: POST /auth/login
+    A->>DB: Kiểm tra credentials
+    DB-->>A: User data
+    A->>A: Generate JWT Token
+    A-->>F: {token, vaiTro, tenNhanVien}
+    F->>F: Lưu token vào localStorage
+    F-->>U: Redirect theo vai trò
+```
+
+### 2. Luồng Gọi Món (Order Flow)
+
+```mermaid
+sequenceDiagram
+    participant PV as Phục Vụ
+    participant API as Backend API
+    participant Hub as SignalR Hub
+    participant Bep as Màn Hình Bếp
+    participant DB as Database
+    
+    PV->>API: POST /hoadon/goimon
+    API->>DB: Tạo/Cập nhật HoaDon
+    API->>DB: Thêm ChiTietHoaDon
+    API->>DB: Cập nhật trạng thái bàn
+    DB-->>API: Success
+    API->>Hub: Broadcast "CoDonHangMoi"
+    Hub-->>Bep: Thông báo real-time
+    API-->>PV: {success: true}
+    Bep->>Bep: Hiển thị món mới
+    Bep->>API: PUT /hoadon/bep/xong/{id}
+    API->>DB: Cập nhật TrangThaiMon
+    API->>Hub: Broadcast "MonDaXong"
+    Hub-->>PV: Cập nhật trạng thái
+```
+
+### 3. Luồng Thanh Toán (Payment Flow)
+
+```mermaid
+sequenceDiagram
+    participant TN as Thu Ngân
+    participant API as Backend API
+    participant DB as Database
+    participant Hub as SignalR Hub
+    participant Print as Máy In
+    
+    TN->>API: POST /hoadon/thanhtoan/{banId}
+    API->>DB: Cập nhật HoaDon (TrangThai = "Đã thanh toán")
+    API->>DB: Trừ TonKho
+    API->>DB: Tạo PhieuThu
+    API->>DB: Cập nhật điểm KhachHang (nếu có)
+    API->>DB: Cập nhật trạng thái Ban = "Trống"
+    DB-->>API: Success
+    API->>Hub: Broadcast "BanDaThanhToan"
+    API-->>TN: {hoaDon, qrCode}
+    TN->>Print: In hóa đơn
+    TN->>TN: Hiển thị QR thanh toán (nếu chọn)
+```
+
+### 4. Luồng Nhập Hàng (Stock Import Flow)
+
+```mermaid
+sequenceDiagram
+    participant QL as Quản Lý
+    participant API as Backend API
+    participant DB as Database
+    
+    QL->>API: POST /nhaphang
+    API->>DB: Tạo PhieuNhap
+    API->>DB: Tạo ChiTietPhieuNhap
+    
+    alt TrangThai = "Hoàn thành"
+        API->>DB: Cộng TonKho
+        API->>DB: Tạo LichSuKho
+        API->>DB: Tạo PhieuChi
+    end
+    
+    DB-->>API: Success
+    API-->>QL: {phieuNhap}
+```
+
+### 5. Luồng Kiểm Kê (Inventory Check Flow)
+
+```mermaid
+sequenceDiagram
+    participant QL as Quản Lý
+    participant API as Backend API
+    participant DB as Database
+    
+    QL->>API: GET /kiemke/san-pham-ton-kho
+    API->>DB: Lấy danh sách TonKho
+    DB-->>API: [TonKho]
+    API-->>QL: Hiển thị form kiểm kê
+    
+    QL->>API: POST /kiemke (TrangThai = "Hoàn thành")
+    API->>DB: Tạo PhieuKiemKe
+    API->>DB: Tạo ChiTietKiemKe
+    API->>DB: Ghi đè TonKho = SoLuongKiemKe
+    API->>DB: Tạo LichSuKho
+    DB-->>API: Success
+    API-->>QL: {phieuKiemKe}
+```
+
+---
+
+## 🎨 Screenshots
+
+### Dashboard Quản Trị
+![Dashboard](docs/screenshots/dashboard.png)
+
+### Màn Hình POS (Thu Ngân)
+![POS](docs/screenshots/pos.png)
+
+### Màn Hình Gọi Món (Phục Vụ)
+![Order](docs/screenshots/order.png)
+
+### Màn Hình Bếp (KDS)
+![Kitchen](docs/screenshots/kitchen.png)
+
+### Báo Cáo AI
+![AI Report](docs/screenshots/ai-report.png)
+
+---
+
+## 🧪 Testing
+
+### Backend Testing
+
+```bash
+cd POS36.Api
+dotnet test
+```
+
+### Frontend Testing
+
+```bash
+cd POS36.Web
+npm run test
+```
+
+### API Testing với Postman
+
+Import collection từ file `docs/POS36.postman_collection.json`
+
+---
+
+## 📦 Deployment
+
+### Deploy lên Azure
+
+#### Backend (Azure App Service)
+
+```bash
+# Login Azure
+az login
+
+# Tạo Resource Group
+az group create --name POS36-RG --location southeastasia
+
+# Tạo App Service Plan
+az appservice plan create --name POS36-Plan --resource-group POS36-RG --sku B1
+
+# Tạo Web App
+az webapp create --name pos36-api --resource-group POS36-RG --plan POS36-Plan
+
+# Deploy
+cd POS36.Api
+dotnet publish -c Release
+cd bin/Release/net9.0/publish
+az webapp deployment source config-zip --resource-group POS36-RG --name pos36-api --src publish.zip
+```
+
+#### Frontend (Azure Static Web Apps)
+
+```bash
+# Build
+cd POS36.Web
+npm run build
+
+# Deploy
+az staticwebapp create --name pos36-web --resource-group POS36-RG --source ./dist --location southeastasia
+```
+
+### Deploy lên VPS (Linux)
+
+```bash
+# Cài đặt .NET Runtime
+wget https://dot.net/v1/dotnet-install.sh
+chmod +x dotnet-install.sh
+./dotnet-install.sh --channel 9.0
+
+# Cài đặt Nginx
+sudo apt install nginx
+
+# Copy files
+scp -r publish/* user@your-vps:/var/www/pos36
+
+# Cấu hình Nginx
+sudo nano /etc/nginx/sites-available/pos36
+
+# Restart Nginx
+sudo systemctl restart nginx
+```
+
+---
+
+## 🤝 Đóng Góp
+
+Chúng tôi hoan nghênh mọi đóng góp! Vui lòng đọc [CONTRIBUTING.md](CONTRIBUTING.md) để biết thêm chi tiết.
+
+### Quy Trình Đóng Góp
+
+1. Fork repository
+2. Tạo branch mới (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Tạo Pull Request
+
+---
+
+## 📄 License
+
+Dự án này được phân phối dưới giấy phép MIT. Xem file [LICENSE](LICENSE) để biết thêm chi tiết.
+
+---
+
+## 👥 Team
+
+- **Project Lead**: [Your Name]
+- **Backend Developer**: [Name]
+- **Frontend Developer**: [Name]
+- **UI/UX Designer**: [Name]
+
+---
+
+## 📞 Liên Hệ
+
+- **Email**: support@pos36.com
+- **Website**: https://pos36.com
+- **Facebook**: https://facebook.com/pos36
+- **Hotline**: 1900-xxxx
+
+---
+
+## 🙏 Acknowledgments
+
+- [ASP.NET Core](https://dotnet.microsoft.com/apps/aspnet)
+- [Vue.js](https://vuejs.org/)
+- [Bootstrap](https://getbootstrap.com/)
+- [Google Gemini](https://ai.google.dev/)
+- [SignalR](https://dotnet.microsoft.com/apps/aspnet/signalr)
 
 ---
 
 <div align="center">
 
-Nếu bạn thấy dự án hữu ích, hãy để lại ⭐ trên GitHub!
+**Made with ❤️ by POS36 Team**
 
-**Tác giả:** [Nhanduc2912](https://github.com/Nhanduc2912)
+⭐ Star us on GitHub — it motivates us a lot!
+
+[⬆ Back to Top](#-pos36--hệ-thống-quản-lý-bán-hàng-fb)
 
 </div>
