@@ -39,7 +39,7 @@
 - [API Documentation](#-api-documentation)
 - [Phân Quyền & Bảo Mật](#-phân-quyền--bảo-mật)
 - [Luồng Hoạt Động](#-luồng-hoạt-động)
-- [Đóng Góp](#-đóng-góp)
+- [Thông Tin Dự Án](#-thông-tin-dự-án)
 
 ---
 
@@ -486,7 +486,7 @@ graph TB
 ### Bước 1: Clone Repository
 
 ```bash
-git clone https://github.com/your-repo/POS36.git
+git clone https://github.com/Nhanduc2912/POS36.git
 cd POS36
 ```
 
@@ -593,7 +593,7 @@ dotnet ef database update
 dotnet run
 ```
 
-Backend sẽ chạy tại: http://localhost:5198
+Backend sẽ chạy tại: http://localhost:5098
 
 ### Bước 4: Cấu Hình Frontend
 
@@ -605,8 +605,8 @@ npm install
 Tạo file `.env`:
 
 ```env
-VITE_API_URL=http://localhost:5198/api
-VITE_SIGNALR_URL=http://localhost:5198/kitchenHub
+VITE_API_URL=http://localhost:5098/api
+VITE_SIGNALR_URL=http://localhost:5098/kitchenHub
 ```
 
 Chạy development server:
@@ -757,8 +757,8 @@ echo.
 echo ╔════════════════════════════════════════════════════════════╗
 echo ║  Hệ thống đang khởi động...                                ║
 echo ║                                                            ║
-echo ║  Backend API:  http://localhost:5198                       ║
-echo ║  Swagger UI:   http://localhost:5198/swagger               ║
+echo ║  Backend API:  http://localhost:5098                       ║
+echo ║  Swagger UI:   http://localhost:5098/swagger               ║
 echo ║  Frontend:     http://localhost:5173                       ║
 echo ║                                                            ║
 echo ║  Đóng cửa sổ này để dừng hệ thống                          ║
@@ -905,7 +905,7 @@ pause
 
 ### Base URL
 ```
-http://localhost:5198/api
+http://localhost:5098/api
 ```
 
 ### Authentication
@@ -1024,7 +1024,7 @@ Content-Type: application/json
 
 Truy cập tài liệu API đầy đủ tại:
 ```
-http://localhost:5198/swagger
+http://localhost:5098/swagger
 ```
 
 ---
@@ -1207,142 +1207,21 @@ sequenceDiagram
 
 ---
 
-## 🎨 Screenshots
+## 📋 Thông Tin Dự Án
 
-### Dashboard Quản Trị
-![Dashboard](docs/screenshots/dashboard.png)
-
-### Màn Hình POS (Thu Ngân)
-![POS](docs/screenshots/pos.png)
-
-### Màn Hình Gọi Món (Phục Vụ)
-![Order](docs/screenshots/order.png)
-
-### Màn Hình Bếp (KDS)
-![Kitchen](docs/screenshots/kitchen.png)
-
-### Báo Cáo AI
-![AI Report](docs/screenshots/ai-report.png)
-
----
-
-## 🧪 Testing
-
-### Backend Testing
-
-```bash
-cd POS36.Api
-dotnet test
-```
-
-### Frontend Testing
-
-```bash
-cd POS36.Web
-npm run test
-```
-
-### API Testing với Postman
-
-Import collection từ file `docs/POS36.postman_collection.json`
-
----
-
-## 📦 Deployment
-
-### Deploy lên Azure
-
-#### Backend (Azure App Service)
-
-```bash
-# Login Azure
-az login
-
-# Tạo Resource Group
-az group create --name POS36-RG --location southeastasia
-
-# Tạo App Service Plan
-az appservice plan create --name POS36-Plan --resource-group POS36-RG --sku B1
-
-# Tạo Web App
-az webapp create --name pos36-api --resource-group POS36-RG --plan POS36-Plan
-
-# Deploy
-cd POS36.Api
-dotnet publish -c Release
-cd bin/Release/net9.0/publish
-az webapp deployment source config-zip --resource-group POS36-RG --name pos36-api --src publish.zip
-```
-
-#### Frontend (Azure Static Web Apps)
-
-```bash
-# Build
-cd POS36.Web
-npm run build
-
-# Deploy
-az staticwebapp create --name pos36-web --resource-group POS36-RG --source ./dist --location southeastasia
-```
-
-### Deploy lên VPS (Linux)
-
-```bash
-# Cài đặt .NET Runtime
-wget https://dot.net/v1/dotnet-install.sh
-chmod +x dotnet-install.sh
-./dotnet-install.sh --channel 9.0
-
-# Cài đặt Nginx
-sudo apt install nginx
-
-# Copy files
-scp -r publish/* user@your-vps:/var/www/pos36
-
-# Cấu hình Nginx
-sudo nano /etc/nginx/sites-available/pos36
-
-# Restart Nginx
-sudo systemctl restart nginx
-```
-
----
-
-## 🤝 Đóng Góp
-
-Chúng tôi hoan nghênh mọi đóng góp! Vui lòng đọc [CONTRIBUTING.md](CONTRIBUTING.md) để biết thêm chi tiết.
-
-### Quy Trình Đóng Góp
-
-1. Fork repository
-2. Tạo branch mới (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Tạo Pull Request
+| Thông Tin | Chi Tiết |
+|-----------|----------|
+| **Sinh viên** | Nhân Đức |
+| **Trường** | FPT Polytechnic |
+| **Môn học** | Phát triển ứng dụng (.Net) |
+| **Email** | [nhanduc29122008@gmail.com](mailto:nhanduc29122008@gmail.com) |
+| **GitHub** | [Nhanduc2912/POS36](https://github.com/Nhanduc2912/POS36) |
 
 ---
 
 ## 📄 License
 
 Dự án này được phân phối dưới giấy phép MIT. Xem file [LICENSE](LICENSE) để biết thêm chi tiết.
-
----
-
-## 👥 Team
-
-- **Project Lead**: [Your Name]
-- **Backend Developer**: [Name]
-- **Frontend Developer**: [Name]
-- **UI/UX Designer**: [Name]
-
----
-
-## 📞 Liên Hệ
-
-- **Email**: support@pos36.com
-- **Website**: https://pos36.com
-- **Facebook**: https://facebook.com/pos36
-- **Hotline**: 1900-xxxx
 
 ---
 
@@ -1358,9 +1237,9 @@ Dự án này được phân phối dưới giấy phép MIT. Xem file [LICENSE]
 
 <div align="center">
 
-**Made with ❤️ by POS36 Team**
+**Made with ❤️ — FPT Polytechnic | Môn: Phát triển ứng dụng (.Net)**
 
-⭐ Star us on GitHub — it motivates us a lot!
+[GitHub](https://github.com/Nhanduc2912/POS36) · [Email](mailto:nhanduc29122008@gmail.com)
 
 [⬆ Back to Top](#-pos36--hệ-thống-quản-lý-bán-hàng-fb)
 

@@ -16,8 +16,8 @@ echo.
 echo ╔════════════════════════════════════════════════════════════╗
 echo ║  Hệ thống đang khởi động...                                ║
 echo ║                                                            ║
-echo ║  Backend API:  http://localhost:5198                       ║
-echo ║  Swagger UI:   http://localhost:5198/swagger               ║
+echo ║  Backend API:  http://localhost:5098                       ║
+echo ║  Swagger UI:   http://localhost:5098/swagger               ║
 echo ║  Frontend:     http://localhost:5173                       ║
 echo ║                                                            ║
 echo ║  Nhấn Ctrl+C trong cửa sổ Backend/Frontend để dừng        ║
