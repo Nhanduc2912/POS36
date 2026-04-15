@@ -9,7 +9,8 @@ const searchText = ref("");
 const fetchCustomers = async () => {
   try {
     let url = "/api/KhachHang/danh-sach";
-    if (searchText.value) url += `?search=${encodeURIComponent(searchText.value)}`;
+    if (searchText.value)
+      url += `?search=${encodeURIComponent(searchText.value)}`;
     const res = await axios.get(url);
     customers.value = res.data;
   } catch (error) {
