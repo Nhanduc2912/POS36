@@ -39,37 +39,38 @@ const handleAddEmployee = async () => {
       <input id="swal-ten" class="form-control mb-2" placeholder="Tên nhân viên">
       <input id="swal-email" class="form-control mb-2" type="email" placeholder="Email (Không bắt buộc)">
       <input id="swal-sdt" class="form-control mb-4" placeholder="Số điện thoại">
-      
-      <div class="text-start mb-2 fw-bold text-danger">2. Cấp quyền phần mềm</div>
+
+      <div class="text-start mb-2 fw-bold text-danger">2. Cấp quyền phần mềm <span class="text-danger">*</span></div>
       <select id="swal-vaitro" class="form-select mb-2">
-        <option value="">-- Chỉ tạo hồ sơ, KHÔNG cấp quyền --</option>
+        <option value="">-- Chọn vai trò --</option>
         <option value="ThuNgan">Thu ngân (Tính tiền, In bill)</option>
         <option value="Order">Nhân viên Order (Ghi món, Phục vụ)</option>
         <option value="Bep">Bếp (Xem màn hình làm món)</option>
       </select>
-      <input id="swal-user" class="form-control mb-2" placeholder="Tên đăng nhập (Bỏ trống nếu không cấp)">
-      <input id="swal-pass" class="form-control" type="password" placeholder="Mật khẩu (Bỏ trống nếu không cấp)">
+      <input id="swal-user" class="form-control mb-2" placeholder="Tên đăng nhập *">
+      <input id="swal-pass" class="form-control" type="password" placeholder="Mật khẩu *">
     `,
     showCancelButton: true,
     confirmButtonText: "Lưu Hệ Thống",
     preConfirm: () => {
-      const ma = document.getElementById("swal-ma").value;
-      const ten = document.getElementById("swal-ten").value;
-      const email = document.getElementById("swal-email").value;
-      const sdt = document.getElementById("swal-sdt").value;
-
+      const ma = document.getElementById("swal-ma").value.trim();
+      const ten = document.getElementById("swal-ten").value.trim();
+      const email = document.getElementById("swal-email").value.trim();
+      const sdt = document.getElementById("swal-sdt").value.trim();
       const vaitro = document.getElementById("swal-vaitro").value;
-      const user = document.getElementById("swal-user").value;
+      const user = document.getElementById("swal-user").value.trim();
       const pass = document.getElementById("swal-pass").value;
 
       if (!ma || !ten || !sdt) {
-        swal.showValidationMessage("Vui lòng nhập đủ Mã, Tên và SĐT!");
+        swal.showValidationMessage("Vui lòng nhập đủ Mã NV, Tên và Số điện thoại!");
         return false;
       }
-      if (vaitro !== "" && (!user || !pass)) {
-        swal.showValidationMessage(
-          "Đã cấp quyền thì phải nhập Tên đăng nhập và Mật khẩu!",
-        );
+      if (!vaitro) {
+        swal.showValidationMessage("Vui lòng chọn Vai trò cho nhân viên!");
+        return false;
+      }
+      if (!user || !pass) {
+        swal.showValidationMessage("Vui lòng nhập Tên đăng nhập và Mật khẩu!");
         return false;
       }
 
@@ -77,9 +78,9 @@ const handleAddEmployee = async () => {
         chiNhanhId: globalState.value.activeBranchId,
         maNhanVien: ma,
         tenNhanVien: ten,
-        email: email ? email : null, // Xử lý cho phép null
+        email: email || null,
         soDienThoai: sdt,
-        taoTaiKhoan: vaitro !== "",
+        taoTaiKhoan: true,
         vaiTro: vaitro,
         tenDangNhap: user,
         matKhau: pass,
@@ -93,14 +94,15 @@ const handleAddEmployee = async () => {
       swal.fire({
         icon: "success",
         title: "Hoàn tất",
-        timer: 1500,
+        text: "Đã thêm nhân viên và cấp quyền thành công!",
+        timer: 1800,
         showConfirmButton: false,
       });
       fetchEmployees();
     } catch (e) {
       swal.fire(
-        "Lỗi Server",
-        e.response?.data?.message || "Không thể lưu",
+        "Lỗi",
+        e.response?.data?.message || "Không thể lưu nhân viên",
         "error",
       );
     }
@@ -111,28 +113,28 @@ const handleEditEmployee = async (emp) => {
   const { value: formValues } = await swal.fire({
     title: "Sửa Thông Tin Nhân Viên",
     html: `
-      <input id="swal-ma-edit" class="form-control mb-3" value="${emp.maNhanVien}" placeholder="Mã NV">
+      <div class="text-start mb-1 text-muted small">Mã nhân viên (không thể thay đổi)</div>
+      <input class="form-control mb-3 bg-light text-secondary fw-bold" value="${emp.maNhanVien}" disabled>
       <input id="swal-ten-edit" class="form-control mb-3" value="${emp.tenNhanVien}" placeholder="Tên nhân viên">
-      <input id="swal-email-edit" class="form-control mb-3" type="email" value="${emp.email || ""}" placeholder="Email (Không bắt buộc)">
+      <input id="swal-email-edit" class="form-control mb-3" type="email" value="${emp.email || ''}" placeholder="Email (Không bắt buộc)">
       <input id="swal-sdt-edit" class="form-control" value="${emp.soDienThoai}" placeholder="Số điện thoại">
     `,
     showCancelButton: true,
     confirmButtonText: "Cập nhật",
     preConfirm: () => {
-      const ma = document.getElementById("swal-ma-edit").value;
-      const ten = document.getElementById("swal-ten-edit").value;
-      const email = document.getElementById("swal-email-edit").value;
-      const sdt = document.getElementById("swal-sdt-edit").value;
+      const ten = document.getElementById("swal-ten-edit").value.trim();
+      const email = document.getElementById("swal-email-edit").value.trim();
+      const sdt = document.getElementById("swal-sdt-edit").value.trim();
 
-      if (!ma || !ten || !sdt) {
-        swal.showValidationMessage("Vui lòng nhập đủ Mã, Tên và SĐT!");
+      if (!ten || !sdt) {
+        swal.showValidationMessage("Vui lòng nhập đủ Tên và Số điện thoại!");
         return false;
       }
       return {
         chiNhanhId: globalState.value.activeBranchId,
-        maNhanVien: ma,
+        maNhanVien: emp.maNhanVien, // Giữ nguyên mã NV gốc (backend cũng không cập nhật)
         tenNhanVien: ten,
-        email: email ? email : null, // Xử lý cho phép null
+        email: email || null,
         soDienThoai: sdt,
       };
     },
@@ -149,7 +151,11 @@ const handleEditEmployee = async (emp) => {
       });
       fetchEmployees();
     } catch (e) {
-      swal.fire("Lỗi", "Không thể sửa nhân viên", "error");
+      swal.fire(
+        "Lỗi",
+        e.response?.data?.message || "Không thể sửa nhân viên",
+        "error",
+      );
     }
   }
 };

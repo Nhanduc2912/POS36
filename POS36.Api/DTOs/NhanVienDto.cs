@@ -7,11 +7,12 @@ namespace POS36.Api.DTOs
         public string MaNhanVien { get; set; } = string.Empty;
         public string TenNhanVien { get; set; } = string.Empty;
         public string SoDienThoai { get; set; } = string.Empty;
+        public string? Email { get; set; } // Có thể null
 
-        // THÔNG TIN TÀI KHOẢN (Có thể có hoặc không)
-        public bool TaoTaiKhoan { get; set; } = false; // Checkbox xem có cấp quyền đăng nhập không
+        // THÔNG TIN TÀI KHOẢN (Bắt buộc phải cấp khi thêm mới)
+        public bool TaoTaiKhoan { get; set; } = true;
         public string? TenDangNhap { get; set; }
         public string? MatKhau { get; set; }
-        public string? VaiTro { get; set; } // VD: "ThuNgan", "QuanLy"
+        public string? VaiTro { get; set; } // VD: "ThuNgan", "Order", "Bep"
     }
 }
