@@ -1,36 +1,36 @@
 @echo off
-chcp 65001 >nul
-echo ╔════════════════════════════════════════════════════════════╗
-echo ║         POS36 - Build Production                           ║
-echo ╚════════════════════════════════════════════════════════════╝
+
+echo.
+echo ============================================================
+echo   POS36 - Build Production
+echo ============================================================
 echo.
 
-echo [1/2] Build Backend...
+echo [1/2] Build Backend (dotnet publish)...
 cd /d "%~dp0..\POS36.Api"
-dotnet publish -c Release -o ..\publish\backend
+dotnet publish -c Release -o "%~dp0..\publish\backend"
 if %errorLevel% neq 0 (
-    echo [ERROR] Lỗi khi build Backend!
+    echo [ERROR] Loi khi build Backend!
     pause
     exit /b 1
 )
-echo [OK] Backend build thành công
+echo [OK] Backend build thanh cong
 
 echo.
-echo [2/2] Build Frontend...
+echo [2/2] Build Frontend (npm run build)...
 cd /d "%~dp0..\POS36.Web"
 call npm run build
 if %errorLevel% neq 0 (
-    echo [ERROR] Lỗi khi build Frontend!
+    echo [ERROR] Loi khi build Frontend!
     pause
     exit /b 1
 )
-xcopy /E /I /Y dist ..\publish\frontend
-echo [OK] Frontend build thành công
+xcopy /E /I /Y dist "%~dp0..\publish\frontend"
+echo [OK] Frontend build thanh cong
 
-cd /d "%~dp0.."
 echo.
-echo ╔════════════════════════════════════════════════════════════╗
-echo ║  Build hoàn tất!                                           ║
-echo ║  Files nằm trong thư mục: publish\                         ║
-echo ╚════════════════════════════════════════════════════════════╝
+echo ============================================================
+echo   Build hoan tat!
+echo   Output: publish\backend  va  publish\frontend
+echo ============================================================
 pause

@@ -1,86 +1,111 @@
 @echo off
 chcp 65001 >nul
-echo ╔════════════════════════════════════════════════════════════╗
-echo ║         POS36 - Cài Đặt Tự Động                           ║
-echo ║         Hệ Thống Quản Lý Bán Hàng F&B                      ║
-echo ╚════════════════════════════════════════════════════════════╝
+
+echo.
+echo ============================================================
+echo   POS36 - Auto Setup (Cai Dat Tu Dong)
+echo ============================================================
 echo.
 
-REM Kiểm tra quyền Administrator
+REM Kiem tra quyen Administrator
 net session >nul 2>&1
 if %errorLevel% neq 0 (
-    echo [ERROR] Vui lòng chạy file này với quyền Administrator!
+    echo [ERROR] Phai chay voi quyen Administrator!
+    echo         Chuot phai vao file nay - "Run as Administrator"
+    echo.
     pause
     exit /b 1
 )
 
-echo [1/6] Kiểm tra .NET SDK...
+echo [1/5] Kiem tra .NET 9.0 SDK...
 dotnet --version >nul 2>&1
 if %errorLevel% neq 0 (
-    echo [ERROR] Chưa cài đặt .NET 9.0 SDK!
-    echo Vui lòng tải tại: https://dotnet.microsoft.com/download/dotnet/9.0
+    echo [ERROR] Chua cai dat .NET 9.0 SDK!
+    echo         Tai tai: https://dotnet.microsoft.com/download/dotnet/9.0
+    echo.
     pause
     exit /b 1
 )
-echo [OK] .NET SDK đã cài đặt
+for /f "tokens=*" %%v in ('dotnet --version') do echo [OK] .NET SDK: %%v
 
 echo.
-echo [2/6] Kiểm tra Node.js...
+echo [2/5] Kiem tra Node.js...
 node --version >nul 2>&1
 if %errorLevel% neq 0 (
-    echo [ERROR] Chưa cài đặt Node.js!
-    echo Vui lòng tải tại: https://nodejs.org/
+    echo [ERROR] Chua cai dat Node.js 18+!
+    echo         Tai tai: https://nodejs.org/
+    echo.
     pause
     exit /b 1
 )
-echo [OK] Node.js đã cài đặt
+for /f "tokens=*" %%v in ('node --version') do echo [OK] Node.js: %%v
 
 echo.
-echo [3/6] Kiểm tra SQL Server...
-sqlcmd -? >nul 2>&1
-if %errorLevel% neq 0 (
-    echo [WARNING] Chưa cài đặt SQL Server hoặc sqlcmd!
-    echo Bạn có thể:
-    echo   1. Cài SQL Server Express: https://www.microsoft.com/sql-server/sql-server-downloads
-    echo   2. Hoặc sử dụng Docker: docker run -e "ACCEPT_EULA=Y" -e "SA_PASSWORD=Pos36_Secret_Password_123!" -p 1433:1433 -d mcr.microsoft.com/mssql/server:2022-latest
-    echo.
-    set /p continue="Tiếp tục cài đặt? (y/n): "
-    if /i not "%continue%"=="y" exit /b 1
-) else (
-    echo [OK] SQL Server đã cài đặt
-)
-
-echo.
-echo [4/6] Cài đặt Backend Dependencies...
+echo [3/5] Cai dat Backend dependencies (dotnet restore)...
 cd /d "%~dp0..\POS36.Api"
+if not exist "POS36.Api.csproj" (
+    echo [ERROR] Khong tim thay POS36.Api.csproj!
+    echo         Duong dan: %CD%
+    pause
+    exit /b 1
+)
 dotnet restore
 if %errorLevel% neq 0 (
-    echo [ERROR] Lỗi khi cài đặt Backend dependencies!
+    echo [ERROR] Loi khi chay dotnet restore!
     pause
     exit /b 1
 )
-echo [OK] Backend dependencies đã cài đặt
+echo [OK] Backend dependencies da cai dat xong
 
 echo.
-echo [5/6] Cài đặt Frontend Dependencies...
+echo [4/5] Cai dat Frontend dependencies (npm install)...
 cd /d "%~dp0..\POS36.Web"
+if not exist "package.json" (
+    echo [ERROR] Khong tim thay package.json!
+    echo         Duong dan: %CD%
+    pause
+    exit /b 1
+)
 call npm install
 if %errorLevel% neq 0 (
-    echo [ERROR] Lỗi khi cài đặt Frontend dependencies!
+    echo [ERROR] Loi khi chay npm install!
     pause
     exit /b 1
 )
-echo [OK] Frontend dependencies đã cài đặt
+echo [OK] Frontend dependencies da cai dat xong
 
 echo.
-echo [6/6] Tạo Database...
-cd /d "%~dp0.."
-echo Vui lòng cấu hình Connection String trong POS36.Api\appsettings.json
-echo Sau đó chạy: dotnet ef database update -p POS36.Api
-echo.
+echo [5/5] Kiem tra file .env cho Frontend...
+set "ENV_FILE=%~dp0..\POS36.Web\.env"
+if not exist "%ENV_FILE%" (
+    echo     Tao file .env cho Frontend...
+    (
+        echo VITE_API_URL=http://localhost:5098/api
+        echo VITE_SIGNALR_URL=http://localhost:5098/kitchenHub
+        echo VITE_EMAILJS_SERVICE_ID=your_service_id
+        echo VITE_EMAILJS_TEMPLATE_ID=your_template_id
+        echo VITE_EMAILJS_PUBLIC_KEY=your_public_key
+    ) > "%ENV_FILE%"
+    echo [OK] Da tao POS36.Web\.env
+    echo [!] Sua lai EmailJS config trong POS36.Web\.env neu can
+) else (
+    echo [OK] File .env da ton tai
+)
 
-echo ╔════════════════════════════════════════════════════════════╗
-echo ║  Cài đặt hoàn tất!                                         ║
-echo ║  Chạy file run.bat để khởi động hệ thống                   ║
-echo ╚════════════════════════════════════════════════════════════╝
+echo.
+echo ============================================================
+echo   CAI DAT HOAN TAT!
+echo.
+echo   BUOC TIEP THEO (QUAN TRONG):
+echo   1. Cau hinh SQL Server trong:
+echo      POS36.Api\appsettings.json
+echo      (sua ConnectionStrings.DefaultConnection)
+echo.
+echo   2. Import database:
+echo      Chay file Pos36DB.sql vao SQL Server
+echo.
+echo   3. Chay he thong:
+echo      Double-click: scripts\run.bat
+echo ============================================================
+echo.
 pause
