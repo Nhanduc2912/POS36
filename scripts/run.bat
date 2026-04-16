@@ -6,11 +6,11 @@ echo ╚════════════════════════
 echo.
 
 echo [1/2] Khởi động Backend API...
-start "POS36 Backend" cmd /k "cd /d %~dp0POS36.Api && dotnet run"
+start "POS36 Backend" cmd /k "cd /d %~dp0..\POS36.Api && dotnet run > ..\logs\backend.log 2>&1"
 timeout /t 5 /nobreak >nul
 
 echo [2/2] Khởi động Frontend...
-start "POS36 Frontend" cmd /k "cd /d %~dp0POS36.Web && npm run dev"
+start "POS36 Frontend" cmd /k "cd /d %~dp0..\POS36.Web && npm run dev > ..\logs\frontend.log 2>&1"
 
 echo.
 echo ╔════════════════════════════════════════════════════════════╗

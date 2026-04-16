@@ -6,7 +6,7 @@ echo ╚════════════════════════
 echo.
 
 echo [1/2] Build Backend...
-cd POS36.Api
+cd /d "%~dp0..\POS36.Api"
 dotnet publish -c Release -o ..\publish\backend
 if %errorLevel% neq 0 (
     echo [ERROR] Lỗi khi build Backend!
@@ -17,7 +17,7 @@ echo [OK] Backend build thành công
 
 echo.
 echo [2/2] Build Frontend...
-cd ..\POS36.Web
+cd /d "%~dp0..\POS36.Web"
 call npm run build
 if %errorLevel% neq 0 (
     echo [ERROR] Lỗi khi build Frontend!
@@ -27,7 +27,7 @@ if %errorLevel% neq 0 (
 xcopy /E /I /Y dist ..\publish\frontend
 echo [OK] Frontend build thành công
 
-cd ..
+cd /d "%~dp0.."
 echo.
 echo ╔════════════════════════════════════════════════════════════╗
 echo ║  Build hoàn tất!                                           ║

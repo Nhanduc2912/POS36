@@ -52,7 +52,7 @@ if %errorLevel% neq 0 (
 
 echo.
 echo [4/6] Cài đặt Backend Dependencies...
-cd POS36.Api
+cd /d "%~dp0..\POS36.Api"
 dotnet restore
 if %errorLevel% neq 0 (
     echo [ERROR] Lỗi khi cài đặt Backend dependencies!
@@ -63,7 +63,7 @@ echo [OK] Backend dependencies đã cài đặt
 
 echo.
 echo [5/6] Cài đặt Frontend Dependencies...
-cd ..\POS36.Web
+cd /d "%~dp0..\POS36.Web"
 call npm install
 if %errorLevel% neq 0 (
     echo [ERROR] Lỗi khi cài đặt Frontend dependencies!
@@ -74,7 +74,7 @@ echo [OK] Frontend dependencies đã cài đặt
 
 echo.
 echo [6/6] Tạo Database...
-cd ..
+cd /d "%~dp0.."
 echo Vui lòng cấu hình Connection String trong POS36.Api\appsettings.json
 echo Sau đó chạy: dotnet ef database update -p POS36.Api
 echo.
