@@ -323,7 +323,7 @@ namespace POS36.Api.Controllers
         // 5. THANH TOÁN KẾT HỢP TRỪ KHO & TẠO PHIẾU THU SỔ QUỸ
         // ==========================================
         [HttpPost("thanhtoan/{banId}")]
-        public async Task<IActionResult> ThanhToan(int banId, [FromQuery] string phuongThuc = "Tiền mặt", [FromQuery] int? khachHangId = null)
+        public async Task<IActionResult> ThanhToan(int banId, [FromQuery] string phuongThuc = "Tiền mặt", [FromQuery] int? khachHangId = null, [FromQuery] int diemSuDung = 0)
         {
             int cuaHangId = GetCuaHangId();
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -368,8 +368,9 @@ namespace POS36.Api.Controllers
                 // Mặc định tên khách trên phiếu thu
                 string tenKhachHang = "Khách hàng lẻ";
                 int diemCong = 0;
+                decimal tienGiam = 0;
 
-                // ============ TÍCH ĐIỂM CHO KHÁCH HÀNG ============
+                // ============ XỬ LÝ KHÁCH HÀNG, TIÊU ĐIỂM & TÍCH ĐIỂM ============
                 if (khachHangId.HasValue)
                 {
                     var khachHang = await _context.KhachHangs
@@ -378,13 +379,28 @@ namespace POS36.Api.Controllers
                     if (khachHang != null)
                     {
                         hoaDon.KhachHangId = khachHang.Id;
+                        tenKhachHang = khachHang.TenKhachHang;
 
-                        // Tỷ lệ tích điểm: 1 điểm = 20.000 VNĐ (cashback ~5%)
+                        // BƯỚC 1: XỬ LÝ TIÊU ĐIỂM (trước khi tính tích điểm)
+                        if (diemSuDung > 0)
+                        {
+                            if (diemSuDung > khachHang.DiemHienTai)
+                                return BadRequest(new { message = $"Khách chỉ có {khachHang.DiemHienTai} điểm, không đủ để sử dụng {diemSuDung} điểm!" });
+
+                            tienGiam = diemSuDung * 1000m; // 1 điểm = 1.000₫
+                            if (tienGiam > hoaDon.TongTien) tienGiam = hoaDon.TongTien;
+
+                            khachHang.DiemHienTai -= diemSuDung; // Trừ điểm hiện tại
+                            // TongDiemTichLuy không giảm (lịch sử tích lũy giữ nguyên)
+                            hoaDon.TongTien -= tienGiam;
+                            if (hoaDon.TongTien < 0) hoaDon.TongTien = 0;
+                        }
+
+                        // BƯỚC 2: TÍCH ĐIỂM từ số tiền thực tế thanh toán (sau khi đã giảm)
+                        // Tỷ lệ: 1 điểm = 20.000₫
                         diemCong = (int)(hoaDon.TongTien / 20000);
                         khachHang.TongDiemTichLuy += diemCong; // Chỉ tăng, không bao giờ giảm
-                        khachHang.DiemHienTai += diemCong;     // Có thể bị trừ khi tiêu điểm
-
-                        tenKhachHang = khachHang.TenKhachHang;
+                        khachHang.DiemHienTai += diemCong;     // Tăng bởi giao dịch mới
                     }
                 }
 
@@ -397,24 +413,26 @@ namespace POS36.Api.Controllers
                     PhuongThuc = phuongThuc,
                     NguoiNopNhan = tenKhachHang,
                     HangMuc = "Thu tiền bán hàng",
-                    LyDo = $"Thanh toán hóa đơn cho {hoaDon.Ban?.TenBan ?? "Bàn ảo"}",
-                    GiaTri = (double)hoaDon.TongTien,
+                    LyDo = tienGiam > 0
+                        ? $"Thanh toán hóa đơn cho {hoaDon.Ban?.TenBan ?? "Bàn ảo"} (Dùng {diemSuDung} điểm, giảm {tienGiam:N0}đ)"
+                        : $"Thanh toán hóa đơn cho {hoaDon.Ban?.TenBan ?? "Bàn ảo"}",
+                    GiaTri = (double)hoaDon.TongTien, // Số tiền thực thu sau giảm
                     NgayGiaoDich = DateTime.Now,
                     NguoiTao = User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")?.Value ?? "Thu ngân"
                 };
                 _context.PhieuThuChis.Add(phieuThu);
 
-                // LƯU DB 
+                // LƯU DB
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                // Mượn luôn sự kiện CoDonHangMoi để kích hoạt hàm fetchTables bên Vue tải lại màu sắc của Bàn
+                // Kích hoạt fetchTables bên Vue tải lại màu sắc của Bàn
                 if (_hubContext != null)
                 {
                     await _hubContext.Clients.All.SendAsync("CoDonHangMoi", new { message = "Đã thanh toán" });
                 }
 
-                return Ok(new { message = "Thanh toán thành công!" });
+                return Ok(new { message = "Thanh toán thành công!", diemCong, tienGiam });
             }
             catch (Exception ex)
             {

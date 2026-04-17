@@ -631,18 +631,32 @@ const logout = () => {
   router.push("/login");
 };
 
-// --- ĐẢO HÀM NÀY LÊN TRÊN ĐỂ KHÔNG BỊ LỖI IS NOT DEFINED ---
-const thucHienThanhToanChinhThuc = async (banId, phuongThuc) => {
+// --- HÀM THỰC HIỆN THANH TOÁN CHÍNH THỨC ---
+const thucHienThanhToanChinhThuc = async (banId, phuongThuc, diemSuDung = 0) => {
   try {
-    let url = `/api/HoaDon/thanhtoan/${banId}?phuongThuc=${phuongThuc}`;
+    let url = `/api/HoaDon/thanhtoan/${banId}?phuongThuc=${phuongThuc}&diemSuDung=${diemSuDung}`;
     if (selectedCustomer.value) {
       url += `&khachHangId=${selectedCustomer.value.id}`;
     }
-    await axios.post(url);
+    const res = await axios.post(url);
 
     pendingPayments.value = pendingPayments.value.filter(
       (p) => p.banId !== banId,
     );
+
+    // Thông báo điểm tích lũy được sau thanh toán
+    if (selectedCustomer.value && res.data?.diemCong > 0) {
+      setTimeout(() => {
+        swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: `⭐ +${res.data.diemCong} điểm tích lũy cho ${selectedCustomer.value.tenKhachHang}!`,
+          timer: 3500,
+          showConfirmButton: false,
+        });
+      }, 500);
+    }
 
     swal.fire({
       toast: true,
@@ -660,88 +674,140 @@ const thucHienThanhToanChinhThuc = async (banId, phuongThuc) => {
       activeTable.value.trangThai = "Trống";
       activeTable.value.timeOpen = null;
       activeRightTab.value = "tables";
-      clearCustomer(); // Reset khách khi thanh toán xong
+      clearCustomer();
     }
   } catch (e) {
     console.error(e);
-    swal.fire("Lỗi", "Thanh toán trên hệ thống thất bại", "error");
+    swal.fire("Lỗi", e.response?.data?.message || "Thanh toán trên hệ thống thất bại", "error");
   }
 };
 
-// --- XỬ LÝ THANH TOÁN ---
 // --- XỬ LÝ THANH TOÁN ---
 const handleThanhToan = async () => {
   if (!activeTable.value || activeTable.value.trangThai === "Trống") return;
 
   const soTien = activeTable.value.tamTinh;
   const banId = activeTable.value.id;
+  const khachHang = selectedCustomer.value;
 
-  swal
-    .fire({
-      title: `Thanh toán Bàn ${activeTable.value.tenBan}`,
-      html: `<h3 class="text-danger fw-bold">${formatPrice(soTien)}</h3>`,
-      showDenyButton: true,
-      showCancelButton: true,
-      confirmButtonText: '<i class="bi bi-cash"></i> Tiền mặt',
-      denyButtonText: '<i class="bi bi-qr-code-scan"></i> Chuyển khoản QR',
-      cancelButtonText: "Đóng",
-      confirmButtonColor: "#28a745",
-      denyButtonColor: "#f37021",
-    })
-    .then(async (result) => {
-      // 1. NẾU TRẢ TIỀN MẶT
-      if (result.isConfirmed) {
-        // In hóa đơn chính thức
-        const orderToPrint = {
-          tenBan: activeTable.value.tenBan,
-          tongTien: soTien,
-          items: currentOrder.value,
-        };
-        printReceipt(orderToPrint, {
-          name: "POS36",
-          address: "Đà Nẵng",
-          phone: "0905",
-        });
+  // Biến tạm theo dõi số điểm nhập trong dialog
+  let _diemTemp = 0;
 
-        // Chốt đơn CSDL với phương thức "Tiền mặt"
-        thucHienThanhToanChinhThuc(banId, "Tiền mặt");
-      }
+  // Xây dựng HTML phần khách hàng & điểm (nếu có ghim khách)
+  const diemHtml = khachHang
+    ? khachHang.diemHienTai > 0
+      ? `<div class="border rounded p-2 mb-3 text-start" style="background:#f0fff4">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold small"><i class="bi bi-person-check-fill text-success me-1"></i>${khachHang.tenKhachHang}</span>
+            <span class="badge bg-success rounded-pill"><i class="bi bi-star-fill me-1"></i>${khachHang.diemHienTai} điểm</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <label class="text-muted small text-nowrap mb-0">Dùng điểm (1đ=1.000₫):</label>
+            <input id="swal-diem-sd" type="number" class="form-control form-control-sm text-center"
+                   value="0" min="0" max="${khachHang.diemHienTai}" style="width:85px">
+            <span class="text-danger fw-bold small" id="swal-tien-giam"></span>
+          </div>
+        </div>`
+      : `<div class="border rounded p-2 mb-3 text-start" style="background:#f0fff4">
+          <span class="small"><i class="bi bi-person-check-fill text-success me-1"></i>
+          <strong>${khachHang.tenKhachHang}</strong> — Chưa có điểm tích lũy</span>
+        </div>`
+    : "";
 
-      // 2. NẾU CHỌN QUÉT QR (CHUYỂN KHOẢN)
-      else if (result.isDenied) {
-        if (connection.state === "Connected") {
-          await connection.invoke("YeuCauMoQR", banId, soTien, "");
-
-          pendingPayments.value.push({
-            banId: banId,
-            tenBan: activeTable.value.tenBan,
-            soTien: soTien,
-          });
-
-          // In hóa đơn tạm tính
-          const orderToPrint = {
-            tenBan: activeTable.value.tenBan,
-            tongTien: soTien,
-            items: currentOrder.value,
-          };
-          printReceipt(orderToPrint, {
-            name: "POS36",
-            address: "Đà Nẵng",
-            phone: "0905",
-          });
-
-          swal.fire({
-            toast: true,
-            position: "top-end",
-            icon: "info",
-            title: `Đã in hóa đơn tạm tính & chuyển Bàn ${activeTable.value.tenBan} sang chờ QR`,
-            timer: 2000,
-            showConfirmButton: false,
-          });
-          activeRightTab.value = "tables";
+  const result = await swal.fire({
+    title: `Thanh toán Bàn ${activeTable.value.tenBan}`,
+    html: `
+      ${diemHtml}
+      <h3 class="text-danger fw-bold mb-1" id="swal-so-tien">${formatPrice(soTien)}</h3>
+      <p class="text-muted small mb-0" id="swal-so-tien-goc"></p>
+    `,
+    showDenyButton: true,
+    showCancelButton: true,
+    confirmButtonText: '<i class="bi bi-cash"></i> Tiền mặt',
+    denyButtonText: '<i class="bi bi-qr-code-scan"></i> Chuyển khoản QR',
+    cancelButtonText: "Đóng",
+    confirmButtonColor: "#28a745",
+    denyButtonColor: "#f37021",
+    didOpen: () => {
+      const input = document.getElementById("swal-diem-sd");
+      if (!input) return;
+      input.addEventListener("input", () => {
+        const diem = Math.max(
+          0,
+          Math.min(parseInt(input.value) || 0, khachHang?.diemHienTai || 0),
+        );
+        input.value = diem;
+        _diemTemp = diem;
+        const tienGiam = Math.min(diem * 1000, soTien);
+        const conLai = soTien - tienGiam;
+        const elTotal = document.getElementById("swal-so-tien");
+        const elGoc = document.getElementById("swal-so-tien-goc");
+        const elGiam = document.getElementById("swal-tien-giam");
+        if (tienGiam > 0) {
+          elTotal.textContent = formatPrice(conLai);
+          elGoc.innerHTML = `<s class="text-muted">${formatPrice(soTien)}</s> — Giảm ${formatPrice(tienGiam)}`;
+          elGiam.textContent = `−${formatPrice(tienGiam)}`;
+        } else {
+          elTotal.textContent = formatPrice(soTien);
+          elGoc.textContent = "";
+          elGiam.textContent = "";
         }
-      }
+      });
+    },
+  });
+
+  const diemSuDung = _diemTemp;
+  const soTienThucTe = soTien - Math.min(diemSuDung * 1000, soTien);
+
+  // 1. NẾU TRẢ TIỀN MẶT
+  if (result.isConfirmed) {
+    const orderToPrint = {
+      tenBan: activeTable.value.tenBan,
+      tongTien: soTienThucTe,
+      items: currentOrder.value,
+    };
+    printReceipt(orderToPrint, {
+      name: "POS36",
+      address: "Đà Nẵng",
+      phone: "0905",
     });
+    thucHienThanhToanChinhThuc(banId, "Tiền mặt", diemSuDung);
+  }
+
+  // 2. NẾU CHỌN QUÉT QR (CHUYỂN KHOẢN)
+  else if (result.isDenied) {
+    if (connection.state === "Connected") {
+      await connection.invoke("YeuCauMoQR", banId, soTienThucTe, "");
+
+      pendingPayments.value.push({
+        banId: banId,
+        tenBan: activeTable.value.tenBan,
+        soTien: soTienThucTe,
+        diemSuDung: diemSuDung, // Lưu để dùng khi QR thanh toán thành công
+      });
+
+      const orderToPrint = {
+        tenBan: activeTable.value.tenBan,
+        tongTien: soTienThucTe,
+        items: currentOrder.value,
+      };
+      printReceipt(orderToPrint, {
+        name: "POS36",
+        address: "Đà Nẵng",
+        phone: "0905",
+      });
+
+      swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "info",
+        title: `Đã in hóa đơn tạm tính & chuyển Bàn ${activeTable.value.tenBan} sang chờ QR`,
+        timer: 2000,
+        showConfirmButton: false,
+      });
+      activeRightTab.value = "tables";
+    }
+  }
 };
 
 const huyYeuCauQRGocManHinh = (banId) => {
@@ -755,21 +821,24 @@ const huyYeuCauQRGocManHinh = (banId) => {
 connection.on("NhanHuyMoQR", (banId, lyDo) => {
   pendingPayments.value = pendingPayments.value.filter(
     (p) => p.banId !== banId,
-  ); // Gỡ khỏi góc phải nếu nhân viên hủy
+  );
   if (activeTable.value && activeTable.value.id === banId) {
     swal.fire("Đã hủy QR", `Lý do: ${lyDo}`, "warning");
   }
 });
 
 // Lắng nghe Webhook báo Tiền về thành công
-// Lắng nghe Webhook báo Tiền về thành công
 connection.on("ThanhToanQRThanhCong", (banId) => {
-  swal.close(); // Đóng bảng chờ QR
+  swal.close();
+  // Lấy lại số điểm đã lưu khi bắt đầu chờ QR
+  const pending = pendingPayments.value.find((p) => p.banId === banId);
+  const diem = pending?.diemSuDung || 0;
   setTimeout(() => {
-    // GỌI HÀM VÀ TRUYỀN RÕ CHỮ "Chuyển khoản" VÀO ĐÂY
-    thucHienThanhToanChinhThuc(banId, "Chuyển khoản");
+    thucHienThanhToanChinhThuc(banId, "Chuyển khoản", diem);
   }, 300);
 });
+
+
 </script>
 
 <template>
