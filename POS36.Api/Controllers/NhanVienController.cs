@@ -41,6 +41,8 @@ namespace POS36.Api.Controllers
         }
 
         // 2. THÊM NHÂN VIÊN (BẮT BUỘC CẤP TÀI KHOẢN)
+        // BUG #12 FIX: Chỉ ChuCuaHang mới được thêm nhân viên
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpPost]
         public async Task<IActionResult> Create(NhanVienDto request)
         {
@@ -111,6 +113,8 @@ namespace POS36.Api.Controllers
         }
 
         // 3. SỬA NHÂN VIÊN (Chỉ sửa Tên, SĐT, Email — KHÔNG cho sửa Mã NV)
+        // BUG #12 FIX: Chỉ ChuCuaHang mới được sửa nhân viên
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, NhanVienDto request)
         {
@@ -135,6 +139,8 @@ namespace POS36.Api.Controllers
         }
 
         // 4. XÓA NHÂN VIÊN VÀ THU HỒI TÀI KHOẢN
+        // BUG #12 FIX: Chỉ ChuCuaHang mới được xóa nhân viên
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {

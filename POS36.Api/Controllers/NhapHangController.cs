@@ -34,7 +34,13 @@ namespace POS36.Api.Controllers
     {
         private readonly AppDbContext _context;
         public NhapHangController(AppDbContext context) { _context = context; }
-        private int GetCuaHangId() => int.Parse(User.FindFirst("CuaHangId")?.Value ?? "1");
+        // BUG #8 FIX: Không fallback về "1" — throw exception nếu token không hợp lệ
+        private int GetCuaHangId()
+        {
+            var claim = User.FindFirst("CuaHangId");
+            if (claim == null) throw new UnauthorizedAccessException("Token không hợp lệ");
+            return int.Parse(claim.Value);
+        }
 
         // ==========================================
         // 1. LẤY DANH SÁCH PHIẾU NHẬP (FIX LỖI 404)
@@ -163,5 +169,82 @@ namespace POS36.Api.Controllers
                 return StatusCode(500, "Lỗi khi lưu phiếu: " + ex.Message);
             }
         }
+
+        // ==========================================
+        // 3. XÁC NHẬN PHIẾU NHẬP — ĐỔI TRẠNG THÁI & TĂNG TỒN KHO
+        // BUG #5 FIX: Thêm API để chuyển trạng thái "Đang xử lý" → "Hoàn thành"
+        // ==========================================
+        [HttpPut("{id}/xacnhan")]
+        public async Task<IActionResult> XacNhanPhieuNhap(int id)
+        {
+            int cuaHangId = GetCuaHangId();
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                var phieu = await _context.PhieuNhaps
+                    .Include(p => p.ChiTiets)
+                    .FirstOrDefaultAsync(p => p.Id == id && p.CuaHangId == cuaHangId);
+
+                if (phieu == null) return NotFound("Không tìm thấy phiếu nhập!");
+
+                if (phieu.TrangThai == "Hoàn thành")
+                    return BadRequest("Phiếu nhập này đã ở trạng thái Hoàn thành, không thể xác nhận lại!");
+
+                // Cập nhật trạng thái
+                phieu.TrangThai = "Hoàn thành";
+
+                // Tăng tồn kho cho từng sản phẩm trong phiếu
+                foreach (var item in phieu.ChiTiets)
+                {
+                    var tonKho = await _context.TonKhos
+                        .FirstOrDefaultAsync(t => t.SanPhamId == item.SanPhamId && t.ChiNhanhId == phieu.ChiNhanhId);
+
+                    if (tonKho == null)
+                    {
+                        _context.TonKhos.Add(new TonKho
+                        {
+                            SanPhamId = item.SanPhamId,
+                            ChiNhanhId = phieu.ChiNhanhId,
+                            SoLuong = item.SoLuong
+                        });
+                    }
+                    else
+                    {
+                        tonKho.SoLuong += item.SoLuong;
+                    }
+                }
+
+                // Ghi phiếu chi (audit trail tài chính) nếu phiếu có giá trị
+                decimal tongTienPhieu = phieu.ChiTiets.Sum(c => c.SoLuong * c.DonGiaNhap);
+                if (tongTienPhieu > 0)
+                {
+                    _context.PhieuThuChis.Add(new PhieuThuChi
+                    {
+                        CuaHangId = cuaHangId,
+                        ChiNhanhId = phieu.ChiNhanhId,
+                        MaChungTu = $"PC{DateTime.Now:ddMM}-{new Random().Next(1000, 9999)}",
+                        LoaiPhieu = "Chi",
+                        PhuongThuc = "Tiền mặt",
+                        NguoiNopNhan = "Nhà cung cấp lẻ",
+                        HangMuc = "Chi trả tiền nhập hàng",
+                        LyDo = $"Xác nhận và thanh toán phiếu nhập {phieu.MaChungTu}",
+                        GiaTri = (double)tongTienPhieu,
+                        NgayGiaoDich = DateTime.Now,
+                        NguoiTao = User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")?.Value ?? "Admin"
+                    });
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Ok(new { message = $"Đã xác nhận phiếu nhập {phieu.MaChungTu}. Tồn kho đã được cập nhật!" });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, "Lỗi khi xác nhận phiếu: " + ex.Message);
+            }
+        }
     }
-}
+}

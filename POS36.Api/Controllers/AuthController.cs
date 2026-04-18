@@ -18,8 +18,7 @@ namespace POS36.Api.Controllers
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
 
-        // BỘ NHỚ RAM ĐỂ LƯU TẠM MÃ OTP (Sẽ mất khi tắt server)
-        private static readonly Dictionary<string, string> _otpCache = new Dictionary<string, string>();
+        // BUG #2 FIX: Đã xóa _otpCache (RAM). OTP giờ được lưu vào bảng OtpRequests trong DB.
 
         public AuthController(AppDbContext context, IConfiguration configuration)
         {
@@ -155,13 +154,30 @@ namespace POS36.Api.Controllers
                 return BadRequest("Không tìm thấy Chủ cửa hàng nào sử dụng Email này!");
             }
 
+            // BUG #2 FIX: Sinh OTP và lưu vào DB thay vì RAM
             string otpCode = new Random().Next(100000, 999999).ToString();
-            _otpCache[user.TenDangNhap] = otpCode; // Lưu OTP vào cache bằng TenDangNhap
 
-            // TRẢ VỀ CHO VUE ĐỂ VUE BẮN EMAILJS
+            // Vô hiệu hóa các OTP cũ chưa dùng của tài khoản này (tránh tích lũy rác)
+            var otpCu = _context.OtpRequests
+                .Where(o => o.TenDangNhap == user.TenDangNhap && !o.DaSDung);
+            _context.OtpRequests.RemoveRange(otpCu);
+
+            // Lưu OTP mới vào DB với TTL 5 phút
+            _context.OtpRequests.Add(new POS36.Api.Models.OtpRequest
+            {
+                TenDangNhap = user.TenDangNhap,
+                OtpHash = BCrypt.Net.BCrypt.HashPassword(otpCode), // Hash OTP — không lưu plain text
+                ExpiresAt = DateTime.Now.AddMinutes(5),
+                DaSDung = false
+            });
+            await _context.SaveChangesAsync();
+
+            // BUG #2 FIX: KHÔNG trả OTP về response JSON (tránh bị intercept)
+            // OTP được gửi qua email bởi frontend (EmailJS) — tạm thời vẫn trả về để tương thích frontend
+            // TODO: Khi có SMTP, xóa "otp" khỏi response và backend tự gửi email
             return Ok(new
             {
-                otp = otpCode,
+                otp = otpCode,              // ⚠️ Xóa dòng này khi backend tự gửi email qua SMTP
                 tenDangNhap = user.TenDangNhap,
                 tenNhanVien = user.NhanVien!.TenNhanVien
             });
@@ -173,19 +189,37 @@ namespace POS36.Api.Controllers
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
         {
-            if (!_otpCache.TryGetValue(request.TenDangNhap, out string? savedOtp) || savedOtp != request.OtpCode)
-            {
+            // BUG #2 FIX: Kiểm tra OTP từ DB thay vì RAM
+            var otpRecord = await _context.OtpRequests
+                .Where(o => o.TenDangNhap == request.TenDangNhap && !o.DaSDung)
+                .OrderByDescending(o => o.ExpiresAt)
+                .FirstOrDefaultAsync();
+
+            if (otpRecord == null)
                 return BadRequest("Mã xác nhận OTP không chính xác hoặc đã hết hạn!");
+
+            // Kiểm tra TTL
+            if (otpRecord.ExpiresAt < DateTime.Now)
+            {
+                otpRecord.DaSDung = true; // Đánh dấu đã dùng để dọn rác
+                await _context.SaveChangesAsync();
+                return BadRequest("Mã OTP đã hết hạn (quá 5 phút). Vui lòng yêu cầu mã mới!");
             }
+
+            // Kiểm tra OTP khớp bằng bcrypt (chống timing attack)
+            if (!BCrypt.Net.BCrypt.Verify(request.OtpCode, otpRecord.OtpHash))
+                return BadRequest("Mã xác nhận OTP không chính xác hoặc đã hết hạn!");
+
+            // OTP hợp lệ — đánh dấu đã dùng (chống replay attack)
+            otpRecord.DaSDung = true;
 
             var user = await _context.TaiKhoans.FirstOrDefaultAsync(u => u.TenDangNhap == request.TenDangNhap);
             if (user != null)
             {
                 user.MatKhauHash = BCrypt.Net.BCrypt.HashPassword(request.MatKhauMoi);
-                await _context.SaveChangesAsync();
             }
 
-            _otpCache.Remove(request.TenDangNhap);
+            await _context.SaveChangesAsync();
 
             Log.Information("👤 Tài khoản {TenDangNhap} vừa ĐẶT LẠI MẬT KHẨU thành công.", request.TenDangNhap);
             return Ok(new { message = "Đổi mật khẩu thành công! Bạn có thể đăng nhập ngay." });

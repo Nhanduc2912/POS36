@@ -74,9 +74,12 @@ namespace POS36.Api.Controllers
                     .CountAsync();
 
                 // 6. BIỂU ĐỒ DOANH THU 7 NGÀY QUA (Vẫn giữ 7 ngày để vẽ biểu đồ cho đẹp)
+                // BUG #4 FIX: Dùng NgayThanhToan thay NgayTao để tính đúng ngày thanh toán
                 var recentOrders = await _context.HoaDons
-                    .Where(h => h.CuaHangId == cuaHangId && h.ChiNhanhId == chiNhanhId && h.TrangThai == "Đã thanh toán" && h.NgayTao >= sevenDaysAgo)
-                    .Select(h => new { h.NgayTao, h.TongTien })
+                    .Where(h => h.CuaHangId == cuaHangId && h.ChiNhanhId == chiNhanhId
+                             && h.TrangThai == "Đã thanh toán"
+                             && h.NgayThanhToan >= sevenDaysAgo)
+                    .Select(h => new { h.NgayThanhToan, h.TongTien })
                     .ToListAsync();
 
                 var labels = new List<string>();
@@ -88,7 +91,7 @@ namespace POS36.Api.Controllers
                     labels.Add(date.ToString("dd/MM"));
 
                     decimal dailyTotal = recentOrders
-                        .Where(o => o.NgayTao.Date == date)
+                        .Where(o => o.NgayThanhToan.HasValue && o.NgayThanhToan.Value.Date == date)
                         .Sum(o => o.TongTien);
 
                     chartData.Add(dailyTotal);

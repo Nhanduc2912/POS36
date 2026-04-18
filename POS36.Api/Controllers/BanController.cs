@@ -33,6 +33,8 @@ namespace POS36.Api.Controllers
 
         public class CreateBanDto { public int KhuVucId { get; set; } public string TenBan { get; set; } = string.Empty; public string TrangThai { get; set; } = string.Empty; }
 
+        // BUG #12 FIX: Chỉ ChuCuaHang mới được tạo bàn mới
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateBanDto req)
         {
@@ -78,6 +80,8 @@ namespace POS36.Api.Controllers
             public int SoLuong { get; set; }
         }
 
+        // BUG #12 FIX: Chỉ ChuCuaHang mới được tạo nhành nhiều bàn
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpPost("tao-nhanh")]
         public async Task<IActionResult> TaoBanNhanh([FromBody] TaoBanNhanhDto request)
         {

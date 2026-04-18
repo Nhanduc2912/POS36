@@ -13,6 +13,7 @@ namespace POS36.Api.Data
         public DbSet<TaiKhoan> TaiKhoans { get; set; }
         public DbSet<NhanVien> NhanViens { get; set; } // Mới
         public DbSet<KhachHang> KhachHangs { get; set; } // Mới
+        public DbSet<OtpRequest> OtpRequests { get; set; } // BUG #2 FIX: Lưu OTP vào DB thay RAM
 
         // 2. Phân hệ Bán hàng
         public DbSet<KhuVuc> KhuVucs { get; set; }

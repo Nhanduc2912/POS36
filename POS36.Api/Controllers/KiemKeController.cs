@@ -22,11 +22,12 @@ namespace POS36.Api.Controllers
             _context = context;
         }
 
-        // Hàm hỗ trợ lấy CuaHangId từ Token đăng nhập (Mặc định là 1 nếu test)
+        // BUG #8 FIX: Không fallback về 1 — throw exception nếu token không hợp lệ
         private int GetCuaHangId()
         {
             var claim = User.FindFirst("CuaHangId")?.Value;
-            return claim != null ? int.Parse(claim) : 1;
+            if (claim == null) throw new UnauthorizedAccessException("Token không hợp lệ");
+            return int.Parse(claim);
         }
 
         // ==========================================
@@ -133,7 +134,6 @@ namespace POS36.Api.Controllers
                         SoLuongKiemKe = item.SoLuongKiemKe
                     });
 
-                    // CHỐT SỔ: NẾU TRẠNG THÁI LÀ "Hoàn thành" -> TIẾN HÀNH CÂN BẰNG KHO
                     // CHỐT SỔ: NẾU TRẠNG THÁI LÀ "Hoàn thành" -> TIẾN HÀNH CÂN BẰNG KHO
                     if (request.TrangThai == "Hoàn thành")
                     {

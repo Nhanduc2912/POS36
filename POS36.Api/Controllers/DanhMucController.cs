@@ -74,6 +74,8 @@ namespace POS36.Api.Controllers
         }
 
         // 2. THÊM MỚI DANH MỤC (Có Up Ảnh)
+        // BUG #12 FIX: Chỉ ChuCuaHang mới được thêm danh mục
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpPost]
         public async Task<IActionResult> CreateDanhMuc([FromForm] CreateDanhMucDto request)
         {
@@ -94,6 +96,8 @@ namespace POS36.Api.Controllers
         }
 
         // 3. SỬA TÊN DANH MỤC
+        // BUG #12 FIX: Chỉ ChuCuaHang mới được sửa danh mục
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateDanhMuc(int id, DanhMucDto request)
         {
@@ -111,6 +115,8 @@ namespace POS36.Api.Controllers
         }
 
         // 4. XÓA DANH MỤC
+        // BUG #12 FIX: Chỉ ChuCuaHang mới được xóa danh mục
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDanhMuc(int id)
         {

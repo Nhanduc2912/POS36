@@ -14,8 +14,16 @@ namespace POS36.Api.Controllers
     {
         private readonly AppDbContext _context;
         public ThuChiController(AppDbContext context) { _context = context; }
-        private int GetCuaHangId() => int.Parse(User.FindFirst("CuaHangId")?.Value ?? "1");
+        // BUG #8 FIX: Không fallback về "1" — phải throw exception nếu token không hợp lệ
+        private int GetCuaHangId()
+        {
+            var claim = User.FindFirst("CuaHangId");
+            if (claim == null) throw new UnauthorizedAccessException("Token không hợp lệ");
+            return int.Parse(claim.Value);
+        }
 
+        // BUG #12 FIX: Chỉ ChuCuaHang mới được xem sổ quỹ (bảo mật dữ liệu tài chính)
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpGet("danh-sach")]
         public async Task<IActionResult> GetDanhSach([FromQuery] int chiNhanhId)
         {

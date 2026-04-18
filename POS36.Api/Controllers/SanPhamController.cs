@@ -86,6 +86,8 @@ namespace POS36.Api.Controllers
         }
         // 4. SỬA MÓN ĂN
         // 4. SỬA MÓN ĂN (Sửa thành [FromForm] và dùng lại CreateSanPhamDto)
+        // BUG #12 FIX: Chỉ ChuCuaHang mới được sửa sản phẩm
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateSanPham(int id, [FromForm] CreateSanPhamDto request)
         {
@@ -107,13 +109,22 @@ namespace POS36.Api.Controllers
             return Ok(new { message = "Cập nhật thành công!" });
         }
 
-        // 5. XÓA MÓN ĂN
+        // BUG #12 FIX: Chỉ ChuCuaHang mới được xóa sản phẩm
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteSanPham(int id)
         {
             int cuaHangId = GetCuaHangId();
             var sp = await _context.SanPhams.FirstOrDefaultAsync(s => s.Id == id && s.CuaHangId == cuaHangId);
             if (sp == null) return NotFound("Không tìm thấy sản phẩm!");
+
+            // BUG #9 FIX: Kiểm tra sản phẩm có đang được dùng trong hóa đơn đang phục vụ không
+            bool dangDuocGoiMon = await _context.ChiTietHoaDons
+                .AnyAsync(ct => ct.SanPhamId == id
+                             && ct.HoaDon != null
+                             && ct.HoaDon.TrangThai == "Đang phục vụ");
+            if (dangDuocGoiMon)
+                return BadRequest("Không thể xóa sản phẩm đang có trong hóa đơn chưa thanh toán!");
 
             // Xóa luôn các bản ghi Tồn Kho liên quan đến sản phẩm này trước (để tránh lỗi khóa ngoại)
             var tonKhos = await _context.TonKhos.Where(t => t.SanPhamId == id).ToListAsync();
@@ -154,6 +165,8 @@ namespace POS36.Api.Controllers
         }
 
         // THÊM MỚI SẢN PHẨM (Dùng [FromForm] thay vì [FromBody])
+        // BUG #12 FIX: Chỉ ChuCuaHang mới được thêm sản phẩm mới
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpPost]
         public async Task<IActionResult> CreateSanPham([FromForm] CreateSanPhamDto request)
         {
@@ -181,6 +194,8 @@ namespace POS36.Api.Controllers
             return Ok(new { message = "Thêm thành công!", id = newSanPham.Id });
         }
         // 6. CẬP NHẬT GIÁ BÁN SIÊU TỐC
+        // BUG #12 FIX: Chỉ ChuCuaHang mới được cập nhật giá bán
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpPut("update-price/{id}")]
         public async Task<IActionResult> UpdatePrice(int id, [FromBody] UpdatePriceDto request)
         {

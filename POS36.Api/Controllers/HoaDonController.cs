@@ -75,6 +75,16 @@ namespace POS36.Api.Controllers
                     if (sanPham == null || sanPham.CuaHangId != cuaHangId)
                         throw new Exception($"Sản phẩm {mon.SanPhamId} không tồn tại!");
 
+                    // BUG #6 FIX: Kiểm tra tồn kho trước khi cho gọi món
+                    if (sanPham.TrangThai == false)
+                        throw new Exception($"'{sanPham.TenSanPham}' hiện đã ngừng bán!");
+
+                    var tonKho = await _context.TonKhos
+                        .FirstOrDefaultAsync(t => t.SanPhamId == mon.SanPhamId && t.ChiNhanhId == hoaDon.ChiNhanhId);
+
+                    if (tonKho != null && tonKho.SoLuong < mon.SoLuong)
+                        throw new Exception($"'{sanPham.TenSanPham}' chỉ còn {tonKho.SoLuong} trong kho, không đủ để gọi {mon.SoLuong}!");
+
                     var chiTiet = new ChiTietHoaDon
                     {
                         HoaDonId = hoaDon.Id,
@@ -220,6 +230,12 @@ namespace POS36.Api.Controllers
                 }
 
                 hoaDonDich.TongTien += hoaDonGoc.TongTien;
+
+                // BUG #10 FIX: Kế thừa KhachHangId từ bàn gốc nếu bàn đích chưa có khách
+                if (hoaDonDich.KhachHangId == null && hoaDonGoc.KhachHangId != null)
+                {
+                    hoaDonDich.KhachHangId = hoaDonGoc.KhachHangId;
+                }
 
                 hoaDonGoc.TrangThai = "Đã Ghép Bàn";
                 hoaDonGoc.TongTien = 0;

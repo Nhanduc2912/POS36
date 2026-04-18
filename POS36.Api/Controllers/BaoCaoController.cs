@@ -52,30 +52,38 @@ namespace POS36.Api.Controllers
             decimal tongDoanhThu = await queryHoaDon.SumAsync(h => h.TongTien);
             int tongSoDon = await queryHoaDon.CountAsync();
 
-            // 3. Thống kê theo Phương thức thanh toán (Tiền mặt / Chuyển khoản)
-            // Lấy ra danh sách ID hóa đơn hợp lệ trước
-            var listHoaDonId = await queryHoaDon.Select(h => h.Id).ToListAsync();
-
-            var thongKePhuongThuc = await _context.ThanhToans
-                .Where(t => listHoaDonId.Contains(t.HoaDonId))
-                .GroupBy(t => t.PhuongThuc)
+            // 3. Thống kê theo Phương thức thanh toán
+            // BUG #3 FIX: Dữ liệu thanh toán lưu ở PhieuThuChis (không phải ThanhToans)
+            var phieuThuTrongKy = await _context.PhieuThuChis
+                .Where(p => p.CuaHangId == cuaHangId
+                         && p.ChiNhanhId == chiNhanhId
+                         && p.LoaiPhieu == "Thu"
+                         && p.HangMuc == "Thu tiền bán hàng"
+                         && p.NgayGiaoDich >= start
+                         && p.NgayGiaoDich <= end)
+                .GroupBy(p => p.PhuongThuc)
                 .Select(g => new ThongKePhuongThucDto
                 {
                     PhuongThuc = g.Key,
-                    SoTien = g.Sum(t => t.SoTien)
+                    SoTien = (decimal)g.Sum(p => p.GiaTri)
                 }).ToListAsync();
 
-            // 4. Tìm Top 5 Món Bán Chạy Nhất (Kỹ thuật GroupBy Nâng cao)
+            // 4. Tìm Top 5 Món Bán Chạy Nhất
             var topMonBanChay = await _context.ChiTietHoaDons
-                .Where(ct => listHoaDonId.Contains(ct.HoaDonId))
-                .GroupBy(ct => new { ct.SanPhamId, ct.SanPham!.TenSanPham }) // Nhóm theo món ăn
+                .Where(ct => ct.HoaDon != null
+                          && ct.HoaDon.CuaHangId == cuaHangId
+                          && ct.HoaDon.ChiNhanhId == chiNhanhId
+                          && ct.HoaDon.TrangThai == "Đã thanh toán"
+                          && ct.HoaDon.NgayThanhToan >= start
+                          && ct.HoaDon.NgayThanhToan <= end)
+                .GroupBy(ct => new { ct.SanPhamId, ct.SanPham!.TenSanPham })
                 .Select(g => new MonBanChayDto
                 {
                     TenSanPham = g.Key.TenSanPham,
-                    SoLuongDaBan = g.Sum(ct => ct.SoLuong) // Cộng dồn số lượng
+                    SoLuongDaBan = g.Sum(ct => ct.SoLuong)
                 })
-                .OrderByDescending(m => m.SoLuongDaBan) // Sắp xếp giảm dần theo số lượng
-                .Take(5) // Lấy 5 món top đầu
+                .OrderByDescending(m => m.SoLuongDaBan)
+                .Take(5)
                 .ToListAsync();
 
             // 5. Đóng gói kết quả trả về
@@ -83,11 +91,11 @@ namespace POS36.Api.Controllers
             {
                 TongDoanhThu = tongDoanhThu,
                 TongSoDonHang = tongSoDon,
-                DoanhThuTheoPhuongThuc = thongKePhuongThuc,
+                DoanhThuTheoPhuongThuc = phieuThuTrongKy, // BUG #3 FIX: đổi biến đúng
                 TopMonBanChay = topMonBanChay
             };
 
             return Ok(result);
         }
     }
-}
+}

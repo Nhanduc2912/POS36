@@ -29,6 +29,8 @@ namespace POS36.Api.Controllers
         // ==========================================
         // 1. THÊM CHI NHÁNH
         // ==========================================
+        // BUG #12 FIX: Chỉ ChuCuaHang mới được thêm Chi Nhánh
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpPost("chinhanh")]
         public async Task<IActionResult> CreateChiNhanh(ChiNhanhDto request)
         {
@@ -63,6 +65,8 @@ namespace POS36.Api.Controllers
         // ==========================================
         // 2. THÊM KHU VỰC VÀO CHI NHÁNH
         // ==========================================
+        // BUG #12 FIX: Chỉ ChuCuaHang mới được thêm Khu Vực
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpPost("khuvuc")]
         public async Task<IActionResult> CreateKhuVuc(KhuVucDto request)
         {
@@ -87,6 +91,8 @@ namespace POS36.Api.Controllers
         // ==========================================
         // 3. THÊM BÀN VÀO KHU VỰC
         // ==========================================
+        // BUG #12 FIX: Chỉ ChuCuaHang mới được thêm Bàn
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpPost("ban")]
         public async Task<IActionResult> CreateBan(BanDto request)
         {
@@ -155,6 +161,8 @@ namespace POS36.Api.Controllers
         // ==========================================
         // 6. LƯU CẤU HÌNH (THÊM MỚI HOẶC CẬP NHẬT)
         // ==========================================
+        // BUG #12 FIX: Chỉ ChuCuaHang mới được lưu thiết lập hệ thống
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpPost]
         public async Task<IActionResult> SaveThietLap([FromBody] ThietLapDataDto request)
         {
