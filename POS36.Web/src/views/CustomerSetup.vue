@@ -39,7 +39,7 @@ const handleAddCustomer = async () => {
     html: `
       <input id="swal-ten" class="form-control mb-2" placeholder="Tên khách hàng *">
       <input id="swal-sdt" class="form-control mb-2" placeholder="Số điện thoại *">
-      <input id="swal-email" class="form-control mb-2" type="email" placeholder="Email (Không bắt buộc)">
+      <input id="swal-email" class="form-control mb-2" type="email" placeholder="Email">
       <input id="swal-diachi" class="form-control mb-2" placeholder="Địa chỉ (Không bắt buộc)">
       <input id="swal-ngaysinh" class="form-control mb-2" type="date" title="Ngày sinh">
       <textarea id="swal-ghichu" class="form-control" rows="2" placeholder="Ghi chú (Không bắt buộc)"></textarea>
@@ -57,6 +57,20 @@ const handleAddCustomer = async () => {
 
       if (!ten || !sdt) {
         swal.showValidationMessage("Vui lòng nhập Tên và Số điện thoại!");
+        return false;
+      }
+      // Kiểm tra ô Tên không phải số điện thoại
+      if (/^[0-9]+$/.test(ten.trim())) {
+        swal.showValidationMessage(
+          "Ô Tên không được nhập số điện thoại! Hãy nhập đúng họ tên khách hàng.",
+        );
+        return false;
+      }
+      // Kiểm tra SĐT chỉ gồm chữ số và độ dài hợp lệ (8-11 số)
+      if (!/^[0-9]{8,11}$/.test(sdt.trim())) {
+        swal.showValidationMessage(
+          "Số điện thoại chỉ gồm chữ số, độ dài 8–11 ký tự!",
+        );
         return false;
       }
 
@@ -84,7 +98,9 @@ const handleAddCustomer = async () => {
     } catch (e) {
       swal.fire(
         "Lỗi",
-        e.response?.data || "Không thể thêm khách hàng",
+        e.response?.data?.message ||
+          e.response?.data ||
+          "Không thể thêm khách hàng",
         "error",
       );
     }
@@ -119,6 +135,20 @@ const handleEditCustomer = async (cust) => {
 
       if (!ten || !sdt) {
         swal.showValidationMessage("Vui lòng nhập Tên và Số điện thoại!");
+        return false;
+      }
+      // Kiểm tra ô Tên không phải số điện thoại
+      if (/^[0-9]+$/.test(ten.trim())) {
+        swal.showValidationMessage(
+          "Ô Tên không được nhập số điện thoại! Hãy nhập đúng họ tên khách hàng.",
+        );
+        return false;
+      }
+      // Kiểm tra SĐT chỉ gồm chữ số và độ dài hợp lệ (8-11 số)
+      if (!/^[0-9]{8,11}$/.test(sdt.trim())) {
+        swal.showValidationMessage(
+          "Số điện thoại chỉ gồm chữ số, độ dài 8–11 ký tự!",
+        );
         return false;
       }
 

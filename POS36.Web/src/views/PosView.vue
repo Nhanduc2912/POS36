@@ -63,14 +63,14 @@ let customerSearchTimeout = null;
 
 const searchCustomer = () => {
   clearTimeout(customerSearchTimeout);
-  const sdt = customerSearchText.value.trim();
-  if (!sdt) {
+  const keyword = customerSearchText.value.trim();
+  if (!keyword) {
     customerResults.value = [];
     return;
   }
   customerSearchTimeout = setTimeout(async () => {
     try {
-      const res = await axios.get(`/api/KhachHang/tim-kiem?sdt=${encodeURIComponent(sdt)}`);
+      const res = await axios.get(`/api/KhachHang/tim-kiem?keyword=${encodeURIComponent(keyword)}`);
       customerResults.value = res.data;
     } catch (e) {
       customerResults.value = [];
@@ -111,6 +111,16 @@ const handleQuickAddCustomer = async () => {
       const sdt = document.getElementById("swal-kh-sdt").value;
       if (!ten || !sdt) {
         swal.showValidationMessage("Nhập Tên và SĐT!");
+        return false;
+      }
+      // Kiểm tra ô Tên không phải số điện thoại
+      if (/^[0-9]+$/.test(ten.trim())) {
+        swal.showValidationMessage("Ô Tên không được nhập số điện thoại! Hãy nhập họ tên khách hàng.");
+        return false;
+      }
+      // Kiểm tra SĐT hợp lệ (8-11 chữ số)
+      if (!/^[0-9]{8,11}$/.test(sdt.trim())) {
+        swal.showValidationMessage("Số điện thoại chỉ gồm chữ số, độ dài 8–11 ký tự!");
         return false;
       }
       const email = document.getElementById("swal-kh-email").value;
@@ -954,7 +964,7 @@ connection.on("ThanhToanQRThanhCong", (banId) => {
                 @input="searchCustomer"
                 type="text"
                 class="form-control border-start-0"
-                placeholder="Nhập SĐT khách hàng để tích điểm..."
+                placeholder="Tìm khách theo tên hoặc số điện thoại..."
               />
             </div>
             <!-- Dropdown kết quả -->

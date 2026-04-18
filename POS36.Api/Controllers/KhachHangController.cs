@@ -96,16 +96,29 @@ namespace POS36.Api.Controllers
         }
 
         // ==========================================
-        // 3. TÌM NHANH THEO SĐT (DÙNG CHO POS)
+        // 3. TÌM NHANH THEO SĐT HOẶC TÊN (DÙNG CHO POS)
         // ==========================================
         [HttpGet("tim-kiem")]
-        public async Task<IActionResult> TimKiem([FromQuery] string sdt)
+        public async Task<IActionResult> TimKiem([FromQuery] string? keyword, [FromQuery] string? sdt)
         {
-            if (string.IsNullOrEmpty(sdt)) return Ok(new List<object>());
+            // Backward compat: nếu truyền 'sdt' mà không có 'keyword' thì dùng 'sdt'
+            var query_str = keyword ?? sdt ?? "";
+            if (string.IsNullOrWhiteSpace(query_str)) return Ok(new List<object>());
 
             int cuaHangId = GetCuaHangId();
-            var results = await _context.KhachHangs
-                .Where(k => k.CuaHangId == cuaHangId && k.SoDienThoai.Contains(sdt))
+
+            IQueryable<KhachHang> query = _context.KhachHangs
+                .Where(k => k.CuaHangId == cuaHangId);
+
+            // Nếu toàn bộ là chữ số → tìm theo SĐT
+            // Nếu có chữ cái → tìm theo Tên
+            bool isPhoneQuery = System.Text.RegularExpressions.Regex.IsMatch(query_str, @"^[0-9]+$");
+            if (isPhoneQuery)
+                query = query.Where(k => k.SoDienThoai.Contains(query_str));
+            else
+                query = query.Where(k => k.TenKhachHang.ToLower().Contains(query_str.ToLower()));
+
+            var results = await query
                 .Take(5) // Chỉ trả tối đa 5 kết quả cho dropdown
                 .Select(k => new
                 {

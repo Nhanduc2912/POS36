@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using POS36.Api.Data;
@@ -7,15 +8,26 @@ namespace POS36.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize] // BUG #1 FIX: Bảo vệ toàn bộ controller, bắt buộc đăng nhập
     public class BanController : ControllerBase
     {
         private readonly AppDbContext _context;
         public BanController(AppDbContext context) { _context = context; }
 
+        private int GetCuaHangId()
+        {
+            var claim = User.FindFirst("CuaHangId");
+            if (claim == null) throw new UnauthorizedAccessException("Token không hợp lệ");
+            return int.Parse(claim.Value);
+        }
+
         [HttpGet("khu-vuc/{khuVucId}")]
         public async Task<IActionResult> GetByKhuVuc(int khuVucId)
         {
-            var ds = await _context.Bans.Where(b => b.KhuVucId == khuVucId).ToListAsync();
+            int cuaHangId = GetCuaHangId();
+            var ds = await _context.Bans
+                .Where(b => b.KhuVucId == khuVucId && b.CuaHangId == cuaHangId)
+                .ToListAsync();
             return Ok(ds);
         }
 
@@ -66,14 +78,25 @@ namespace POS36.Api.Controllers
             public int SoLuong { get; set; }
         }
 
-        // Thêm API này vào BanController
         [HttpPost("tao-nhanh")]
         public async Task<IActionResult> TaoBanNhanh([FromBody] TaoBanNhanhDto request)
         {
-            int cuaHangId = int.Parse(User.FindFirst("CuaHangId")?.Value ?? "0");
+            int cuaHangId = GetCuaHangId();
 
-            // Đếm xem khu vực này đang có bao nhiêu bàn rồi
-            int soBanHienTai = await _context.Bans.CountAsync(b => b.KhuVucId == request.KhuVucId && b.CuaHangId == cuaHangId);
+            // BUG #11 FIX: Dùng số bàn lớn nhất hiện tại thay vì count
+            // Tránh trùng tên khi đã xóa bàn giữa chừng (VD: xóa Bàn 3, count=3 nhưng Bàn 4 đã tồn tại)
+            var tenBanList = await _context.Bans
+                .Where(b => b.KhuVucId == request.KhuVucId && b.CuaHangId == cuaHangId)
+                .Select(b => b.TenBan)
+                .ToListAsync();
+
+            int soLonNhat = tenBanList
+                .Select(ten => {
+                    var parts = ten.Split(' ');
+                    return (parts.Length > 1 && int.TryParse(parts[^1], out int n)) ? n : 0;
+                })
+                .DefaultIfEmpty(0)
+                .Max();
 
             for (int i = 1; i <= request.SoLuong; i++)
             {
@@ -81,7 +104,7 @@ namespace POS36.Api.Controllers
                 {
                     CuaHangId = cuaHangId,
                     KhuVucId = request.KhuVucId,
-                    TenBan = $"Bàn {soBanHienTai + i}", // Tự động tăng số
+                    TenBan = $"Bàn {soLonNhat + i}",
                     TrangThai = "Trống"
                 });
             }
@@ -89,5 +112,6 @@ namespace POS36.Api.Controllers
             await _context.SaveChangesAsync();
             return Ok(new { message = $"Đã tạo thành công {request.SoLuong} bàn!" });
         }
+
     }
 }
