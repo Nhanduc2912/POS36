@@ -154,6 +154,27 @@ namespace POS36.Api.Controllers
                 return BadRequest("Không tìm thấy Chủ cửa hàng nào sử dụng Email này!");
             }
 
+            // Kiểm tra COOLDOWN: nếu đã có OTP mới tạo trong vòng 60 giây, chặn gửi lại
+            var otpGanDay = await _context.OtpRequests
+                .Where(o => o.TenDangNhap == user.TenDangNhap && !o.DaSDung)
+                .OrderByDescending(o => o.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (otpGanDay != null)
+            {
+                var secondsElapsed = (DateTime.Now - otpGanDay.CreatedAt).TotalSeconds;
+                const int COOLDOWN_SECONDS = 60; // 1 phút
+                if (secondsElapsed < COOLDOWN_SECONDS)
+                {
+                    int secondsLeft = (int)(COOLDOWN_SECONDS - secondsElapsed);
+                    return BadRequest(new
+                    {
+                        message = $"Vui lòng đợi {secondsLeft} giây trước khi yêu cầu mã mới!",
+                        secondsLeft = secondsLeft
+                    });
+                }
+            }
+
             // BUG #2 FIX: Sinh OTP và lưu vào DB thay vì RAM
             string otpCode = new Random().Next(100000, 999999).ToString();
 
@@ -168,6 +189,7 @@ namespace POS36.Api.Controllers
                 TenDangNhap = user.TenDangNhap,
                 OtpHash = BCrypt.Net.BCrypt.HashPassword(otpCode), // Hash OTP — không lưu plain text
                 ExpiresAt = DateTime.Now.AddMinutes(5),
+                CreatedAt = DateTime.Now,
                 DaSDung = false
             });
             await _context.SaveChangesAsync();
@@ -179,7 +201,8 @@ namespace POS36.Api.Controllers
             {
                 otp = otpCode,              // ⚠️ Xóa dòng này khi backend tự gửi email qua SMTP
                 tenDangNhap = user.TenDangNhap,
-                tenNhanVien = user.NhanVien!.TenNhanVien
+                tenNhanVien = user.NhanVien!.TenNhanVien,
+                cooldownSeconds = 60       // Thông báo frontend biết phải đợi bao lâu mới được gửi lại
             });
         }
 
@@ -224,5 +247,70 @@ namespace POS36.Api.Controllers
             Log.Information("👤 Tài khoản {TenDangNhap} vừa ĐẶT LẠI MẬT KHẨU thành công.", request.TenDangNhap);
             return Ok(new { message = "Đổi mật khẩu thành công! Bạn có thể đăng nhập ngay." });
         }
+
+        // ==========================================
+        // 5. GỬi Lại Mã OTP (Có kiểm tra cooldown 60 giây)
+        // ==========================================
+        [HttpPost("resend-otp")]
+        public async Task<IActionResult> ResendOtp([FromBody] ResendOtpRequest request)
+        {
+            // Tìm tài khoản theo TenDangNhap (frontend đã có sau lần gọi forgot-password)
+            var user = await _context.TaiKhoans
+                .Include(t => t.NhanVien)
+                .FirstOrDefaultAsync(t => t.TenDangNhap == request.TenDangNhap);
+
+            if (user == null)
+                return BadRequest("Tài khoản không tồn tại!");
+
+            // Kiểm tra COOLDOWN: OTP hiện tại được tạo bao lâu rồi?
+            var otpHienTai = await _context.OtpRequests
+                .Where(o => o.TenDangNhap == request.TenDangNhap && !o.DaSDung)
+                .OrderByDescending(o => o.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            const int COOLDOWN_SECONDS = 60; // Ngưỡng gửi lại tối thiểu: 60 giây (1 phút)
+
+            if (otpHienTai != null)
+            {
+                var secondsElapsed = (DateTime.Now - otpHienTai.CreatedAt).TotalSeconds;
+
+                if (secondsElapsed < COOLDOWN_SECONDS)
+                {
+                    // Chưa đủ thời gian chuyển — báo cho frontend biết phải đợi bao giây
+                    int secondsLeft = (int)(COOLDOWN_SECONDS - secondsElapsed);
+                    return BadRequest(new
+                    {
+                        message = $"Vui lòng đợi thêm {secondsLeft} giây trước khi yêu cầu mã mới!",
+                        secondsLeft = secondsLeft
+                    });
+                }
+
+                // OTP cũ đã hết hạn hoặc quá 60 giây — vô hiệu hóa trước khi tạo mới
+                _context.OtpRequests.Remove(otpHienTai);
+            }
+
+            // Tạo OTP mới
+            string otpCode = new Random().Next(100000, 999999).ToString();
+
+            _context.OtpRequests.Add(new POS36.Api.Models.OtpRequest
+            {
+                TenDangNhap = user.TenDangNhap,
+                OtpHash = BCrypt.Net.BCrypt.HashPassword(otpCode),
+                ExpiresAt = DateTime.Now.AddMinutes(5),
+                CreatedAt = DateTime.Now,
+                DaSDung = false
+            });
+            await _context.SaveChangesAsync();
+
+            Log.Information("🔄 Tài khoản {TenDangNhap} đã YÊu CẦU GỬi LẠI OTP.", user.TenDangNhap);
+
+            return Ok(new
+            {
+                otp = otpCode,          // ⚠️ Xóa khi backend tự gửi email qua SMTP
+                tenDangNhap = user.TenDangNhap,
+                tenNhanVien = user.NhanVien?.TenNhanVien,
+                cooldownSeconds = COOLDOWN_SECONDS  // Frontend dùng để đết ngược countdown
+            });
+        }
     }
-}
+}

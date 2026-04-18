@@ -21,6 +21,9 @@ namespace POS36.Api.Models
         /// <summary>Thời điểm OTP hết hạn (mặc định 5 phút sau khi tạo)</summary>
         public DateTime ExpiresAt { get; set; }
 
+        /// <summary>Thời điểm tạo OTP — dùng để tính cooldown gửi lại (tối thiểu 60 giây)</summary>
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
         /// <summary>OTP đã được dùng chưa (tránh replay attack)</summary>
         public bool DaSDung { get; set; } = false;
     }

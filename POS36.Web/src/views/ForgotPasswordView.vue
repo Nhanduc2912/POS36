@@ -105,6 +105,28 @@
             required
             autofocus
           />
+          
+          <!-- Countdown và nút gửi lại OTP -->
+          <div class="mt-3">
+            <p class="text-muted small mb-2">
+              Mã OTP sẽ hết hạn sau <span class="fw-bold text-danger">{{ formatTime(otpExpiryCountdown) }}</span>
+            </p>
+            <button
+              type="button"
+              class="btn btn-link text-decoration-none p-0"
+              :class="{ 'text-muted': resendCooldown > 0, 'text-primary': resendCooldown === 0 }"
+              :disabled="resendCooldown > 0 || isResending"
+              @click="resendOtp"
+            >
+              <span v-if="isResending" class="spinner-border spinner-border-sm me-1"></span>
+              <span v-if="resendCooldown > 0">
+                Gửi lại mã sau {{ resendCooldown }}s
+              </span>
+              <span v-else>
+                <i class="bi bi-arrow-clockwise me-1"></i>Gửi lại mã OTP
+              </span>
+            </button>
+          </div>
         </div>
 
         <button
@@ -198,7 +220,7 @@
 </template>
 
 <script setup>
-import { ref, computed, inject } from "vue";
+import { ref, computed, inject, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 import emailjs from "@emailjs/browser";
@@ -208,6 +230,13 @@ const swal = inject("$swal");
 
 const step = ref(1);
 const isLoading = ref(false);
+const isResending = ref(false);
+
+// Countdown timers
+const resendCooldown = ref(0); // Đếm ngược cho nút "Gửi lại mã" (60 giây)
+const otpExpiryCountdown = ref(300); // Đếm ngược hết hạn OTP (5 phút = 300 giây)
+let resendInterval = null;
+let expiryInterval = null;
 
 const form = ref({
   email: "",
@@ -222,6 +251,58 @@ const progressWidth = computed(() => {
   if (step.value === 2) return "33.33%";
   if (step.value === 3) return "66.66%";
   return "100%";
+});
+
+// Format thời gian từ giây sang MM:SS
+const formatTime = (seconds) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+// Bắt đầu countdown cho nút "Gửi lại mã"
+const startResendCooldown = (seconds = 60) => {
+  resendCooldown.value = seconds;
+  
+  if (resendInterval) clearInterval(resendInterval);
+  
+  resendInterval = setInterval(() => {
+    resendCooldown.value--;
+    if (resendCooldown.value <= 0) {
+      clearInterval(resendInterval);
+      resendInterval = null;
+    }
+  }, 1000);
+};
+
+// Bắt đầu countdown cho hết hạn OTP
+const startOtpExpiryCountdown = () => {
+  otpExpiryCountdown.value = 300; // 5 phút
+  
+  if (expiryInterval) clearInterval(expiryInterval);
+  
+  expiryInterval = setInterval(() => {
+    otpExpiryCountdown.value--;
+    if (otpExpiryCountdown.value <= 0) {
+      clearInterval(expiryInterval);
+      expiryInterval = null;
+      swal.fire({
+        icon: "warning",
+        title: "Mã OTP đã hết hạn",
+        text: "Vui lòng yêu cầu mã mới!",
+        confirmButtonColor: "#e65c00",
+      }).then(() => {
+        step.value = 1;
+        form.value.otp = "";
+      });
+    }
+  }, 1000);
+};
+
+// Dọn dẹp intervals khi component unmount
+onUnmounted(() => {
+  if (resendInterval) clearInterval(resendInterval);
+  if (expiryInterval) clearInterval(expiryInterval);
 });
 
 // ==========================================
@@ -242,6 +323,7 @@ const requestOtp = async () => {
     form.value.username = res.data.tenDangNhap;
     const otpCode = res.data.otp;
     const fullName = res.data.tenNhanVien;
+    const cooldownSeconds = res.data.cooldownSeconds || 60;
 
     // Gửi Email thật qua EmailJS
     await emailjs.send(
@@ -256,16 +338,107 @@ const requestOtp = async () => {
     );
 
     step.value = 2;
+    
+    // Bắt đầu countdown
+    startResendCooldown(cooldownSeconds);
+    startOtpExpiryCountdown();
+    
+    swal.fire({
+      icon: "success",
+      title: "Đã gửi mã OTP",
+      text: `Vui lòng kiểm tra email ${form.value.email}`,
+      timer: 3000,
+      showConfirmButton: false,
+    });
   } catch (error) {
     console.error("Chi tiết lỗi:", error);
-    swal.fire(
-      "Lỗi",
-      error.response?.data ||
-        "Không thể gửi Email lúc này. Vui lòng kiểm tra lại cấu hình EmailJS!",
-      "error",
-    );
+    
+    // Xử lý lỗi cooldown
+    if (error.response?.data?.secondsLeft) {
+      swal.fire({
+        icon: "warning",
+        title: "Vui lòng đợi",
+        text: error.response.data.message,
+        confirmButtonColor: "#e65c00",
+      });
+    } else {
+      swal.fire(
+        "Lỗi",
+        error.response?.data?.message ||
+          error.response?.data ||
+          "Không thể gửi Email lúc này. Vui lòng kiểm tra lại cấu hình EmailJS!",
+        "error",
+      );
+    }
   } finally {
     isLoading.value = false;
+  }
+};
+
+// ==========================================
+// GỬI LẠI MÃ OTP
+// ==========================================
+const resendOtp = async () => {
+  if (resendCooldown.value > 0) return;
+  
+  isResending.value = true;
+  try {
+    const res = await axios.post("/api/Auth/resend-otp", {
+      TenDangNhap: form.value.username,
+    });
+
+    const otpCode = res.data.otp;
+    const fullName = res.data.tenNhanVien;
+    const cooldownSeconds = res.data.cooldownSeconds || 60;
+
+    // Gửi Email mới qua EmailJS
+    await emailjs.send(
+      "service_65xya5u",
+      "template_a63e1vv",
+      {
+        to_email: form.value.email,
+        to_name: fullName,
+        otp_code: otpCode,
+      },
+      "Zjm65dyIcuEbthcT3",
+    );
+
+    // Reset OTP input và bắt đầu countdown mới
+    form.value.otp = "";
+    startResendCooldown(cooldownSeconds);
+    startOtpExpiryCountdown();
+
+    swal.fire({
+      icon: "success",
+      title: "Đã gửi lại mã OTP",
+      text: `Vui lòng kiểm tra email ${form.value.email}`,
+      timer: 3000,
+      showConfirmButton: false,
+    });
+  } catch (error) {
+    console.error("Chi tiết lỗi:", error);
+    
+    // Xử lý lỗi cooldown
+    if (error.response?.data?.secondsLeft) {
+      const secondsLeft = error.response.data.secondsLeft;
+      startResendCooldown(secondsLeft); // Đồng bộ countdown với server
+      swal.fire({
+        icon: "warning",
+        title: "Vui lòng đợi",
+        text: error.response.data.message,
+        confirmButtonColor: "#e65c00",
+      });
+    } else {
+      swal.fire(
+        "Lỗi",
+        error.response?.data?.message ||
+          error.response?.data ||
+          "Không thể gửi lại mã OTP. Vui lòng thử lại sau!",
+        "error",
+      );
+    }
+  } finally {
+    isResending.value = false;
   }
 };
 
@@ -277,6 +450,11 @@ const verifyOtp = () => {
     swal.fire("Chú ý", "Vui lòng nhập đủ 6 số OTP!", "warning");
     return;
   }
+  
+  // Dừng countdown khi chuyển sang bước tiếp theo
+  if (resendInterval) clearInterval(resendInterval);
+  if (expiryInterval) clearInterval(expiryInterval);
+  
   step.value = 3;
 };
 
@@ -309,6 +487,9 @@ const resetPassword = async () => {
       .then(() => {
         step.value = 2;
         form.value.otp = "";
+        // Khởi động lại countdown nếu quay lại bước 2
+        startResendCooldown(60);
+        startOtpExpiryCountdown();
       });
   } finally {
     isLoading.value = false;

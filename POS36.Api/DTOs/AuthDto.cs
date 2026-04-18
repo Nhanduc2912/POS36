@@ -32,4 +32,11 @@ namespace POS36.Api.DTOs
         public string OtpCode { get; set; } = string.Empty;
         public string MatKhauMoi { get; set; } = string.Empty;
     }
+
+    // Yêu cầu gửi lại OTP sau cooldown (dùng cho nút "Gửi lại mã" trên frontend)
+    public class ResendOtpRequest
+    {
+        /// <summary>TenDangNhap nhận được từ response của forgot-password</summary>
+        public string TenDangNhap { get; set; } = string.Empty;
+    }
 }
