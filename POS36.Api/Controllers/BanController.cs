@@ -38,7 +38,20 @@ namespace POS36.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateBanDto req)
         {
-            var newTable = new Ban { KhuVucId = req.KhuVucId, TenBan = req.TenBan, TrangThai = req.TrangThai };
+            int cuaHangId = GetCuaHangId();
+
+            var khuVucHopLe = await _context.KhuVucs
+                .AnyAsync(kv => kv.Id == req.KhuVucId && kv.CuaHangId == cuaHangId);
+            if (!khuVucHopLe)
+                return BadRequest("Khu vực không thuộc cửa hàng hiện tại.");
+
+            var newTable = new Ban
+            {
+                CuaHangId = cuaHangId,
+                KhuVucId = req.KhuVucId,
+                TenBan = req.TenBan,
+                TrangThai = string.IsNullOrWhiteSpace(req.TrangThai) ? "Trống" : req.TrangThai
+            };
             _context.Bans.Add(newTable);
             await _context.SaveChangesAsync();
             return Ok(newTable);
