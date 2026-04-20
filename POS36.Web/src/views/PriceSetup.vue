@@ -73,6 +73,52 @@ const savePrice = async (prod) => {
     swal.fire("Lỗi", "Không thể lưu giá", "error");
   }
 };
+
+// --- XUẤT RA FILE EXCEL ---
+const exportToExcel = () => {
+  if (filteredProducts.value.length === 0) {
+    swal.fire("Chú ý", "Không có dữ liệu để xuất!", "warning");
+    return;
+  }
+
+  // Tạo CSV content với BOM để hỗ trợ tiếng Việt
+  let csvContent = "\uFEFF"; // BOM for UTF-8
+  
+  // Header
+  csvContent += "Mã hàng hóa,Tên hàng hóa,Giá vốn,Giá bán\n";
+  
+  // Data rows
+  filteredProducts.value.forEach((prod) => {
+    const maHangHoa = `HH-00${prod.id}`;
+    const tenSanPham = `"${prod.tenSanPham}"`; // Wrap in quotes to handle commas
+    const giaVon = "0";
+    const giaBan = prod.giaBan;
+    
+    csvContent += `${maHangHoa},${tenSanPham},${giaVon},${giaBan}\n`;
+  });
+
+  // Create blob and download
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  
+  link.setAttribute("href", url);
+  link.setAttribute("download", `BangGia_${new Date().toISOString().split('T')[0]}.csv`);
+  link.style.visibility = "hidden";
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  swal.fire({
+    toast: true,
+    position: "top-end",
+    icon: "success",
+    title: "Đã xuất file thành công",
+    showConfirmButton: false,
+    timer: 2000,
+  });
+};
 </script>
 
 <template>
@@ -123,6 +169,7 @@ const savePrice = async (prod) => {
               <i class="bi bi-funnel text-warning me-2"></i> GIÁ NIÊM YẾT
             </h5>
             <button
+              @click="exportToExcel"
               class="btn btn-outline-secondary btn-sm fw-bold px-3 rounded-pill"
             >
               <i class="bi bi-file-earmark-arrow-up"></i> XUẤT RA FILE

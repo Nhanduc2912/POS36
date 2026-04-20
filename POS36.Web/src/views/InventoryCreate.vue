@@ -44,7 +44,10 @@
               </li>
             </ul>
           </div>
-          <button class="btn btn-warning text-white fw-bold">
+          <button
+            class="btn btn-warning text-white fw-bold"
+            @click="addByGroup"
+          >
             <i class="bi bi-plus-circle"></i> Thêm theo Nhóm
           </button>
         </div>
@@ -132,17 +135,10 @@
         class="bg-light border-start d-flex flex-column"
         style="width: 320px"
       >
-        <div class="d-flex bg-white border-bottom">
-          <div
-            class="flex-fill text-center py-2 fw-bold text-danger border-bottom border-danger border-3"
-          >
-            Chi tiết
-          </div>
-          <div
-            class="flex-fill text-center py-2 fw-bold text-muted cursor-pointer"
-          >
-            Ghi chú
-          </div>
+        <div
+          class="bg-white border-bottom text-center py-2 fw-bold text-danger border-bottom border-danger border-3"
+        >
+          Chi tiết
         </div>
 
         <div class="p-3 flex-grow-1 overflow-auto">
@@ -194,22 +190,16 @@
         >
           <button
             class="btn btn-success fw-bold flex-grow-1"
-            @click="submitPhieu('Hoàn thành')"
+            @click="submitPhieu"
           >
             <i class="bi bi-check2-circle"></i> Hoàn thành
           </button>
-          <div class="w-100 d-flex gap-2 mt-1">
+          <div class="w-100 d-flex mt-1">
             <router-link
               to="/admin/inventory"
-              class="btn btn-warning text-white fw-bold w-50"
+              class="btn btn-warning text-white fw-bold w-100"
               ><i class="bi bi-chevron-double-left"></i> Thoát</router-link
             >
-            <button
-              class="btn btn-warning text-white fw-bold w-50"
-              @click="submitPhieu('Đang xử lý')"
-            >
-              <i class="bi bi-floppy"></i> Lưu tạm
-            </button>
           </div>
         </div>
       </div>
@@ -287,7 +277,7 @@ const addToCheckList = (prod) => {
 };
 
 // Hàm submit Phiếu (Lưu tạm hoặc Hoàn thành)
-const submitPhieu = async (trangThai) => {
+const submitPhieu = async () => {
   if (checkList.value.length === 0)
     return swal.fire(
       "Cảnh báo",
@@ -295,24 +285,21 @@ const submitPhieu = async (trangThai) => {
       "warning",
     );
 
-  let isConfirm = true;
-  if (trangThai === "Hoàn thành") {
-    const result = await swal.fire({
-      title: "Chốt cân bằng kho?",
-      text: "Hệ thống sẽ cập nhật lại Tồn kho thực tế theo số lượng bạn vừa kiểm. Hành động này không thể hoàn tác!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Đồng ý cân bằng",
-    });
-    isConfirm = result.isConfirmed;
-  }
+  const result = await swal.fire({
+    title: "Chốt cân bằng kho?",
+    text: "Hệ thống sẽ cập nhật lại Tồn kho thực tế theo số lượng bạn vừa kiểm. Hành động này không thể hoàn tác!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Đồng ý cân bằng",
+  });
+  const isConfirm = result.isConfirmed;
 
   if (isConfirm) {
     try {
       const payload = {
         chiNhanhId: globalState.value.activeBranchId || 0,
         ghiChu: ghiChuPhieu.value,
-        trangThai: trangThai,
+        trangThai: "Hoàn thành",
         chiTiets: checkList.value.map((c) => ({
           sanPhamId: c.sanPhamId,
           tonKhoHienTai: c.tonKhoHienTai,
@@ -326,7 +313,7 @@ const submitPhieu = async (trangThai) => {
         toast: true,
         position: "top-end",
         icon: "success",
-        title: trangThai === "Hoàn thành" ? "Đã Cân Bằng Kho!" : "Đã Lưu Nháp!",
+        title: "Đã Cân Bằng Kho!",
         timer: 1500,
         showConfirmButton: false,
       });
@@ -339,7 +326,17 @@ const submitPhieu = async (trangThai) => {
 // Tính năng thêm nhanh nhiều món theo Nhóm (Danh mục)
 const addByGroup = async () => {
   // Lọc ra các tên nhóm duy nhất từ danh sách sản phẩm
-  const groups = [...new Set(products.value.map((p) => p.tenDanhMuc))];
+  const groups = [
+    ...new Set(
+      products.value.map(
+        (p) => p.tenDanhMuc || p.tenNhomHang || p.tenNhom || "Khác",
+      ),
+    ),
+  ];
+  if (groups.length === 0) {
+    return swal.fire("Thông báo", "Không có nhóm hàng để thêm.", "info");
+  }
+
   const inputOptions = {};
   groups.forEach((g) => (inputOptions[g] = g));
 
@@ -355,7 +352,9 @@ const addByGroup = async () => {
   if (selectedGroup) {
     // Lấy tất cả sp thuộc nhóm đó
     const itemsToAdd = products.value.filter(
-      (p) => p.tenDanhMuc === selectedGroup,
+      (p) =>
+        (p.tenDanhMuc || p.tenNhomHang || p.tenNhom || "Khác") ===
+        selectedGroup,
     );
     let addedCount = 0;
 
