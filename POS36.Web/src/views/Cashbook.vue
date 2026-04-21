@@ -94,11 +94,13 @@
           </div>
           <div class="p-2">
             <input
+              v-model="searchMa"
               type="text"
               class="form-control form-control-sm mb-2 shadow-none"
               placeholder="Mã chứng từ"
             />
             <input
+              v-model="searchDoiTac"
               type="text"
               class="form-control form-control-sm mb-2 shadow-none"
               placeholder="Tìm đối tác"
@@ -123,17 +125,31 @@
               class="list-group list-group-flush small fw-bold text-secondary"
             >
               <button
-                class="list-group-item list-group-item-action border-0 active bg-light text-primary"
+                @click="filterTaiKhoan = ''"
+                :class="{'active bg-light text-primary': filterTaiKhoan === ''}"
+                class="list-group-item list-group-item-action border-0"
               >
                 Tất cả
               </button>
-              <button class="list-group-item list-group-item-action border-0">
+              <button 
+                @click="filterTaiKhoan = 'Tiền mặt'"
+                :class="{'active bg-light text-primary': filterTaiKhoan === 'Tiền mặt'}"
+                class="list-group-item list-group-item-action border-0"
+              >
                 TIỀN MẶT
               </button>
-              <button class="list-group-item list-group-item-action border-0">
+              <button 
+                @click="filterTaiKhoan = 'Chuyển khoản'"
+                :class="{'active bg-light text-primary': filterTaiKhoan === 'Chuyển khoản'}"
+                class="list-group-item list-group-item-action border-0"
+              >
                 CHUYỂN KHOẢN
               </button>
-              <button class="list-group-item list-group-item-action border-0">
+              <button 
+                @click="filterTaiKhoan = 'VNPAY-QR'"
+                :class="{'active bg-light text-primary': filterTaiKhoan === 'VNPAY-QR'}"
+                class="list-group-item list-group-item-action border-0"
+              >
                 VNPAY-QR
               </button>
             </div>
@@ -147,20 +163,27 @@
           <div class="p-2">
             <div class="form-check mb-1">
               <input
+                v-model="filterLoaiPhieu"
+                value=""
                 class="form-check-input"
                 type="radio"
                 name="pt"
-                checked
               /><label class="form-check-label small">Tất cả</label>
             </div>
             <div class="form-check mb-1">
-              <input class="form-check-input" type="radio" name="pt" /><label
+              <input 
+                v-model="filterLoaiPhieu"
+                value="Thu"
+                class="form-check-input" type="radio" name="pt" /><label
                 class="form-check-label small"
                 >Phiếu thu</label
               >
             </div>
             <div class="form-check mb-1">
-              <input class="form-check-input" type="radio" name="pt" /><label
+              <input 
+                v-model="filterLoaiPhieu"
+                value="Chi"
+                class="form-check-input" type="radio" name="pt" /><label
                 class="form-check-label small"
                 >Phiếu chi</label
               >
@@ -171,13 +194,13 @@
 
       <div class="main-content flex-grow-1 p-3 bg-white overflow-auto">
         <div class="d-flex justify-content-end mb-2 gap-2">
-          <button class="btn btn-warning text-white fw-bold btn-sm px-3">
+          <button @click="openTransactionModal('Chuyển khoản')" class="btn btn-warning text-white fw-bold btn-sm px-3">
             <i class="bi bi-arrow-left-right me-1"></i> CHUYỂN KHOẢN
           </button>
-          <button class="btn btn-warning text-white fw-bold btn-sm px-3">
+          <button @click="openTransactionModal('Thu')" class="btn btn-warning text-white fw-bold btn-sm px-3">
             <i class="bi bi-plus-circle me-1"></i> PHIẾU THU
           </button>
-          <button class="btn btn-warning text-white fw-bold btn-sm px-3">
+          <button @click="openTransactionModal('Chi')" class="btn btn-warning text-white fw-bold btn-sm px-3">
             <i class="bi bi-dash-circle me-1"></i> PHIẾU CHI
           </button>
         </div>
@@ -206,13 +229,13 @@
                   ></div>
                 </td>
               </tr>
-              <tr v-else-if="transactions.length === 0" class="text-center">
+              <tr v-else-if="filteredTransactions.length === 0" class="text-center">
                 <td colspan="7" class="py-4 text-muted">
-                  Chưa có giao dịch thu chi nào.
+                  Không tìm thấy giao dịch thu chi nào.
                 </td>
               </tr>
 
-              <template v-else v-for="t in transactions" :key="t.id">
+              <template v-else v-for="t in filteredTransactions" :key="t.id">
                 <tr class="cursor-pointer" @click="toggleDetail(t.id)">
                   <td class="text-center text-muted">
                     <i
@@ -328,14 +351,31 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, computed, inject } from "vue";
 import axios from "axios";
 import { globalState } from "../store";
 
+const swal = inject("$swal");
 const transactions = ref([]);
 const summary = ref({ dauKy: 0, tongThu: 0, tongChi: 0, tonQuy: 0 });
 const loading = ref(false);
 const expandedRowId = ref(null);
+
+const searchMa = ref("");
+const searchDoiTac = ref("");
+const filterTaiKhoan = ref("");
+const filterLoaiPhieu = ref("");
+
+const filteredTransactions = computed(() => {
+  return transactions.value.filter((t) => {
+    if (searchMa.value && !t.maChungTu?.toLowerCase().includes(searchMa.value.toLowerCase())) return false;
+    if (searchDoiTac.value && !t.nguoiNopNhan?.toLowerCase().includes(searchDoiTac.value.toLowerCase())) return false;
+    if (filterTaiKhoan.value && t.phuongThuc !== filterTaiKhoan.value) return false;
+    if (filterLoaiPhieu.value && t.loaiPhieu !== filterLoaiPhieu.value) return false;
+    return true;
+  });
+});
+
 
 const formatPrice = (price) =>
   new Intl.NumberFormat("vi-VN").format(price || 0);
@@ -361,6 +401,74 @@ const fetchTransactions = async () => {
 
 const toggleDetail = (id) => {
   expandedRowId.value = expandedRowId.value === id ? null : id;
+};
+
+const openTransactionModal = async (type) => {
+  const isTransfer = type === 'Chuyển khoản';
+  const title = isTransfer ? 'Chuyển Khoản' : `Tạo Phiếu ${type === 'Thu' ? 'Thu' : 'Chi'}`;
+  
+  const { value: formValues } = await swal.fire({
+    title: title,
+    html: `
+      <div class="text-start">
+        <label class="form-label small fw-bold mb-1">Người nộp/nhận ${isTransfer ? '(Tùy chọn)' : '*'}</label>
+        <input id="swal-nguoi" class="form-control mb-2" placeholder="Ví dụ: Nguyễn Văn A">
+        <label class="form-label small fw-bold mb-1">Giá trị (VNĐ) *</label>
+        <input id="swal-giatri" type="number" class="form-control mb-2" placeholder="VD: 500000">
+        <label class="form-label small fw-bold mb-1">Phương thức *</label>
+        <select id="swal-phuongthuc" class="form-select mb-2">
+          <option value="Tiền mặt">Tiền mặt</option>
+          <option value="Chuyển khoản" ${isTransfer ? 'selected' : ''}>Chuyển khoản</option>
+          <option value="VNPAY-QR">VNPAY-QR</option>
+        </select>
+        <label class="form-label small fw-bold mb-1">Lý do</label>
+        <textarea id="swal-lydo" class="form-control" rows="2" placeholder="Ghi chú thêm..."></textarea>
+      </div>
+    `,
+    showCancelButton: true,
+    cancelButtonText: "Hủy",
+    confirmButtonText: "Xác nhận",
+    preConfirm: () => {
+      const nguoiNopNhan = document.getElementById('swal-nguoi').value;
+      const giaTri = document.getElementById('swal-giatri').value;
+      const phuongThuc = document.getElementById('swal-phuongthuc').value;
+      const lyDo = document.getElementById('swal-lydo').value;
+
+      if (!giaTri || giaTri <= 0) {
+        swal.showValidationMessage("Giá trị phải lớn hơn 0");
+        return false;
+      }
+      if (!isTransfer && !nguoiNopNhan.trim()) {
+        swal.showValidationMessage("Vui lòng nhập người nộp/nhận");
+        return false;
+      }
+      return {
+        loaiPhieu: isTransfer ? 'Chi' : type,
+        phuongThuc,
+        nguoiNopNhan,
+        giaTri: parseFloat(giaTri),
+        lyDo,
+        hangMuc: isTransfer ? 'Chuyển khoản' : (type === 'Thu' ? 'Thu khác' : 'Chi khác'),
+        chiNhanhId: globalState.value.activeBranchId || 0
+      };
+    }
+  });
+
+  if (formValues) {
+    try {
+      // Send directly to the new POST endpoint API
+      await axios.post('/api/ThuChi', formValues);
+      swal.fire({
+        icon: 'success',
+        title: 'Thành công!',
+        timer: 1500,
+        showConfirmButton: false
+      });
+      fetchTransactions();
+    } catch (e) {
+      swal.fire("Lỗi", e.response?.data || "Không thể tạo phiếu", "error");
+    }
+  }
 };
 
 watch(() => globalState.value.activeBranchId, fetchTransactions);

@@ -63,26 +63,40 @@
             <h6 class="fw-bold text-secondary mb-0 text-uppercase">
               <i class="bi bi-table me-2"></i> Danh sách bàn
             </h6>
-            <button
-              @click="handleAddTable"
-              class="btn btn-primary btn-sm fw-bold px-3"
-            >
-              <i class="bi bi-plus-lg"></i> Thêm Bàn mới
-            </button>
+            <div class="d-flex align-items-center gap-3">
+              <div class="form-check form-switch mb-0">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="show-hidden-switch"
+                  v-model="showHiddenTables"
+                />
+                <label class="form-check-label small fw-bold" for="show-hidden-switch">
+                  Hiển thị bàn ẩn
+                </label>
+              </div>
+              <button
+                @click="handleAddTable"
+                class="btn btn-primary btn-sm fw-bold px-3"
+              >
+                <i class="bi bi-plus-lg"></i> Thêm Bàn mới
+              </button>
+            </div>
           </div>
           <div class="card-body p-0">
             <table class="table table-hover align-middle mb-0">
               <thead class="table-light text-muted">
                 <tr>
                   <th class="text-center ps-3" style="width: 5%">#</th>
-                  <th style="width: 30%">Tên bàn</th>
+                  <th style="width: 25%">Tên bàn</th>
                   <th class="text-center" style="width: 25%">Trạng thái</th>
-                  <th class="text-center" style="width: 40%">Thao tác</th>
+                  <th class="text-center" style="width: 20%">Hiển thị</th>
+                  <th class="text-center" style="width: 25%">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="tables.length === 0">
-                  <td colspan="4" class="text-center text-muted py-5">
+                  <td colspan="5" class="text-center text-muted py-5">
                     <i class="bi bi-inbox fs-1 d-block mb-3 opacity-50"></i> Khu
                     vực này chưa có bàn nào.
                   </td>
@@ -94,7 +108,9 @@
                     <span
                       class="badge py-2 px-3"
                       :class="
-                        table.trangThai === 'Trống'
+                        table.trangThai === 'Ẩn'
+                          ? 'bg-dark'
+                          : table.trangThai === 'Trống'
                           ? 'bg-secondary'
                           : 'bg-warning text-dark'
                       "
@@ -103,17 +119,22 @@
                     </span>
                   </td>
                   <td class="text-center">
+                    <div class="form-check form-switch d-inline-flex">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        :checked="table.trangThai !== 'Ẩn'"
+                        @change="toggleTableVisibility(table, $event)"
+                      />
+                    </div>
+                  </td>
+                  <td class="text-center">
                     <button
                       @click="handleEditTable(table)"
                       class="btn btn-sm btn-outline-primary fw-bold px-3 me-2"
+                      :disabled="table.trangThai === 'Ẩn'"
                     >
                       <i class="bi bi-pencil-square"></i> Sửa
-                    </button>
-                    <button
-                      @click="handleDeleteTable(table)"
-                      class="btn btn-sm btn-outline-danger fw-bold px-3"
-                    >
-                      <i class="bi bi-trash"></i> Xóa
                     </button>
                   </td>
                 </tr>
@@ -136,6 +157,7 @@ const swal = inject("$swal");
 const areas = ref([]);
 const tables = ref([]);
 const selectedAreaId = ref(null);
+const showHiddenTables = ref(false);
 
 const currentBranchName = computed(() => {
   const branch = globalState.value.branches.find(
@@ -169,7 +191,9 @@ const fetchAreas = async () => {
 
 const fetchTables = async (areaId) => {
   try {
-    const res = await axios.get(`/api/Ban/khu-vuc/${areaId}`);
+    const res = await axios.get(
+      `/api/Ban/khu-vuc/${areaId}?includeHidden=${showHiddenTables.value}`,
+    );
     tables.value = res.data;
   } catch (error) {
     console.error("Lỗi tải bàn", error);
@@ -182,6 +206,9 @@ watch(
 );
 watch(selectedAreaId, (newId) => {
   if (newId) fetchTables(newId);
+});
+watch(showHiddenTables, () => {
+  if (selectedAreaId.value) fetchTables(selectedAreaId.value);
 });
 onMounted(() => fetchAreas());
 
@@ -267,6 +294,10 @@ const handleAddTable = async () => {
 };
 
 const handleEditTable = async (table) => {
+  if (table.trangThai === "Ẩn") {
+    return swal.fire("Cảnh báo", "Vui lòng bật hiển thị bàn trước khi sửa.", "warning");
+  }
+
   const { value: newName } = await swal.fire({
     title: "Cập nhật tên bàn",
     input: "text",
@@ -280,7 +311,7 @@ const handleEditTable = async (table) => {
 
   if (newName && newName !== table.tenBan) {
     try {
-      await axios.put(`/api/Ban/${table.id}`, { ...table, tenBan: newName });
+      await axios.put(`/api/Ban/${table.id}`, { tenBan: newName.trim() });
       swal.fire({
         toast: true,
         position: "top-end",
@@ -291,48 +322,46 @@ const handleEditTable = async (table) => {
       });
       fetchTables(selectedAreaId.value);
     } catch (e) {
-      swal.fire("Lỗi", "Không thể cập nhật bàn", "error");
+      swal.fire("Lỗi", e.response?.data || "Không thể cập nhật bàn", "error");
     }
   }
 };
 
-const handleDeleteTable = async (table) => {
-  if (table.trangThai !== "Trống") {
-    return swal.fire(
-      "Cảnh báo",
-      "Không thể xóa bàn đang có khách ngồi!",
-      "warning",
-    );
-  }
+const toggleTableVisibility = async (table, event) => {
+  const checked = event.target.checked;
+  const actionTitle = checked ? "bật hiển thị" : "ẩn";
+  const confirmText = checked
+    ? `Bạn có muốn bật lại ${table.tenBan} không?`
+    : `Bạn có muốn ẩn ${table.tenBan} không?`;
 
   const { isConfirmed } = await swal.fire({
-    title: "Xóa bàn này?",
-    text: `Bạn có chắc chắn muốn xóa ${table.tenBan} không?`,
-    icon: "warning",
+    title: `Xác nhận ${actionTitle} bàn`,
+    text: confirmText,
+    icon: "question",
     showCancelButton: true,
-    confirmButtonColor: "#d33",
-    confirmButtonText: "Xóa ngay",
+    confirmButtonText: "Đồng ý",
+    cancelButtonText: "Hủy",
   });
 
-  if (isConfirmed) {
-    try {
-      await axios.delete(`/api/Ban/${table.id}`);
-      swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "success",
-        title: "Đã xóa bàn",
-        timer: 1500,
-        showConfirmButton: false,
-      });
-      fetchTables(selectedAreaId.value);
-    } catch (e) {
-      swal.fire(
-        "Lỗi",
-        "Không thể xóa bàn. Có thể bàn đang chứa dữ liệu lịch sử.",
-        "error",
-      );
-    }
+  if (!isConfirmed) {
+    event.target.checked = !checked;
+    return;
+  }
+
+  try {
+    await axios.put(`/api/Ban/${table.id}/hien-thi`, { hienThi: checked });
+    swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: checked ? "Đã bật hiển thị bàn" : "Đã ẩn bàn",
+      timer: 1500,
+      showConfirmButton: false,
+    });
+    fetchTables(selectedAreaId.value);
+  } catch (e) {
+    event.target.checked = !checked;
+    swal.fire("Lỗi", e.response?.data || "Không thể cập nhật trạng thái bàn.", "error");
   }
 };
 </script>

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using POS36.Api.Data;
+using POS36.Api.Models;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -50,5 +51,49 @@ namespace POS36.Api.Controllers
                 DanhSach = danhSach
             });
         }
+
+        [Authorize(Roles = "Admin,ChuCuaHang,NhanVien")]
+        [HttpPost]
+        public async Task<IActionResult> TaoPhieuThuChi([FromBody] PhieuThuChiDto dto)
+        {
+            try
+            {
+                int cuaHangId = GetCuaHangId();
+                var phieu = new PhieuThuChi
+                {
+                    CuaHangId = cuaHangId,
+                    ChiNhanhId = dto.ChiNhanhId > 0 ? dto.ChiNhanhId : 1, // Default or selected
+                    LoaiPhieu = dto.LoaiPhieu, // "Thu" hoặc "Chi"
+                    PhuongThuc = dto.PhuongThuc,
+                    NguoiNopNhan = dto.NguoiNopNhan ?? "",
+                    HangMuc = dto.HangMuc ?? (dto.LoaiPhieu == "Thu" ? "Thu khác" : "Chi khác"),
+                    LyDo = dto.LyDo ?? "",
+                    GiaTri = dto.GiaTri,
+                    NgayGiaoDich = DateTime.UtcNow,
+                    NguoiTao = User.Identity?.Name ?? "Admin",
+                    MaChungTu = (dto.LoaiPhieu == "Thu" ? "PT" : "PC") + DateTime.Now.ToString("yyMMddHHmmss")
+                };
+
+                _context.PhieuThuChis.Add(phieu);
+                await _context.SaveChangesAsync();
+
+                return Ok(phieu);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest("Lỗi khi tạo phiếu: " + ex.Message);
+            }
+        }
+    }
+
+    public class PhieuThuChiDto
+    {
+        public int ChiNhanhId { get; set; }
+        public string LoaiPhieu { get; set; } = string.Empty;
+        public string PhuongThuc { get; set; } = string.Empty;
+        public string NguoiNopNhan { get; set; } = string.Empty;
+        public string HangMuc { get; set; } = string.Empty;
+        public string LyDo { get; set; } = string.Empty;
+        public double GiaTri { get; set; }
     }
 }
