@@ -1,342 +1,199 @@
 <template>
   <div class="cashbook-container d-flex bg-white h-100 flex-column">
-    <div class="summary-cards bg-light border-bottom p-3 d-flex gap-3">
-      <div class="card flex-fill border-0 shadow-sm rounded-0">
-        <div class="card-body d-flex align-items-center p-3">
-          <div
-            class="icon-box bg-danger bg-opacity-10 text-danger rounded-circle d-flex justify-content-center align-items-center me-3"
-            style="width: 50px; height: 50px"
-          >
-            <i class="bi bi-bank fs-3"></i>
-          </div>
-          <div>
-            <h4 class="mb-0 fw-bold text-danger">
-              {{ formatPrice(summary.dauKy) }}
-            </h4>
-            <small
-              class="text-muted fw-bold text-uppercase"
-              style="font-size: 0.7rem"
-              >Quỹ đầu kỳ</small
-            >
-          </div>
-        </div>
+
+    <!-- ═══ SUMMARY BAR ═══ -->
+    <div class="summary-bar border-bottom px-3 py-2 d-flex gap-3 bg-white">
+      <div class="sum-card">
+        <div class="sum-label">{{ startDate ? 'Số dư đầu kỳ' : 'Tồn quỹ trước kỳ' }}</div>
+        <div class="sum-value text-secondary">{{ formatPrice(summary.dauKy) }}</div>
       </div>
-      <div class="card flex-fill border-0 shadow-sm rounded-0">
-        <div class="card-body d-flex align-items-center p-3">
-          <div
-            class="icon-box bg-primary text-white rounded-circle d-flex justify-content-center align-items-center me-3"
-            style="width: 50px; height: 50px"
-          >
-            <i class="bi bi-arrow-down-right fs-3"></i>
-          </div>
-          <div>
-            <h4 class="mb-0 fw-bold text-primary">
-              {{ formatPrice(summary.tongThu) }}
-            </h4>
-            <small
-              class="text-muted fw-bold text-uppercase"
-              style="font-size: 0.7rem"
-              >Tổng thu</small
-            >
-          </div>
-        </div>
+      <div class="sum-divider"></div>
+      <div class="sum-card">
+        <div class="sum-label">Tổng thu</div>
+        <div class="sum-value text-primary">+ {{ formatPrice(summary.tongThu) }}</div>
       </div>
-      <div class="card flex-fill border-0 shadow-sm rounded-0">
-        <div class="card-body d-flex align-items-center p-3">
-          <div
-            class="icon-box bg-success text-white rounded-circle d-flex justify-content-center align-items-center me-3"
-            style="width: 50px; height: 50px"
-          >
-            <i class="bi bi-arrow-up-left fs-3"></i>
-          </div>
-          <div>
-            <h4 class="mb-0 fw-bold text-success">
-              {{ formatPrice(summary.tongChi) }}
-            </h4>
-            <small
-              class="text-muted fw-bold text-uppercase"
-              style="font-size: 0.7rem"
-              >Tổng chi</small
-            >
-          </div>
-        </div>
+      <div class="sum-divider"></div>
+      <div class="sum-card">
+        <div class="sum-label">Tổng chi</div>
+        <div class="sum-value text-danger">- {{ formatPrice(summary.tongChi) }}</div>
       </div>
-      <div class="card flex-fill border-0 shadow-sm rounded-0">
-        <div class="card-body d-flex align-items-center p-3">
-          <div
-            class="icon-box bg-warning text-white rounded-circle d-flex justify-content-center align-items-center me-3"
-            style="width: 50px; height: 50px"
-          >
-            <i class="bi bi-currency-dollar fs-3"></i>
-          </div>
-          <div>
-            <h4 class="mb-0 fw-bold text-warning">
-              {{ formatPrice(summary.tonQuy) }}
-            </h4>
-            <small
-              class="text-muted fw-bold text-uppercase"
-              style="font-size: 0.7rem"
-              >Tồn quỹ</small
-            >
-          </div>
+      <div class="sum-divider"></div>
+      <div class="sum-card sum-card-main">
+        <div class="sum-label">Tồn quỹ cuối kỳ</div>
+        <div class="sum-value fw-bolder" :class="summary.tonQuy >= 0 ? 'text-success' : 'text-danger'">
+          {{ formatPrice(summary.tonQuy) }}
         </div>
       </div>
     </div>
 
+    <!-- ═══ MAIN ═══ -->
     <div class="d-flex flex-grow-1 overflow-hidden">
-      <div
-        class="sidebar-filter border-end bg-light p-0 d-flex flex-column overflow-auto"
-        style="width: 260px"
-      >
-        <div class="filter-group border-bottom">
-          <div class="filter-header bg-light text-danger fw-bold p-2 small">
-            <i class="bi bi-list-ul me-1"></i> TÌM KIẾM
+
+      <!-- ─── SIDEBAR ─── -->
+      <div class="sidebar border-end bg-light d-flex flex-column" style="width:230px;min-width:230px;overflow-y:auto">
+
+        <!-- Khoảng thời gian -->
+        <div class="sb-section">
+          <div class="sb-title">Khoảng thời gian</div>
+          <div class="d-flex flex-wrap gap-1 mb-2">
+            <button @click="setDateRange('all')"   :class="activePeriod==='all'   ? 'btn-secondary' : 'btn-outline-secondary'" class="btn btn-xs">Tất cả</button>
+            <button @click="setDateRange('today')" :class="activePeriod==='today' ? 'btn-secondary' : 'btn-outline-secondary'" class="btn btn-xs">Hôm nay</button>
+            <button @click="setDateRange('week')"  :class="activePeriod==='week'  ? 'btn-secondary' : 'btn-outline-secondary'" class="btn btn-xs">Tuần này</button>
+            <button @click="setDateRange('month')" :class="activePeriod==='month' ? 'btn-secondary' : 'btn-outline-secondary'" class="btn btn-xs">Tháng này</button>
           </div>
-          <div class="p-2">
-            <input
-              v-model="searchMa"
-              type="text"
-              class="form-control form-control-sm mb-2 shadow-none"
-              placeholder="Mã chứng từ"
-            />
-            <input
-              v-model="searchDoiTac"
-              type="text"
-              class="form-control form-control-sm mb-2 shadow-none"
-              placeholder="Tìm đối tác"
-            />
+          <div class="mb-1">
+            <label class="sb-label">Từ ngày</label>
+            <input v-model="startDate" @change="fetchTransactions" type="date" class="form-control form-control-sm shadow-none" />
+          </div>
+          <div>
+            <label class="sb-label">Đến ngày</label>
+            <input v-model="endDate" @change="fetchTransactions" type="date" class="form-control form-control-sm shadow-none" />
           </div>
         </div>
 
-        <div class="filter-group border-bottom">
-          <div
-            class="filter-header bg-light text-danger fw-bold p-2 small d-flex justify-content-between align-items-center"
-          >
-            <span><i class="bi bi-wallet2 me-1"></i> TÀI KHOẢN</span>
-            <div>
-              <i
-                class="bi bi-pencil-square text-warning me-1 cursor-pointer"
-              ></i
-              ><i class="bi bi-plus-square text-warning cursor-pointer"></i>
-            </div>
-          </div>
-          <div class="p-0">
-            <div
-              class="list-group list-group-flush small fw-bold text-secondary"
-            >
-              <button
-                @click="filterTaiKhoan = ''"
-                :class="{'active bg-light text-primary': filterTaiKhoan === ''}"
-                class="list-group-item list-group-item-action border-0"
-              >
-                Tất cả
-              </button>
-              <button 
-                @click="filterTaiKhoan = 'Tiền mặt'"
-                :class="{'active bg-light text-primary': filterTaiKhoan === 'Tiền mặt'}"
-                class="list-group-item list-group-item-action border-0"
-              >
-                TIỀN MẶT
-              </button>
-              <button 
-                @click="filterTaiKhoan = 'Chuyển khoản'"
-                :class="{'active bg-light text-primary': filterTaiKhoan === 'Chuyển khoản'}"
-                class="list-group-item list-group-item-action border-0"
-              >
-                CHUYỂN KHOẢN
-              </button>
-              <button 
-                @click="filterTaiKhoan = 'VNPAY-QR'"
-                :class="{'active bg-light text-primary': filterTaiKhoan === 'VNPAY-QR'}"
-                class="list-group-item list-group-item-action border-0"
-              >
-                VNPAY-QR
-              </button>
-            </div>
+        <!-- Tìm kiếm -->
+        <div class="sb-section">
+          <div class="sb-title">Tìm kiếm</div>
+          <input v-model="searchMa"     type="text" class="form-control form-control-sm mb-2 shadow-none" placeholder="Mã chứng từ" />
+          <input v-model="searchDoiTac" type="text" class="form-control form-control-sm shadow-none"       placeholder="Người nộp / nhận" />
+        </div>
+
+        <!-- Loại phiếu -->
+        <div class="sb-section">
+          <div class="sb-title">Loại phiếu</div>
+          <div class="d-flex flex-column gap-1">
+            <button @click="filterLoaiPhieu=''"    :class="filterLoaiPhieu===''    ? 'btn-secondary active' : 'btn-outline-secondary'" class="btn btn-sm text-start">Tất cả</button>
+            <button @click="filterLoaiPhieu='Thu'" :class="filterLoaiPhieu==='Thu' ? 'btn-primary'          : 'btn-outline-secondary'" class="btn btn-sm text-start">Phiếu Thu</button>
+            <button @click="filterLoaiPhieu='Chi'" :class="filterLoaiPhieu==='Chi' ? 'btn-danger'           : 'btn-outline-secondary'" class="btn btn-sm text-start">Phiếu Chi</button>
           </div>
         </div>
 
-        <div class="filter-group border-bottom">
-          <div class="filter-header bg-light text-danger fw-bold p-2 small">
-            <i class="bi bi-funnel me-1"></i> PHƯƠNG THỨC
-          </div>
-          <div class="p-2">
-            <div class="form-check mb-1">
-              <input
-                v-model="filterLoaiPhieu"
-                value=""
-                class="form-check-input"
-                type="radio"
-                name="pt"
-              /><label class="form-check-label small">Tất cả</label>
-            </div>
-            <div class="form-check mb-1">
-              <input 
-                v-model="filterLoaiPhieu"
-                value="Thu"
-                class="form-check-input" type="radio" name="pt" /><label
-                class="form-check-label small"
-                >Phiếu thu</label
-              >
-            </div>
-            <div class="form-check mb-1">
-              <input 
-                v-model="filterLoaiPhieu"
-                value="Chi"
-                class="form-check-input" type="radio" name="pt" /><label
-                class="form-check-label small"
-                >Phiếu chi</label
-              >
-            </div>
+        <!-- Phương thức -->
+        <div class="sb-section">
+          <div class="sb-title">Phương thức</div>
+          <div class="d-flex flex-column gap-1">
+            <button @click="filterTaiKhoan=''"              :class="filterTaiKhoan===''             ? 'btn-secondary' : 'btn-outline-secondary'" class="btn btn-sm text-start">Tất cả</button>
+            <button @click="filterTaiKhoan='Tiền mặt'"     :class="filterTaiKhoan==='Tiền mặt'    ? 'btn-secondary' : 'btn-outline-secondary'" class="btn btn-sm text-start">Tiền mặt</button>
+            <button @click="filterTaiKhoan='Chuyển khoản'" :class="filterTaiKhoan==='Chuyển khoản'? 'btn-secondary' : 'btn-outline-secondary'" class="btn btn-sm text-start">Chuyển khoản</button>
           </div>
         </div>
+
       </div>
 
-      <div class="main-content flex-grow-1 p-3 bg-white overflow-auto">
-        <div class="d-flex justify-content-end mb-2 gap-2">
-          <button @click="openTransactionModal('Chuyển khoản')" class="btn btn-warning text-white fw-bold btn-sm px-3">
-            <i class="bi bi-arrow-left-right me-1"></i> CHUYỂN KHOẢN
-          </button>
-          <button @click="openTransactionModal('Thu')" class="btn btn-warning text-white fw-bold btn-sm px-3">
-            <i class="bi bi-plus-circle me-1"></i> PHIẾU THU
-          </button>
-          <button @click="openTransactionModal('Chi')" class="btn btn-warning text-white fw-bold btn-sm px-3">
-            <i class="bi bi-dash-circle me-1"></i> PHIẾU CHI
-          </button>
+      <!-- ─── CONTENT ─── -->
+      <div class="flex-grow-1 d-flex flex-column overflow-hidden">
+
+        <!-- Toolbar -->
+        <div class="toolbar border-bottom px-3 py-2 d-flex justify-content-between align-items-center bg-white">
+          <div class="text-muted" style="font-size:0.83rem">
+            <span v-if="!startDate && !endDate">Toàn bộ lịch sử</span>
+            <span v-else>{{ startDate || '...' }} → {{ endDate || '...' }}</span>
+            &nbsp;—&nbsp;<strong>{{ filteredTransactions.length }}</strong> giao dịch
+          </div>
+          <div class="d-flex gap-2">
+            <button @click="openThuModal" class="btn btn-sm btn-primary px-3">
+              <i class="bi bi-plus me-1"></i>Phiếu Thu
+            </button>
+            <button @click="openChiModal" class="btn btn-sm btn-danger px-3">
+              <i class="bi bi-dash me-1"></i>Phiếu Chi
+            </button>
+          </div>
         </div>
 
-        <div class="table-responsive">
-          <table
-            class="table table-hover table-bordered align-middle"
-            style="font-size: 0.85rem"
-          >
-            <thead class="table-light text-muted align-middle">
+        <!-- Thông báo lỗi -->
+        <div v-if="errorMsg" class="alert alert-danger m-3 py-2 small mb-0">
+          <i class="bi bi-exclamation-triangle me-1"></i>{{ errorMsg }}
+        </div>
+
+        <!-- Table -->
+        <div class="flex-grow-1 overflow-auto p-3">
+          <table class="table table-hover table-bordered align-middle mb-0" style="font-size:0.84rem">
+            <thead class="table-light">
               <tr>
-                <th class="text-center" style="width: 40px"></th>
-                <th>Mã chứng từ</th>
+                <th style="width:32px"></th>
+                <th style="width:145px">Mã chứng từ</th>
                 <th>Người nộp/nhận</th>
-                <th>Hạng mục Thu/Chi</th>
-                <th>Lý do</th>
-                <th class="text-center">Ngày giao dịch</th>
-                <th class="text-end">Giá trị</th>
+                <th style="width:190px">Hạng mục</th>
+                <th>Diễn giải</th>
+                <th style="width:120px" class="text-center">Ngày GD</th>
+                <th style="width:135px" class="text-end">Giá trị (₫)</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-if="loading" class="text-center">
-                <td colspan="7" class="py-4">
-                  <div
-                    class="spinner-border text-danger spinner-border-sm"
-                  ></div>
+              <tr v-if="loading">
+                <td colspan="7" class="text-center py-4 text-muted">
+                  <span class="spinner-border spinner-border-sm me-2"></span>Đang tải dữ liệu...
                 </td>
               </tr>
-              <tr v-else-if="filteredTransactions.length === 0" class="text-center">
-                <td colspan="7" class="py-4 text-muted">
-                  Không tìm thấy giao dịch thu chi nào.
+              <tr v-else-if="filteredTransactions.length === 0 && !errorMsg">
+                <td colspan="7" class="text-center py-5 text-muted">
+                  <div class="mb-1">Không có giao dịch nào</div>
+                  <div class="small" v-if="startDate || endDate">
+                    Thử chọn "<strong>Tất cả</strong>" để xem toàn bộ lịch sử.
+                  </div>
                 </td>
               </tr>
 
               <template v-else v-for="t in filteredTransactions" :key="t.id">
-                <tr class="cursor-pointer" @click="toggleDetail(t.id)">
+                <!-- ROW CHÍNH -->
+                <tr @click="toggleDetail(t.id)" style="cursor:pointer">
                   <td class="text-center text-muted">
-                    <i
-                      class="bi"
-                      :class="
-                        expandedRowId === t.id
-                          ? 'bi-caret-down-fill text-danger'
-                          : 'bi-caret-right-fill'
-                      "
-                    ></i>
+                    <i class="bi" :class="expandedRowId===t.id ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
                   </td>
                   <td>
-                    <div class="fw-bold text-dark">{{ t.maChungTu }}</div>
-                    <div
-                      class="small fw-bold"
-                      :class="
-                        t.loaiPhieu === 'Thu' ? 'text-danger' : 'text-success'
-                      "
-                    >
-                      {{ t.phuongThuc }}
-                    </div>
+                    <div class="fw-semibold" style="font-size:0.82rem">{{ t.maChungTu }}</div>
+                    <span class="badge mt-1" style="font-size:0.68rem"
+                      :class="t.loaiPhieu==='Thu' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-danger bg-opacity-10 text-danger'">
+                      {{ t.loaiPhieu==='Thu' ? 'Phiếu Thu' : 'Phiếu Chi' }}
+                    </span>
                   </td>
-                  <td>{{ t.nguoiNopNhan || "---" }}</td>
-                  <td>{{ t.hangMuc }}</td>
-                  <td class="text-truncate" style="max-width: 250px">
-                    {{ t.lyDo }}
-                  </td>
-                  <td class="text-center">{{ formatDate(t.ngayGiaoDich) }}</td>
-                  <td class="text-end fw-bold text-dark">
-                    {{ formatPrice(t.giaTri) }}
+                  <td class="fw-semibold">{{ t.nguoiNopNhan || '—' }}</td>
+                  <td class="text-muted" style="font-size:0.82rem">{{ t.hangMuc }}</td>
+                  <td class="text-muted text-truncate" style="max-width:220px;font-size:0.82rem">{{ t.lyDo || '—' }}</td>
+                  <td class="text-center" style="font-size:0.82rem">{{ formatDate(t.ngayGiaoDich) }}</td>
+                  <td class="text-end fw-bold" :class="t.loaiPhieu==='Thu' ? 'text-primary' : 'text-danger'">
+                    {{ t.loaiPhieu==='Thu' ? '+' : '-' }}{{ formatPrice(t.giaTri) }}
                   </td>
                 </tr>
 
-                <tr v-if="expandedRowId === t.id" class="bg-light detail-row">
+                <!-- ROW CHI TIẾT -->
+                <tr v-if="expandedRowId === t.id">
                   <td colspan="7" class="p-0">
-                    <div class="p-3 border-start border-danger border-4">
-                      <ul
-                        class="nav nav-tabs mb-3"
-                        style="border-bottom: 2px solid #dc3545"
-                      >
-                        <li class="nav-item">
-                          <a
-                            class="nav-link active fw-bold text-danger border-danger border-bottom-0 py-1"
-                            >Chi tiết</a
-                          >
-                        </li>
-                      </ul>
-                      <div class="row g-3 bg-white p-3 border mb-2">
-                        <div class="col-md-6">
-                          <div class="d-flex mb-2">
-                            <div class="fw-bold w-25">Mã chứng từ</div>
-                            <div>{{ t.maChungTu }}</div>
-                          </div>
-                          <div class="d-flex mb-2">
-                            <div class="fw-bold w-25">Người nộp/nhận</div>
-                            <div>{{ t.nguoiNopNhan || "---" }}</div>
-                          </div>
-                          <div class="d-flex mb-2 align-items-center">
-                            <div class="fw-bold w-25">Giá trị</div>
-                            <div>
-                              <span class="badge bg-primary px-3 py-2 fs-6">{{
-                                formatPrice(t.giaTri)
-                              }}</span>
+                    <div class="detail-panel border-start border-4 p-3 bg-light"
+                      :class="t.loaiPhieu==='Thu' ? 'border-primary' : 'border-danger'">
+                      <div class="row g-0">
+                        <div class="col-md-5">
+                          <table class="detail-table">
+                            <tr><td>Mã chứng từ</td><td class="fw-semibold">{{ t.maChungTu }}</td></tr>
+                            <tr><td>Loại phiếu</td>
+                              <td><span class="badge" :class="t.loaiPhieu==='Thu' ? 'bg-primary' : 'bg-danger'">Phiếu {{ t.loaiPhieu }}</span></td>
+                            </tr>
+                            <tr><td>Hạng mục</td><td>{{ t.hangMuc }}</td></tr>
+                            <tr><td>Người nộp/nhận</td><td>{{ t.nguoiNopNhan || '—' }}</td></tr>
+                          </table>
+                        </div>
+                        <div class="col-md-4">
+                          <table class="detail-table">
+                            <tr><td>Phương thức</td><td>{{ t.phuongThuc }}</td></tr>
+                            <tr><td>Ngày giao dịch</td><td>{{ formatDateFull(t.ngayGiaoDich) }}</td></tr>
+                            <tr><td>Người tạo</td><td>{{ t.nguoiTao }}</td></tr>
+                          </table>
+                        </div>
+                        <div class="col-md-3 d-flex flex-column align-items-end justify-content-between ps-2">
+                          <div class="text-end">
+                            <div class="text-muted small mb-1">Giá trị</div>
+                            <div class="fs-5 fw-bold" :class="t.loaiPhieu==='Thu' ? 'text-primary' : 'text-danger'">
+                              {{ t.loaiPhieu==='Thu' ? '+' : '-' }}{{ formatPrice(t.giaTri) }} ₫
                             </div>
                           </div>
-                          <div class="d-flex mb-2">
-                            <div class="fw-bold w-25">Người sửa</div>
-                            <div></div>
-                          </div>
-                          <div class="d-flex mb-2">
-                            <div class="fw-bold w-25">Lý do</div>
-                            <div class="w-75">{{ t.lyDo }}</div>
-                          </div>
+                          <button class="btn btn-sm btn-outline-secondary mt-2">
+                            <i class="bi bi-printer me-1"></i>In phiếu
+                          </button>
                         </div>
-                        <div class="col-md-6">
-                          <div class="d-flex mb-2">
-                            <div class="fw-bold w-25">Phương thức</div>
-                            <div>Phiếu {{ t.loaiPhieu.toLowerCase() }}</div>
-                          </div>
-                          <div class="d-flex mb-2">
-                            <div class="fw-bold w-25">Ngày giao dịch</div>
-                            <div>{{ formatDate(t.ngayGiaoDich) }}</div>
-                          </div>
-                          <div class="d-flex mb-2">
-                            <div class="fw-bold w-25">Người tạo</div>
-                            <div>{{ t.nguoiTao }}</div>
-                          </div>
-                          <div class="d-flex mb-2">
-                            <div class="fw-bold w-25">Ngày sửa</div>
-                            <div></div>
-                          </div>
-                          <div class="d-flex mb-2">
-                            <div class="fw-bold w-25">Hạng mục Thu/Chi</div>
-                            <div>{{ t.hangMuc }}</div>
-                          </div>
+                        <div class="col-12 mt-2 border-top pt-2" v-if="t.lyDo">
+                          <span class="text-muted small me-1">Diễn giải:</span>
+                          <span class="small">{{ t.lyDo }}</span>
                         </div>
-                      </div>
-                      <div class="d-flex justify-content-end">
-                        <button class="btn btn-warning text-white fw-bold">
-                          <i class="bi bi-printer"></i> In
-                        </button>
                       </div>
                     </div>
                   </td>
@@ -351,51 +208,117 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed, inject } from "vue";
+import { ref, computed, onMounted, watch, inject } from "vue";
 import axios from "axios";
 import { globalState } from "../store";
 
 const swal = inject("$swal");
-const transactions = ref([]);
-const summary = ref({ dauKy: 0, tongThu: 0, tongChi: 0, tonQuy: 0 });
-const loading = ref(false);
-const expandedRowId = ref(null);
 
-const searchMa = ref("");
-const searchDoiTac = ref("");
-const filterTaiKhoan = ref("");
+// ─── State ───────────────────────────────────────────────────────
+const transactions    = ref([]);
+const summary         = ref({ dauKy: 0, tongThu: 0, tongChi: 0, tonQuy: 0 });
+const loading         = ref(false);
+const errorMsg        = ref("");
+const expandedRowId   = ref(null);
+
+// Filters
+const searchMa        = ref("");
+const searchDoiTac    = ref("");
 const filterLoaiPhieu = ref("");
+const filterTaiKhoan  = ref("");
 
-const filteredTransactions = computed(() => {
-  return transactions.value.filter((t) => {
-    if (searchMa.value && !t.maChungTu?.toLowerCase().includes(searchMa.value.toLowerCase())) return false;
-    if (searchDoiTac.value && !t.nguoiNopNhan?.toLowerCase().includes(searchDoiTac.value.toLowerCase())) return false;
-    if (filterTaiKhoan.value && t.phuongThuc !== filterTaiKhoan.value) return false;
-    if (filterLoaiPhieu.value && t.loaiPhieu !== filterLoaiPhieu.value) return false;
-    return true;
-  });
-});
+// Date range
+const startDate       = ref("");
+const endDate         = ref("");
+const activePeriod    = ref("all");
 
+// ─── Date quick-select ───────────────────────────────────────────
+const fmt = (d) => d.toISOString().split("T")[0];
 
-const formatPrice = (price) =>
-  new Intl.NumberFormat("vi-VN").format(price || 0);
-const formatDate = (dateString) => {
-  const d = new Date(dateString);
-  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+const setDateRange = (range) => {
+  activePeriod.value = range;
+  const now = new Date();
+  if (range === "all") {
+    startDate.value = "";
+    endDate.value   = "";
+  } else if (range === "today") {
+    startDate.value = fmt(now);
+    endDate.value   = fmt(now);
+  } else if (range === "week") {
+    const day = now.getDay() || 7;
+    const mon = new Date(now);
+    mon.setDate(now.getDate() - day + 1);
+    startDate.value = fmt(mon);
+    endDate.value   = fmt(now);
+  } else if (range === "month") {
+    startDate.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-01`;
+    endDate.value   = fmt(now);
+  }
+  fetchTransactions();
 };
 
+// ─── Client-side filter ──────────────────────────────────────────
+const filteredTransactions = computed(() =>
+  transactions.value.filter((t) => {
+    if (searchMa.value     && !t.maChungTu?.toLowerCase().includes(searchMa.value.toLowerCase()))     return false;
+    if (searchDoiTac.value && !t.nguoiNopNhan?.toLowerCase().includes(searchDoiTac.value.toLowerCase())) return false;
+    if (filterLoaiPhieu.value && t.loaiPhieu  !== filterLoaiPhieu.value) return false;
+    if (filterTaiKhoan.value  && t.phuongThuc !== filterTaiKhoan.value)  return false;
+    return true;
+  })
+);
+
+// ─── Formatters ──────────────────────────────────────────────────
+const formatPrice    = (v) => new Intl.NumberFormat("vi-VN").format(v || 0);
+const formatDate     = (s) => {
+  if (!s) return "—";
+  const d = new Date(s);
+  return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`;
+};
+const formatDateFull = (s) => {
+  if (!s) return "—";
+  const d = new Date(s);
+  return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+};
+const todayStr = () => new Date().toISOString().split("T")[0];
+
+// ─── API ─────────────────────────────────────────────────────────
 const fetchTransactions = async () => {
-  loading.value = true;
+  loading.value  = true;
+  errorMsg.value = "";
   try {
-    const res = await axios.get(
-      `/api/ThuChi/danh-sach?chiNhanhId=${globalState.value.activeBranchId || 0}`,
-    );
-    transactions.value = res.data.danhSach;
-    summary.value = res.data.thongKe;
+    // Luôn dùng chiNhanhId=0 để lấy TẤT CẢ giao dịch của cửa hàng
+    // (không lọc theo chi nhánh vì Sổ Quỹ là tổng quan toàn store)
+    let url = `/api/ThuChi/danh-sach?chiNhanhId=0`;
+    if (startDate.value) url += `&startDate=${startDate.value}`;
+    if (endDate.value)   url += `&endDate=${endDate.value}`;
+
+    const res = await axios.get(url);
+    transactions.value = res.data.danhSach ?? [];
+    summary.value      = res.data.thongKe  ?? { dauKy: 0, tongThu: 0, tongChi: 0, tonQuy: 0 };
   } catch (e) {
-    console.error(e);
+    console.error("Lỗi tải sổ quỹ:", e);
+    if (e.response?.status === 403) {
+      errorMsg.value = "Bạn không có quyền xem Sổ Quỹ. Chỉ Chủ cửa hàng hoặc Admin mới được phép.";
+    } else if (e.response?.status === 401) {
+      errorMsg.value = "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.";
+    } else {
+      errorMsg.value = "Không thể tải dữ liệu. Vui lòng thử lại (F5) hoặc kiểm tra server.";
+    }
+    transactions.value = [];
   } finally {
     loading.value = false;
+  }
+};
+
+const submitPhieu = async (payload) => {
+  try {
+    await axios.post("/api/ThuChi", payload);
+    await swal.fire({ icon: "success", title: "Lưu thành công!", timer: 1200, showConfirmButton: false });
+    fetchTransactions();
+  } catch (e) {
+    const msg = typeof e.response?.data === "string" ? e.response.data : "Không thể tạo phiếu.";
+    swal.fire("Lỗi", msg, "error");
   }
 };
 
@@ -403,90 +326,142 @@ const toggleDetail = (id) => {
   expandedRowId.value = expandedRowId.value === id ? null : id;
 };
 
-const openTransactionModal = async (type) => {
-  const isTransfer = type === 'Chuyển khoản';
-  const title = isTransfer ? 'Chuyển Khoản' : `Tạo Phiếu ${type === 'Thu' ? 'Thu' : 'Chi'}`;
-  
-  const { value: formValues } = await swal.fire({
-    title: title,
-    html: `
-      <div class="text-start">
-        <label class="form-label small fw-bold mb-1">Người nộp/nhận ${isTransfer ? '(Tùy chọn)' : '*'}</label>
-        <input id="swal-nguoi" class="form-control mb-2" placeholder="Ví dụ: Nguyễn Văn A">
-        <label class="form-label small fw-bold mb-1">Giá trị (VNĐ) *</label>
-        <input id="swal-giatri" type="number" class="form-control mb-2" placeholder="VD: 500000">
-        <label class="form-label small fw-bold mb-1">Phương thức *</label>
-        <select id="swal-phuongthuc" class="form-select mb-2">
-          <option value="Tiền mặt">Tiền mặt</option>
-          <option value="Chuyển khoản" ${isTransfer ? 'selected' : ''}>Chuyển khoản</option>
-          <option value="VNPAY-QR">VNPAY-QR</option>
-        </select>
-        <label class="form-label small fw-bold mb-1">Lý do</label>
-        <textarea id="swal-lydo" class="form-control" rows="2" placeholder="Ghi chú thêm..."></textarea>
+// ─── Modal template ───────────────────────────────────────────────
+const formHtml = (type) => {
+  const isThu = type === "Thu";
+  const hangMucOptions = isThu
+    ? `<option value="Thu tiền bán hàng">Thu tiền bán hàng</option>
+       <option value="Thu nợ khách hàng">Thu nợ khách hàng</option>
+       <option value="Thu hoa hồng">Thu hoa hồng</option>
+       <option value="Thu vốn góp">Thu vốn góp / Chủ bỏ tiền vào</option>
+       <option value="Thu khác" selected>Thu khác</option>`
+    : `<option value="Chi trả tiền nhập hàng">Chi trả tiền nhập hàng</option>
+       <option value="Chi lương nhân viên">Chi lương nhân viên</option>
+       <option value="Chi thuê mặt bằng">Chi thuê mặt bằng</option>
+       <option value="Chi điện / nước">Chi điện / nước</option>
+       <option value="Chi vận hành">Chi vận hành khác</option>
+       <option value="Chi quảng cáo">Chi quảng cáo / marketing</option>
+       <option value="Chi khác" selected>Chi khác</option>`;
+
+  return `
+    <div class="text-start" style="font-size:0.9rem">
+      <div class="mb-2">
+        <label class="form-label fw-semibold mb-1">Hạng mục ${isThu ? "thu" : "chi"} <span class="text-danger">*</span></label>
+        <select id="f-hangmuc" class="form-select form-select-sm">${hangMucOptions}</select>
       </div>
-    `,
+      <div class="mb-2">
+        <label class="form-label fw-semibold mb-1">${isThu ? "Người nộp" : "Người nhận"} <span class="text-danger">*</span></label>
+        <input id="f-nguoi" class="form-control form-control-sm" placeholder="Nhập tên người ${isThu ? "nộp" : "nhận"} tiền">
+      </div>
+      <div class="row g-2 mb-2">
+        <div class="col-7">
+          <label class="form-label fw-semibold mb-1">Số tiền (VNĐ) <span class="text-danger">*</span></label>
+          <input id="f-giatri" type="number" class="form-control form-control-sm" placeholder="0" min="1">
+        </div>
+        <div class="col-5">
+          <label class="form-label fw-semibold mb-1">Phương thức</label>
+          <select id="f-phuongthuc" class="form-select form-select-sm">
+            <option value="Tiền mặt">Tiền mặt</option>
+            <option value="Chuyển khoản">Chuyển khoản</option>
+          </select>
+        </div>
+      </div>
+      <div class="mb-2">
+        <label class="form-label fw-semibold mb-1">Ngày giao dịch</label>
+        <input id="f-ngay" type="date" class="form-control form-control-sm">
+      </div>
+      <div>
+        <label class="form-label fw-semibold mb-1">Diễn giải / Ghi chú</label>
+        <textarea id="f-lydo" class="form-control form-control-sm" rows="2" placeholder="${isThu ? "Ví dụ: Thu hộ tiền dịch vụ tháng 4..." : "Ví dụ: Thanh toán lương tháng 4..."}"></textarea>
+      </div>
+    </div>`;
+};
+
+// ─── Phiếu Thu ───────────────────────────────────────────────────
+const openThuModal = async () => {
+  const { value: form } = await swal.fire({
+    title: "Tạo Phiếu Thu",
+    width: 500,
+    html: formHtml("Thu"),
     showCancelButton: true,
     cancelButtonText: "Hủy",
     confirmButtonText: "Xác nhận",
+    confirmButtonColor: "#0d6efd",
+    didOpen: () => { document.getElementById("f-ngay").value = todayStr(); },
     preConfirm: () => {
-      const nguoiNopNhan = document.getElementById('swal-nguoi').value;
-      const giaTri = document.getElementById('swal-giatri').value;
-      const phuongThuc = document.getElementById('swal-phuongthuc').value;
-      const lyDo = document.getElementById('swal-lydo').value;
-
-      if (!giaTri || giaTri <= 0) {
-        swal.showValidationMessage("Giá trị phải lớn hơn 0");
-        return false;
-      }
-      if (!isTransfer && !nguoiNopNhan.trim()) {
-        swal.showValidationMessage("Vui lòng nhập người nộp/nhận");
-        return false;
-      }
-      return {
-        loaiPhieu: isTransfer ? 'Chi' : type,
-        phuongThuc,
-        nguoiNopNhan,
-        giaTri: parseFloat(giaTri),
-        lyDo,
-        hangMuc: isTransfer ? 'Chuyển khoản' : (type === 'Thu' ? 'Thu khác' : 'Chi khác'),
-        chiNhanhId: globalState.value.activeBranchId || 0
-      };
-    }
+      const hangMuc      = document.getElementById("f-hangmuc").value;
+      const nguoiNopNhan = document.getElementById("f-nguoi").value.trim();
+      const giatri       = parseFloat(document.getElementById("f-giatri").value);
+      const phuongThuc   = document.getElementById("f-phuongthuc").value;
+      const ngay         = document.getElementById("f-ngay").value;
+      const lyDo         = document.getElementById("f-lydo").value.trim();
+      if (!nguoiNopNhan)          { swal.showValidationMessage("Vui lòng nhập tên người nộp"); return false; }
+      if (!giatri || giatri <= 0) { swal.showValidationMessage("Số tiền phải lớn hơn 0");      return false; }
+      return { loaiPhieu: "Thu", hangMuc, nguoiNopNhan, giaTri: giatri, phuongThuc, ngayGiaoDich: ngay || todayStr(), lyDo, chiNhanhId: 0 };
+    },
   });
-
-  if (formValues) {
-    try {
-      // Send directly to the new POST endpoint API
-      await axios.post('/api/ThuChi', formValues);
-      swal.fire({
-        icon: 'success',
-        title: 'Thành công!',
-        timer: 1500,
-        showConfirmButton: false
-      });
-      fetchTransactions();
-    } catch (e) {
-      swal.fire("Lỗi", e.response?.data || "Không thể tạo phiếu", "error");
-    }
-  }
+  if (form) await submitPhieu(form);
 };
 
+// ─── Phiếu Chi ───────────────────────────────────────────────────
+const openChiModal = async () => {
+  const { value: form } = await swal.fire({
+    title: "Tạo Phiếu Chi",
+    width: 500,
+    html: formHtml("Chi"),
+    showCancelButton: true,
+    cancelButtonText: "Hủy",
+    confirmButtonText: "Xác nhận",
+    confirmButtonColor: "#dc3545",
+    didOpen: () => { document.getElementById("f-ngay").value = todayStr(); },
+    preConfirm: () => {
+      const hangMuc      = document.getElementById("f-hangmuc").value;
+      const nguoiNopNhan = document.getElementById("f-nguoi").value.trim();
+      const giatri       = parseFloat(document.getElementById("f-giatri").value);
+      const phuongThuc   = document.getElementById("f-phuongthuc").value;
+      const ngay         = document.getElementById("f-ngay").value;
+      const lyDo         = document.getElementById("f-lydo").value.trim();
+      if (!nguoiNopNhan)          { swal.showValidationMessage("Vui lòng nhập tên người nhận"); return false; }
+      if (!giatri || giatri <= 0) { swal.showValidationMessage("Số tiền phải lớn hơn 0");       return false; }
+      return { loaiPhieu: "Chi", hangMuc, nguoiNopNhan, giaTri: giatri, phuongThuc, ngayGiaoDich: ngay || todayStr(), lyDo, chiNhanhId: 0 };
+    },
+  });
+  if (form) await submitPhieu(form);
+};
+
+// ─── Lifecycle ────────────────────────────────────────────────────
 watch(() => globalState.value.activeBranchId, fetchTransactions);
 onMounted(fetchTransactions);
 </script>
 
 <style scoped>
-.filter-header {
-  border-left: 3px solid #f37021;
+/* Summary bar */
+.summary-bar   { flex-shrink: 0; }
+.sum-card      { display: flex; flex-direction: column; padding: 6px 20px; }
+.sum-card-main { background: #f8f9fa; border-radius: 4px; }
+.sum-label     { font-size: 0.71rem; color: #6c757d; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 1px; }
+.sum-value     { font-size: 1.1rem; font-weight: 700; }
+.sum-divider   { width: 1px; background: #dee2e6; margin: 4px 4px; flex-shrink: 0; }
+
+/* Sidebar */
+.sidebar       { flex-shrink: 0; }
+.sb-section    { padding: 10px 12px; border-bottom: 1px solid #e9ecef; }
+.sb-title      { font-size: 0.71rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #495057; margin-bottom: 7px; }
+.sb-label      { font-size: 0.78rem; color: #6c757d; display: block; margin-bottom: 2px; }
+.btn-xs        { font-size: 0.74rem; padding: 2px 7px; border-radius: 3px; }
+
+/* Toolbar */
+.toolbar { flex-shrink: 0; }
+
+/* Detail panel */
+.detail-panel {
+  animation: slideDown 0.12s ease;
 }
-.list-group-item.active {
-  background-color: #f8f9fa !important;
-  border-left: 3px solid #0d6efd !important;
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.cursor-pointer {
-  cursor: pointer;
-}
-.detail-row td {
-  box-shadow: inset 0 3px 6px -3px rgba(0, 0, 0, 0.2);
-}
+.detail-table              { width: 100%; font-size: 0.82rem; border-collapse: collapse; }
+.detail-table td           { padding: 3px 8px 3px 0; vertical-align: top; }
+.detail-table td:first-child { color: #6c757d; font-weight: 600; white-space: nowrap; width: 44%; }
 </style>
