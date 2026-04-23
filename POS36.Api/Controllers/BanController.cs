@@ -177,9 +177,10 @@ namespace POS36.Api.Controllers
         [HttpGet("danh-sach-pos")]
         public async Task<IActionResult> GetDanhSachPos([FromQuery] int chiNhanhId)
         {
+            int cuaHangId = GetCuaHangId();
             var bans = await _context.Bans
                 .Include(b => b.KhuVuc)
-                .Where(b => b.KhuVuc!.ChiNhanhId == chiNhanhId && b.TrangThai != TrangThaiAn)
+                .Where(b => b.KhuVuc!.ChiNhanhId == chiNhanhId && b.CuaHangId == cuaHangId && b.TrangThai != TrangThaiAn)
                 .Select(b => new
                 {
                     b.Id,
