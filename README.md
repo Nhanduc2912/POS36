@@ -7,7 +7,7 @@
  ██╔═══╝ ██║   ██║ ╚═══██╗  ╚═══██╗ ██╔═══██╗
  ██║     ╚██████╔╝██████╔╝ ██████╔╝ ╚██████╔╝
  ╚═╝      ╚═════╝ ╚═════╝  ╚═════╝   ╚═════╝
-```
+```eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 
 # 🍽️ POS36 — Hệ Thống Quản Lý Bán Hàng F&B
 
