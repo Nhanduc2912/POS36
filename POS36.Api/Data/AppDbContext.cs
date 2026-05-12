@@ -40,6 +40,12 @@ namespace POS36.Api.Data
         // 6. Phân hệ Sổ Quỹ (Thu Chi)
         public DbSet<PhieuThuChi> PhieuThuChis { get; set; }
         public DbSet<ThietLap> ThietLaps { get; set; }
+
+        // 7. Phân hệ SaaS (Cho thuê phần mềm)
+        public DbSet<GoiDichVu> GoiDichVus { get; set; }
+        public DbSet<LichSuDangKy> LichSuDangKys { get; set; }
+        public DbSet<LuotTruyCap> LuotTruyCaps { get; set; }
+        public DbSet<ThongBaoHeThong> ThongBaoHeThongs { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

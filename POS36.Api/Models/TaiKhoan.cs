@@ -13,6 +13,13 @@ namespace POS36.Api.Models
         public string MatKhauHash { get; set; } = string.Empty;
         public string VaiTro { get; set; } = string.Empty; 
 
+        // === SaaS: Thông tin liên lạc trực tiếp (không phụ thuộc bảng NhanVien) ===
+        public string Email { get; set; } = string.Empty;
+        public string SoDienThoai { get; set; } = string.Empty;
+        public DateTime NgayTao { get; set; } = DateTime.Now;
+        public bool IsActive { get; set; } = true;
+        public DateTime? LanDangNhapCuoi { get; set; }
+
         public CuaHang? CuaHang { get; set; }
         public ChiNhanh? ChiNhanh { get; set; }
         public NhanVien? NhanVien { get; set; } // Navigation
