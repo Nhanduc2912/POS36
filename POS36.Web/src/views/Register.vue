@@ -35,7 +35,7 @@ const validateForm = () => {
     isValid = false;
   }
 
-  // VALIDATE EMAIL
+  // KIỂM TRA TÍNH HỢP LỆ EMAIL
   if (!form.value.email.trim()) {
     errors.value.email = "Vui lòng nhập Email!";
     isValid = false;

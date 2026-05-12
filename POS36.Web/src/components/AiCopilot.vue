@@ -27,9 +27,9 @@
         <div class="d-flex align-items-center">
           <i class="bi bi-robot fs-4 me-2"></i>
           <div>
-            <h6 class="mb-0 fw-bold">POS36 Copilot</h6>
+            <h6 class="mb-0 fw-bold">POS36 AI</h6>
             <small class="opacity-75" style="font-size: 0.75rem"
-              >Powered by AI</small
+              >Powered by Google AI Studio</small
             >
           </div>
         </div>

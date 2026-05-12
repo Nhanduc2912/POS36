@@ -166,7 +166,7 @@ const currentBranchName = computed(() => {
   return branch ? branch.tenChiNhanh : "Chưa có";
 });
 
-// --- LOAD DATA ---
+// --- TẢI DỮ LIỆU ---
 const fetchAreas = async () => {
   if (!globalState.value.activeBranchId) {
     areas.value = [];
