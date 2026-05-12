@@ -37,12 +37,15 @@ namespace POS36.Api.Controllers
                 return BadRequest("Tên đăng nhập đã tồn tại!");
             }
 
-            // Tạo Cửa hàng
+            // Tạo Cửa hàng (SaaS: 7 ngày dùng thử)
             var newCuaHang = new CuaHang
             {
                 TenCuaHang = request.TenCuaHang,
                 SoDienThoai = request.SoDienThoai,
-                NgayDangKy = DateTime.Now
+                Email = request.Email,
+                NgayDangKy = DateTime.Now,
+                TrangThai = "DungThu",
+                NgayHetHan = DateTime.Now.AddDays(7)
             };
             _context.CuaHangs.Add(newCuaHang);
             await _context.SaveChangesAsync();
@@ -79,14 +82,17 @@ namespace POS36.Api.Controllers
             _context.NhanViens.Add(newNhanVien);
             await _context.SaveChangesAsync();
 
-            // Tạo Tài khoản liên kết với Nhân viên
+            // Tạo Tài khoản liên kết với Nhân viên (SaaS: lưu Email + SĐT trực tiếp)
             var newTaiKhoan = new TaiKhoan
             {
                 CuaHangId = newCuaHang.Id,
                 NhanVienId = newNhanVien.Id,
                 TenDangNhap = request.TenDangNhap,
                 MatKhauHash = BCrypt.Net.BCrypt.HashPassword(request.MatKhau),
-                VaiTro = "ChuCuaHang"
+                VaiTro = "ChuCuaHang",
+                Email = request.Email,
+                SoDienThoai = request.SoDienThoai,
+                NgayTao = DateTime.Now
             };
             _context.TaiKhoans.Add(newTaiKhoan);
             await _context.SaveChangesAsync();
@@ -106,6 +112,27 @@ namespace POS36.Api.Controllers
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.MatKhau, user.MatKhauHash))
             {
                 return BadRequest("Sai tên đăng nhập hoặc mật khẩu!");
+            }
+
+            // === SaaS: Kiểm tra tài khoản có bị khóa không ===
+            if (!user.IsActive)
+            {
+                return BadRequest(new { message = "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên!" });
+            }
+
+            // === SaaS: Kiểm tra trạng thái cửa hàng (bỏ qua nếu là SuperAdmin) ===
+            string storeTrangThai = "HoatDong";
+            if (user.VaiTro != "SuperAdmin")
+            {
+                var cuaHang = await _context.CuaHangs.FindAsync(user.CuaHangId);
+                if (cuaHang != null)
+                {
+                    storeTrangThai = cuaHang.TrangThai;
+                    if (cuaHang.TrangThai == "BiKhoa")
+                    {
+                        return BadRequest(new { message = "Cửa hàng của bạn đã bị khóa do không gia hạn gói dịch vụ. Vui lòng liên hệ hỗ trợ!" });
+                    }
+                }
             }
 
             var claims = new List<Claim>
@@ -132,10 +159,14 @@ namespace POS36.Api.Controllers
                 signingCredentials: creds
             );
 
+            // Cập nhật lần đăng nhập cuối
+            user.LanDangNhapCuoi = DateTime.Now;
+            await _context.SaveChangesAsync();
+
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);
             Log.Information("👤 Tài khoản {TenDangNhap} vừa ĐĂNG NHẬP thành công.", request.TenDangNhap);
 
-            return Ok(new { token = jwt, role = user.VaiTro });
+            return Ok(new { token = jwt, role = user.VaiTro, storeTrangThai });
         }
 
         // ==========================================

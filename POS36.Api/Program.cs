@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using POS36.Api.Data;
+using POS36.Api.Services;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -86,6 +87,7 @@ namespace POS36.Api
 
                 builder.Services.AddControllers();
                 builder.Services.AddSignalR();
+                builder.Services.AddHostedService<SubscriptionBackgroundService>();
                 builder.Services.AddEndpointsApiExplorer();
                 builder.Services.AddSwaggerGen(c =>
                 {
@@ -113,9 +115,10 @@ namespace POS36.Api
 
                 builder.Services.AddCors(options =>
                 {
-                    options.AddPolicy("AllowVueApp", builder =>
+                    options.AddPolicy("AllowVueApp", policy =>
                     {
-                        builder.WithOrigins("http://localhost:5173", "http://127.0.0.1:5173").AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+                        policy.WithOrigins("http://localhost:5173", "http://localhost:5174", "http://127.0.0.1:5173", "http://127.0.0.1:5174")
+                            .AllowAnyHeader().AllowAnyMethod().AllowCredentials();
                     });
                 });
 
