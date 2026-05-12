@@ -1,9 +1,12 @@
 <script setup>
-import { onMounted, ref } from "vue";
+import { onMounted, ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 import { globalState } from "../store";
 import AiCopilot from "../components/AiCopilot.vue";
+
+const storeTrangThai = ref(localStorage.getItem("pos36_storeTrangThai") || "HoatDong");
+const soNgayConLai = ref(999);
 
 const router = useRouter();
 
@@ -71,6 +74,39 @@ onMounted(() => {
   if (savedTheme) {
     currentTheme.value = savedTheme;
   }
+
+  // SaaS: Load trạng thái gói dịch vụ
+  loadSubscriptionStatus();
+});
+
+const loadSubscriptionStatus = async () => {
+  try {
+    const res = await axios.get("/api/Subscription/my-plan");
+    storeTrangThai.value = res.data.trangThai;
+    soNgayConLai.value = res.data.soNgayConLai;
+    localStorage.setItem("pos36_storeTrangThai", res.data.trangThai);
+  } catch (e) {
+    // Ignore
+  }
+};
+
+const showBanner = computed(() => {
+  return storeTrangThai.value === "DungThu" ||
+         storeTrangThai.value === "ChiDoc" ||
+         (storeTrangThai.value === "HoatDong" && soNgayConLai.value <= 7);
+});
+
+const bannerInfo = computed(() => {
+  if (storeTrangThai.value === "ChiDoc") {
+    return { text: "⚠️ Gói dịch vụ đã hết hạn! Hệ thống đang ở chế độ CHỈ ĐỌC. Vui lòng gia hạn để tiếp tục sử dụng.", cls: "banner-danger" };
+  }
+  if (storeTrangThai.value === "DungThu") {
+    return { text: `🎉 Bạn đang dùng thử miễn phí. Còn ${soNgayConLai.value} ngày. Mua gói để sử dụng không giới hạn!`, cls: "banner-info" };
+  }
+  if (soNgayConLai.value <= 7) {
+    return { text: `⏰ Gói dịch vụ sắp hết hạn! Còn ${soNgayConLai.value} ngày. Gia hạn ngay để tránh gián đoạn.`, cls: "banner-warning" };
+  }
+  return { text: "", cls: "" };
 });
 </script>
 
@@ -335,6 +371,11 @@ onMounted(() => {
                       lập chuyển khoản</router-link
                     >
                   </li>
+                  <li>
+                    <router-link class="dropdown-item fw-bold text-warning" to="/admin/subscription"
+                      ><i class="bi bi-credit-card-2-front me-2"></i> Gói dịch vụ</router-link
+                    >
+                  </li>
 
                   <li><hr class="dropdown-divider my-2" /></li>
                   <li>
@@ -384,6 +425,13 @@ onMounted(() => {
         </div>
       </div>
     </nav>
+
+    <!-- SaaS: Banner cảnh báo hết hạn / dùng thử -->
+    <div v-if="showBanner" class="subscription-banner" :class="bannerInfo.cls">
+      <span>{{ bannerInfo.text }}</span>
+      <router-link to="/admin/subscription" class="banner-btn">Xem gói dịch vụ →</router-link>
+    </div>
+
     <router-view></router-view>
   </div>
 
@@ -511,5 +559,49 @@ select:focus {
 }
 .admin-wrapper :deep(.text-success) {
   color: #198754 !important;
+}
+
+/* 8. BANNER CẢNH BÁO GÓI DỊCH VỤ SaaS */
+.subscription-banner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  animation: slideDown 0.4s ease;
+}
+@keyframes slideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.banner-info {
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  color: white;
+}
+.banner-warning {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+  color: white;
+}
+.banner-danger {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+  color: white;
+}
+.banner-btn {
+  background: rgba(255,255,255,0.2);
+  color: white;
+  padding: 4px 14px;
+  border-radius: 20px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.8rem;
+  transition: 0.2s;
+  white-space: nowrap;
+}
+.banner-btn:hover {
+  background: rgba(255,255,255,0.35);
+  color: white;
 }
 </style>

@@ -43,6 +43,7 @@ const handleLogin = async () => {
     // 2. Lưu Token và thông tin MỚI CÁU
     localStorage.setItem("pos36_token", data.token);
     localStorage.setItem("pos36_role", data.role);
+    localStorage.setItem("pos36_storeTrangThai", data.storeTrangThai || "HoatDong");
     localStorage.setItem(
       "tenNhanVien",
       data.tenNhanVien || form.value.tenDangNhap,
@@ -60,7 +61,9 @@ const handleLogin = async () => {
 
     // 4. CHIA LUỒNG THEO VAI TRÒ
     const role = data.role;
-    if (role === "Admin" || role === "QuanLy" || role === "ChuCuaHang") {
+    if (role === "SuperAdmin") {
+      window.location.href = "/super-admin/";
+    } else if (role === "Admin" || role === "QuanLy" || role === "ChuCuaHang") {
       window.location.href = "/admin/";
     } else if (role === "ThuNgan") {
       window.location.href = "/pos";

@@ -16,7 +16,6 @@ const routes = [
     name: "Register",
     component: () => import("../views/Register.vue"),
   },
-  // THÊM ROUTE QUÊN MẬT KHẨU VÀO ĐÂY
   {
     path: "/forgot-password",
     name: "ForgotPassword",
@@ -46,6 +45,46 @@ const routes = [
     path: "/solutions",
     name: "Solutions",
     component: () => import("../views/Home/SolutionsView.vue"),
+  },
+
+  // --- SUPER ADMIN PORTAL (Tách biệt hoàn toàn) ---
+  {
+    path: "/super-admin",
+    component: () => import("../views/SuperAdmin/SuperAdminLayout.vue"),
+    meta: { requiresAuth: true, requiresSuperAdmin: true },
+    children: [
+      {
+        path: "",
+        name: "SuperDashboard",
+        component: () => import("../views/SuperAdmin/SuperDashboard.vue"),
+      },
+      {
+        path: "stores",
+        name: "StoreManagement",
+        component: () => import("../views/SuperAdmin/StoreManagement.vue"),
+      },
+      {
+        path: "subscriptions",
+        name: "SubscriptionRequests",
+        component: () =>
+          import("../views/SuperAdmin/SubscriptionRequests.vue"),
+      },
+      {
+        path: "plans",
+        name: "PlanManagement",
+        component: () => import("../views/SuperAdmin/PlanManagement.vue"),
+      },
+      {
+        path: "analytics",
+        name: "AnalyticsView",
+        component: () => import("../views/SuperAdmin/AnalyticsView.vue"),
+      },
+      {
+        path: "notifications",
+        name: "NotificationCenter",
+        component: () => import("../views/SuperAdmin/NotificationCenter.vue"),
+      },
+    ],
   },
 
   // --- GIAO DIỆN QUẢN TRỊ (CÓ MENU CAM) ---
@@ -149,6 +188,12 @@ const routes = [
         name: "AdminStoreInfo",
         component: () => import("../views/StoreInfoView.vue"),
       },
+      // SaaS: Trang quản lý gói dịch vụ cho chủ cửa hàng
+      {
+        path: "subscription",
+        name: "AdminSubscription",
+        component: () => import("../views/SubscriptionView.vue"),
+      },
     ],
   },
 
@@ -187,10 +232,20 @@ router.beforeEach((to, from) => {
     return "/login";
   }
 
+  // Guard: Super Admin portal chỉ cho SuperAdmin
+  if (to.meta.requiresSuperAdmin && role !== "SuperAdmin") {
+    return "/login";
+  }
+
   if (to.path.startsWith("/admin")) {
     if (!token) return "/login";
 
-    if (role !== "Admin" && role !== "QuanLy" && role !== "ChuCuaHang") {
+    if (
+      role !== "Admin" &&
+      role !== "QuanLy" &&
+      role !== "ChuCuaHang" &&
+      role !== "SuperAdmin"
+    ) {
       if (role === "ThuNgan") return "/pos";
       if (role === "Order") return "/order";
       if (role === "Bep") return "/kitchen";
@@ -202,3 +257,4 @@ router.beforeEach((to, from) => {
 });
 
 export default router;
+
