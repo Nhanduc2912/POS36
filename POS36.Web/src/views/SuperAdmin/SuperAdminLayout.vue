@@ -1,5 +1,5 @@
 <template>
-  <div class="super-admin-app">
+  <div class="super-admin-app" :class="isDark ? 'theme-dark' : 'theme-light'">
     <!-- Sidebar -->
     <aside class="sa-sidebar" :class="{ collapsed: sidebarCollapsed }">
       <div class="sa-logo">
@@ -33,11 +33,17 @@
     <main class="sa-main">
       <header class="sa-header">
         <div class="sa-header-left">
-          <h4 class="fw-bold mb-0">{{ currentTitle }}</h4>
-          <span class="text-muted small">{{ currentDate }}</span>
+          <h4 class="fw-bold mb-0 sa-title">{{ currentTitle }}</h4>
+          <span class="sa-subtitle small">{{ currentDate }}</span>
         </div>
         <div class="sa-header-right">
-          <span class="sa-admin-name">
+          <!-- Dark/Light toggle -->
+          <button class="sa-theme-btn" @click="toggleTheme" :title="isDark ? 'Chuyển sáng' : 'Chuyển tối'">
+            <i :class="isDark ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill'"></i>
+            <span v-if="!sidebarCollapsed">{{ isDark ? 'Sáng' : 'Tối' }}</span>
+          </button>
+
+          <span class="sa-admin-name ms-3">
             <i class="bi bi-shield-lock-fill text-warning me-1"></i>
             SuperAdmin
           </span>
@@ -55,12 +61,25 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 const route = useRoute();
 const router = useRouter();
 const sidebarCollapsed = ref(false);
+
+// ===== THEME =====
+const isDark = ref(true);
+
+const toggleTheme = () => {
+  isDark.value = !isDark.value;
+  localStorage.setItem("pos36_sa_theme", isDark.value ? "dark" : "light");
+};
+
+onMounted(() => {
+  const saved = localStorage.getItem("pos36_sa_theme");
+  isDark.value = saved !== "light"; // default dark
+});
 
 const menuItems = ref([
   { path: "", icon: "speedometer2", label: "Dashboard", badge: null },
@@ -96,37 +115,69 @@ const logout = () => {
 <style scoped>
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 
+/* =============================================
+   CSS VARIABLES — THEME SYSTEM
+   ============================================= */
+.theme-dark {
+  --sa-bg: #0f1117;
+  --sa-surface: #1a1c23;
+  --sa-surface-2: #16181d;
+  --sa-border: rgba(255, 255, 255, 0.06);
+  --sa-text: #e4e4e7;
+  --sa-text-muted: #9ca3af;
+  --sa-text-faint: #6b7280;
+  --sa-accent: #f59e0b;
+  --sa-nav-active-bg: rgba(245, 158, 11, 0.15);
+  --sa-nav-hover-bg: rgba(245, 158, 11, 0.08);
+  --sa-header-bg: rgba(22, 24, 29, 0.85);
+  --sa-shadow: rgba(0, 0, 0, 0.4);
+}
+
+.theme-light {
+  --sa-bg: #f4f6fb;
+  --sa-surface: #ffffff;
+  --sa-surface-2: #f8fafc;
+  --sa-border: rgba(0, 0, 0, 0.08);
+  --sa-text: #1a1c23;
+  --sa-text-muted: #4b5563;
+  --sa-text-faint: #9ca3af;
+  --sa-accent: #d97706;
+  --sa-nav-active-bg: rgba(217, 119, 6, 0.12);
+  --sa-nav-hover-bg: rgba(217, 119, 6, 0.06);
+  --sa-header-bg: rgba(255, 255, 255, 0.92);
+  --sa-shadow: rgba(0, 0, 0, 0.08);
+}
+
 .super-admin-app {
   display: flex;
   min-height: 100vh;
   font-family: "Inter", sans-serif;
-  background: #0f1117;
-  color: #e4e4e7;
+  background: var(--sa-bg);
+  color: var(--sa-text);
+  transition: background 0.3s, color 0.3s;
 }
 
-/* Sidebar */
+/* ===== SIDEBAR ===== */
 .sa-sidebar {
   width: 260px;
-  background: linear-gradient(180deg, #16181d 0%, #1a1c23 100%);
-  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--sa-surface-2);
+  border-right: 1px solid var(--sa-border);
   display: flex;
   flex-direction: column;
-  transition: width 0.3s ease;
+  transition: width 0.3s ease, background 0.3s;
   position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
+  top: 0; left: 0; bottom: 0;
   z-index: 100;
+  box-shadow: 2px 0 12px var(--sa-shadow);
 }
-.sa-sidebar.collapsed {
-  width: 70px;
-}
+.sa-sidebar.collapsed { width: 70px; }
+
 .sa-logo {
   padding: 24px 20px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--sa-border);
 }
 .sa-logo h2 {
-  color: #f59e0b;
+  color: var(--sa-accent);
   font-weight: 800;
   font-size: 1.5rem;
   margin: 0;
@@ -134,110 +185,93 @@ const logout = () => {
 }
 .sa-logo-sub {
   font-size: 0.7rem;
-  color: #6b7280;
+  color: var(--sa-text-faint);
   text-transform: uppercase;
   letter-spacing: 2px;
   font-weight: 600;
 }
 
-.sa-nav {
-  flex: 1;
-  padding: 12px 10px;
-  overflow-y: auto;
-}
+.sa-nav { flex: 1; padding: 12px 10px; overflow-y: auto; }
 .sa-nav-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 11px 16px;
-  border-radius: 10px;
-  color: #9ca3af;
-  text-decoration: none;
-  font-weight: 500;
-  font-size: 0.9rem;
-  margin-bottom: 4px;
-  transition: all 0.2s;
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 16px; border-radius: 10px;
+  color: var(--sa-text-muted);
+  text-decoration: none; font-weight: 500; font-size: 0.9rem;
+  margin-bottom: 4px; transition: all 0.2s;
 }
 .sa-nav-item:hover {
-  background: rgba(245, 158, 11, 0.08);
-  color: #f59e0b;
+  background: var(--sa-nav-hover-bg);
+  color: var(--sa-accent);
 }
 .sa-nav-item.active {
-  background: rgba(245, 158, 11, 0.15);
-  color: #f59e0b;
+  background: var(--sa-nav-active-bg);
+  color: var(--sa-accent);
   font-weight: 600;
 }
-.sa-nav-item i {
-  font-size: 1.15rem;
-  width: 22px;
-  text-align: center;
-}
+.sa-nav-item i { font-size: 1.15rem; width: 22px; text-align: center; }
+
 .sa-badge {
   margin-left: auto;
-  background: #ef4444;
-  color: white;
-  font-size: 0.7rem;
-  padding: 2px 8px;
-  border-radius: 99px;
-  font-weight: 700;
+  background: #ef4444; color: white;
+  font-size: 0.7rem; padding: 2px 8px; border-radius: 99px; font-weight: 700;
 }
 
 .sa-sidebar-footer {
   padding: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--sa-border);
 }
 .sa-toggle-btn {
   width: 100%;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #6b7280;
-  padding: 8px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.2s;
+  background: rgba(127, 127, 127, 0.08);
+  border: 1px solid var(--sa-border);
+  color: var(--sa-text-faint);
+  padding: 8px; border-radius: 8px; cursor: pointer; transition: 0.2s;
 }
 .sa-toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #e4e4e7;
+  background: rgba(127, 127, 127, 0.15);
+  color: var(--sa-text);
 }
 
-/* Main */
+/* ===== MAIN ===== */
 .sa-main {
   flex: 1;
   margin-left: 260px;
   transition: margin-left 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
+  display: flex; flex-direction: column; min-height: 100vh;
 }
-.sa-sidebar.collapsed ~ .sa-main {
-  margin-left: 70px;
-}
+.sa-sidebar.collapsed ~ .sa-main { margin-left: 70px; }
 
 .sa-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: flex; justify-content: space-between; align-items: center;
   padding: 16px 28px;
-  background: rgba(22, 24, 29, 0.8);
+  background: var(--sa-header-bg);
   backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  position: sticky;
-  top: 0;
-  z-index: 50;
+  border-bottom: 1px solid var(--sa-border);
+  position: sticky; top: 0; z-index: 50;
+  transition: background 0.3s;
 }
-.sa-header-right {
-  display: flex;
-  align-items: center;
-}
+.sa-header-right { display: flex; align-items: center; }
+
+.sa-title { color: var(--sa-text) !important; }
+.sa-subtitle { color: var(--sa-text-muted) !important; }
+
 .sa-admin-name {
-  font-weight: 600;
-  font-size: 0.9rem;
-  color: #d1d5db;
+  font-weight: 600; font-size: 0.9rem;
+  color: var(--sa-text-muted);
 }
 
-.sa-content {
-  flex: 1;
-  padding: 24px 28px;
+/* Theme Toggle Button */
+.sa-theme-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--sa-nav-hover-bg);
+  border: 1px solid var(--sa-border);
+  color: var(--sa-text);
+  padding: 6px 14px; border-radius: 20px;
+  font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  transition: all 0.2s;
 }
+.sa-theme-btn:hover { background: var(--sa-nav-active-bg); color: var(--sa-accent); }
+.sa-theme-btn i { font-size: 0.95rem; }
+
+.sa-content { flex: 1; padding: 24px 28px; }
 </style>

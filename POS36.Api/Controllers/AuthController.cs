@@ -32,17 +32,39 @@ namespace POS36.Api.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto request)
         {
+            // === VALIDATION ===
+            if (string.IsNullOrWhiteSpace(request.TenDangNhap) || request.TenDangNhap.Length < 4)
+                return BadRequest("Tên đăng nhập phải có ít nhất 4 ký tự!");
+            if (!System.Text.RegularExpressions.Regex.IsMatch(request.TenDangNhap, @"^[a-zA-Z0-9_\.]+$"))
+                return BadRequest("Tên đăng nhập chỉ được chứa chữ cái, số, dấu chấm và gạch dưới!");
+            if (string.IsNullOrWhiteSpace(request.MatKhau) || request.MatKhau.Length < 6)
+                return BadRequest("Mật khẩu phải có ít nhất 6 ký tự!");
+            if (!string.IsNullOrEmpty(request.SoDienThoai) &&
+                !System.Text.RegularExpressions.Regex.IsMatch(request.SoDienThoai.Trim(), @"^(0[3|5|7|8|9])+([0-9]{8})$"))
+                return BadRequest("Số điện thoại không hợp lệ! Nhập SĐT Việt Nam 10 số (VD: 0901234567).");
+            if (string.IsNullOrWhiteSpace(request.TenCuaHang) || request.TenCuaHang.Trim().Length < 2)
+                return BadRequest("Tên cửa hàng phải có ít nhất 2 ký tự!");
+            if (request.TenCuaHang.Length > 100)
+                return BadRequest("Tên cửa hàng không được vượt quá 100 ký tự!");
+
             if (await _context.TaiKhoans.AnyAsync(u => u.TenDangNhap == request.TenDangNhap))
             {
                 return BadRequest("Tên đăng nhập đã tồn tại!");
             }
 
+            // Kiểm tra SĐT trùng (nếu có)
+            if (!string.IsNullOrEmpty(request.SoDienThoai))
+            {
+                var sdtExists = await _context.TaiKhoans.AnyAsync(u => u.SoDienThoai == request.SoDienThoai.Trim());
+                if (sdtExists) return Conflict("Số điện thoại này đã được đăng ký tài khoản khác!");
+            }
+
             // Tạo Cửa hàng (SaaS: 7 ngày dùng thử)
             var newCuaHang = new CuaHang
             {
-                TenCuaHang = request.TenCuaHang,
-                SoDienThoai = request.SoDienThoai,
-                Email = request.Email,
+                TenCuaHang = request.TenCuaHang.Trim(),
+                SoDienThoai = request.SoDienThoai?.Trim(),
+                Email = request.Email?.Trim(),
                 NgayDangKy = DateTime.Now,
                 TrangThai = "DungThu",
                 NgayHetHan = DateTime.Now.AddDays(7)

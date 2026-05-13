@@ -379,6 +379,57 @@ namespace POS36.Api.Controllers
                 .ToListAsync();
             return Ok(list);
         }
+
+        // ==========================================
+        // 11. AI PHÂN TÍCH DASHBOARD (GEMINI)
+        // ==========================================
+        [HttpPost("ai-analyze")]
+        public async Task<IActionResult> AiAnalyze([FromBody] AiAnalyzeDto dto, [FromServices] IConfiguration config)
+        {
+            string apiKey = config["GeminiAI:ApiKey"] ?? "";
+            if (string.IsNullOrEmpty(apiKey) || apiKey.Contains("NHẬP"))
+                return BadRequest("Chưa cấu hình GeminiAI:ApiKey trong appsettings!");
+
+            string prompt = $@"Bạn là chuyên gia phân tích kinh doanh SaaS. Phân tích dữ liệu sau của nền tảng POS36 và đưa ra nhận xét, cảnh báo, đề xuất hành động cụ thể. 
+Trả về HTML đẹp (dùng thẻ h3, ul, li, strong, span style). 
+Dữ liệu:
+- Tổng cửa hàng: {dto.TongCuaHang}
+- Đang hoạt động: {dto.DangHoatDong}
+- Đang dùng thử: {dto.DangDungThu}
+- Bị khóa: {dto.BiKhoa}
+- Doanh thu tháng: {dto.DoanhThuThang:N0} VNĐ
+- Tổng doanh thu: {dto.DoanhThuTong:N0} VNĐ
+- Sắp hết hạn (7 ngày): {dto.SapHetHan} cửa hàng
+- Đơn chờ xử lý: {dto.DonChoXuLy}
+Hãy nhận xét về: tỉ lệ chuyển đổi, cảnh báo doanh thu, đề xuất upsell, và các hành động ưu tiên.";
+
+            var payload = new { contents = new[] { new { parts = new[] { new { text = prompt } } } } };
+            string endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={apiKey}";
+
+            using var client = new System.Net.Http.HttpClient();
+            var content = new System.Net.Http.StringContent(
+                System.Text.Json.JsonSerializer.Serialize(payload),
+                System.Text.Encoding.UTF8, "application/json");
+
+            var response = await client.PostAsync(endpoint, content);
+            var json = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Log.Error("❌ Gemini AI analyze lỗi: {Error}", json);
+                return StatusCode(500, "Lỗi AI: " + json);
+            }
+
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var aiText = doc.RootElement
+                .GetProperty("candidates")[0]
+                .GetProperty("content")
+                .GetProperty("parts")[0]
+                .GetProperty("text").GetString() ?? "";
+            aiText = aiText.Replace("```html", "").Replace("```", "").Trim();
+
+            return Ok(new { htmlReport = aiText });
+        }
     }
 
     // DTOs
@@ -408,5 +459,17 @@ namespace POS36.Api.Controllers
         public string TieuDe { get; set; } = string.Empty;
         public string NoiDung { get; set; } = string.Empty;
         public string? LoaiThongBao { get; set; }
+    }
+
+    public class AiAnalyzeDto
+    {
+        public int TongCuaHang { get; set; }
+        public int DangHoatDong { get; set; }
+        public int DangDungThu { get; set; }
+        public int BiKhoa { get; set; }
+        public decimal DoanhThuThang { get; set; }
+        public decimal DoanhThuTong { get; set; }
+        public int SapHetHan { get; set; }
+        public int DonChoXuLy { get; set; }
     }
 }

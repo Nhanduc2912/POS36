@@ -141,10 +141,23 @@ namespace POS36.Api.Controllers
         {
             int cuaHangId = GetCuaHangId();
 
+            // Validate SĐT Việt Nam (0xx xxxxxxxx) - 10 chữ số bắt đầu bằng 0
+            if (string.IsNullOrWhiteSpace(request.SoDienThoai) ||
+                !System.Text.RegularExpressions.Regex.IsMatch(request.SoDienThoai.Trim(), @"^(0[3|5|7|8|9])+([0-9]{8})$"))
+            {
+                return BadRequest("Số điện thoại không hợp lệ! Vui lòng nhập SĐT Việt Nam 10 số (VD: 0901234567).");
+            }
+
+            // Validate Tên không rỗng, không phải SĐT
+            if (string.IsNullOrWhiteSpace(request.TenKhachHang) || request.TenKhachHang.Trim().Length < 2)
+                return BadRequest("Tên khách hàng phải có ít nhất 2 ký tự!");
+            if (System.Text.RegularExpressions.Regex.IsMatch(request.TenKhachHang.Trim(), @"^[0-9]+$"))
+                return BadRequest("Tên khách hàng không được chỉ gồm số!");
+
             // Kiểm tra SĐT trùng trong cùng cửa hàng
             var checkSdt = await _context.KhachHangs
-                .AnyAsync(k => k.CuaHangId == cuaHangId && k.SoDienThoai == request.SoDienThoai);
-            if (checkSdt) return BadRequest("Số điện thoại này đã được đăng ký cho khách hàng khác!");
+                .AnyAsync(k => k.CuaHangId == cuaHangId && k.SoDienThoai == request.SoDienThoai.Trim());
+            if (checkSdt) return Conflict("Số điện thoại này đã được đăng ký cho khách hàng khác!");
 
             var newKhach = new KhachHang
             {
@@ -185,10 +198,17 @@ namespace POS36.Api.Controllers
                 .FirstOrDefaultAsync(k => k.Id == id && k.CuaHangId == cuaHangId);
             if (khach == null) return NotFound("Không tìm thấy khách hàng!");
 
+            // Validate SĐT Việt Nam
+            if (string.IsNullOrWhiteSpace(request.SoDienThoai) ||
+                !System.Text.RegularExpressions.Regex.IsMatch(request.SoDienThoai.Trim(), @"^(0[3|5|7|8|9])+([0-9]{8})$"))
+            {
+                return BadRequest("Số điện thoại không hợp lệ!");
+            }
+
             // Kiểm tra SĐT trùng (trừ chính khách này)
             var checkSdt = await _context.KhachHangs
-                .AnyAsync(k => k.CuaHangId == cuaHangId && k.SoDienThoai == request.SoDienThoai && k.Id != id);
-            if (checkSdt) return BadRequest("Số điện thoại này đã được đăng ký cho khách hàng khác!");
+                .AnyAsync(k => k.CuaHangId == cuaHangId && k.SoDienThoai == request.SoDienThoai.Trim() && k.Id != id);
+            if (checkSdt) return Conflict("Số điện thoại này đã được đăng ký cho khách hàng khác!");
 
             khach.TenKhachHang = request.TenKhachHang;
             khach.SoDienThoai = request.SoDienThoai;

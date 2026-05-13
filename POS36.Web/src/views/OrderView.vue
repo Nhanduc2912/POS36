@@ -13,7 +13,12 @@
         <span class="fw-bold small"
           ><i class="bi bi-person-circle"></i> {{ tenNhanVien }}</span
         >
-
+        <!-- SignalR Status -->
+        <div class="d-flex align-items-center gap-1" :title="'Live: ' + connectionStatus">
+          <span class="signalr-dot-ov"
+            :class="connectionStatus === 'connected' ? 'dot-ov-green' : connectionStatus === 'connecting' ? 'dot-ov-amber' : 'dot-ov-red'"
+          ></span>
+        </div>
         <div
           class="position-relative cursor-pointer"
           @click="toggleNotifications"
@@ -511,13 +516,13 @@
 import { ref, computed, onMounted, inject, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
-import * as signalR from "@microsoft/signalr";
 import { Modal, Offcanvas } from "bootstrap";
 import { globalState } from "../store";
 import AiCopilot from "../components/AiCopilot.vue";
+import { useSignalR } from "../composables/useSignalR";
 const router = useRouter();
 const swal = inject("$swal");
-const backendUrl = "http://localhost:5098";
+const { connection, connectionStatus, backendUrl, startConnection, stopConnection } = useSignalR();
 
 const isMobile = ref(window.innerWidth < 768);
 const tenNhanVien = ref(
@@ -545,10 +550,7 @@ const currentBill = ref(null);
 const loadingBill = ref(false);
 const showCartDetail = ref(true);
 
-const connection = new signalR.HubConnectionBuilder()
-  .withUrl(`${backendUrl}/kitchenHub`)
-  .withAutomaticReconnect()
-  .build();
+
 
 onMounted(async () => {
   window.addEventListener("resize", () => {
@@ -558,7 +560,7 @@ onMounted(async () => {
   menuOffcanvas = new Offcanvas(menuOffcanvasRef.value);
 
   try {
-    await connection.start();
+    await startConnection();
     connection.on("CoDonHangMoi", () =>
       fetchStructure(globalState.value.activeBranchId),
     );
@@ -596,7 +598,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  connection.stop();
+  stopConnection();
 });
 
 const calculateTimeElapsed = (timeOpenString) => {

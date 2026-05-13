@@ -1,16 +1,15 @@
 <script setup>
 import { ref, onMounted, computed, inject, onUnmounted } from "vue";
 import axios from "axios";
-import * as signalR from "@microsoft/signalr";
 import { useRouter } from "vue-router";
 import { globalState } from "../store";
 import { printReceipt } from "../utils/printer";
+import { useSignalR } from "../composables/useSignalR";
 
 // Danh sách các bàn đang treo chờ khách quét QR
-const pendingPayments = ref([]);
 const swal = inject("$swal");
 const router = useRouter();
-const backendUrl = "http://localhost:5098";
+const { connection, connectionStatus, backendUrl, startConnection, stopConnection } = useSignalR();
 import AiCopilot from "../components/AiCopilot.vue";
 // --- THÔNG TIN NHÂN VIÊN & PHÂN QUYỀN ---
 const tenNhanVien = ref(localStorage.getItem("tenNhanVien") || "Nhân viên");
@@ -150,16 +149,12 @@ const handleQuickAddCustomer = async () => {
 
 // MẢNG LƯU DANH SÁCH THÔNG BÁO
 const notificationList = ref([]);
-
-// --- SIGNALR (REAL-TIME) ---
-const connection = new signalR.HubConnectionBuilder()
-  .withUrl(`${backendUrl}/kitchenHub`)
-  .withAutomaticReconnect()
-  .build();
+// pendingPayments for QR tracking
+const pendingPayments = ref([]);
 
 onMounted(async () => {
   try {
-    await connection.start();
+    await startConnection();
     console.log("Đã kết nối SignalR!");
   } catch (err) {
     console.error("SignalR Lỗi: ", err);
@@ -200,7 +195,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  connection.stop();
+  stopConnection();
 });
 
 const getBranchIdAndFetch = async () => {

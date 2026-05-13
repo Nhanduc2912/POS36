@@ -1,0 +1,236 @@
+/* =============================================
+   POS36 Super Admin — Shared Styles
+   Tất cả views trong /SuperAdmin/ import file này
+   ============================================= */
+
+/* === CARDS === */
+.sa-card {
+  background: var(--sa-surface);
+  border: 1px solid var(--sa-border);
+  border-radius: 14px;
+  padding: 22px;
+  transition: background 0.3s, border 0.3s;
+}
+.sa-card:hover {
+  box-shadow: 0 8px 24px var(--sa-shadow);
+}
+
+/* === TABLE === */
+.sa-table-wrap { overflow-x: auto; }
+.sa-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  color: var(--sa-text);
+}
+.sa-table th {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: var(--sa-text-faint);
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--sa-border);
+  letter-spacing: 0.5px;
+  font-weight: 700;
+  background: transparent;
+}
+.sa-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--sa-border);
+  font-size: 0.88rem;
+  vertical-align: middle;
+  color: var(--sa-text);
+}
+.sa-table tbody tr:hover {
+  background: var(--sa-nav-hover-bg);
+}
+.sa-table-sm td,
+.sa-table-sm th {
+  padding: 8px 10px;
+  font-size: 0.8rem;
+}
+
+/* === FORM INPUTS === */
+.sa-input,
+.sa-select {
+  background: var(--sa-surface-2) !important;
+  color: var(--sa-text) !important;
+  border: 1px solid var(--sa-border) !important;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  transition: border 0.2s, background 0.3s;
+  outline: none;
+}
+.sa-input:focus,
+.sa-select:focus {
+  border-color: var(--sa-accent) !important;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15) !important;
+}
+.sa-input::placeholder { color: var(--sa-text-faint) !important; }
+
+/* === BADGES === */
+.sa-goi-badge {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--sa-accent);
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.sa-status-badge {
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.status-HoatDong { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+.status-DungThu { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+.status-ChiDoc { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.status-BiKhoa { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+.status-DaThanhToan { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+.status-ChoThanhToan { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.status-DaHuy { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+.status-ThongTin { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+.status-CanhBao { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.status-KhanCap { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+/* === ACTION BUTTONS === */
+.sa-btn-sm {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.2s;
+  font-size: 0.85rem;
+}
+.sa-btn-info { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+.sa-btn-info:hover { background: rgba(59, 130, 246, 0.3); }
+.sa-btn-danger { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+.sa-btn-danger:hover { background: rgba(239, 68, 68, 0.3); }
+.sa-btn-success { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+.sa-btn-success:hover { background: rgba(34, 197, 94, 0.3); }
+.sa-btn-warning { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.sa-btn-warning:hover { background: rgba(245, 158, 11, 0.3); }
+
+/* === MODALS === */
+.sa-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sa-modal {
+  background: var(--sa-surface);
+  border: 1px solid var(--sa-border);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 700px;
+  max-height: 80vh;
+  overflow-y: auto;
+  color: var(--sa-text);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.3);
+  animation: saModalIn 0.25s ease;
+}
+@keyframes saModalIn {
+  from { opacity: 0; transform: scale(0.97) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.sa-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--sa-border);
+}
+.sa-modal-header h5 {
+  margin: 0;
+  font-weight: 700;
+  color: var(--sa-text);
+  font-size: 1rem;
+}
+.sa-modal-close {
+  background: none;
+  border: none;
+  color: var(--sa-text-faint);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.sa-modal-close:hover { color: var(--sa-text); }
+.sa-modal-body {
+  padding: 20px 24px;
+}
+.sa-modal-body label {
+  font-size: 0.75rem;
+  color: var(--sa-text-faint);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: block;
+  margin-bottom: 4px;
+}
+.sa-modal-body p {
+  color: var(--sa-text);
+  font-weight: 500;
+  margin-bottom: 0;
+}
+
+/* === KPI MINI (trong modal) === */
+.kpi-mini {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--sa-text);
+}
+
+/* === DASHBOARD CARDS === */
+.dash-card {
+  background: var(--sa-surface);
+  border: 1px solid var(--sa-border);
+  border-radius: 14px;
+  padding: 22px;
+  color: var(--sa-text);
+  transition: background 0.3s;
+}
+.dash-card-title {
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--sa-text-faint);
+  margin-bottom: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* === CHART BARS === */
+.chart-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 180px;
+}
+.chart-bar-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.chart-bar {
+  width: 100%;
+  max-width: 40px;
+  background: linear-gradient(180deg, var(--sa-accent), #d97706);
+  border-radius: 6px 6px 0 0;
+  transition: height 0.6s ease;
+  min-height: 4px;
+}
+.chart-bar-label {
+  font-size: 0.62rem;
+  color: var(--sa-text-faint);
+  margin-top: 6px;
+}

@@ -27,6 +27,20 @@
         <div class="fs-5 fw-bold text-warning">
           <i class="bi bi-clock me-1"></i>{{ currentTime }}
         </div>
+        <!-- Kết nối SignalR Indicator -->
+        <div class="d-flex align-items-center gap-1" :title="'SignalR: ' + connectionStatus">
+          <span class="signalr-dot"
+            :class="{
+              'dot-connected': connectionStatus === 'connected',
+              'dot-connecting': connectionStatus === 'connecting',
+              'dot-disconnected': connectionStatus === 'disconnected'
+            }"></span>
+          <span class="small" style="font-size:0.7rem" :class="{
+            'text-success': connectionStatus === 'connected',
+            'text-warning': connectionStatus === 'connecting',
+            'text-danger': connectionStatus === 'disconnected'
+          }">{{ connectionStatus === 'connected' ? 'Live' : connectionStatus === 'connecting' ? 'Kết nối...' : 'Mất kết nối' }}</span>
+        </div>
         <!-- Nút chuyển chế độ hiển thị -->
         <div class="btn-group btn-group-sm" v-if="activeTab === 'pending'">
           <button @click="displayMode = 'list'" class="btn px-3"
@@ -331,12 +345,13 @@
 import { ref, computed, onMounted, onUnmounted, inject } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
-import * as signalR from "@microsoft/signalr";
 import { globalState } from "../store";
+import { useSignalR } from "../composables/useSignalR";
 
 const router = useRouter();
 const swal = inject("$swal");
-const backendUrl = "http://localhost:5098";
+
+const { connection, connectionStatus, backendUrl, startConnection, stopConnection } = useSignalR();
 
 // ===== STATE =====
 const activeTab = ref("pending");
@@ -359,13 +374,9 @@ const clockTimer = setInterval(() => {
   currentTime.value = new Date().toLocaleTimeString("vi-VN");
 }, 1000);
 
-// ===== SIGNALR =====
-const connection = new signalR.HubConnectionBuilder()
-  .withUrl(`${backendUrl}/kitchenHub`)
-  .withAutomaticReconnect()
-  .build();
 
 // ===== COMPUTED =====
+
 
 // Nhóm món theo bàn cho chế độ LIST (chỉ bàn có món)
 const groupedByTable = computed(() => {
@@ -558,9 +569,8 @@ const logout = () => {
 // ===== LIFECYCLE =====
 onMounted(async () => {
   try {
-    await connection.start();
+    await startConnection();
     connection.on("CoDonHangMoi", (data) => {
-      // Kiểm tra xem có phải sự kiện hủy món không
       const isCancel = data?.message === "Hủy món";
       if (!isCancel) {
         swal.fire({
@@ -589,7 +599,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  connection.stop();
+  stopConnection();
   clearInterval(clockTimer);
 });
 </script>
@@ -665,5 +675,22 @@ onUnmounted(() => {
   0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220,53,69,0.7); }
   70% { transform: scale(1.08); box-shadow: 0 0 0 8px rgba(220,53,69,0); }
   100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220,53,69,0); }
+}/* --- SIGNALR DOT --- */
+.signalr-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.dot-connected { background: #22c55e; box-shadow: 0 0 6px #22c55e; animation: pulse-green 2s infinite; }
+.dot-connecting { background: #f59e0b; animation: pulse-amber 1s infinite; }
+.dot-disconnected { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+@keyframes pulse-green {
+  0%, 100% { box-shadow: 0 0 4px #22c55e; }
+  50% { box-shadow: 0 0 10px #22c55e; }
+}
+@keyframes pulse-amber {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 </style>
