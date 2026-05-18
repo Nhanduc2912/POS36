@@ -88,6 +88,7 @@ const menuItems = ref([
   { path: "plans", icon: "box-seam", label: "Gói dịch vụ", badge: null },
   { path: "analytics", icon: "graph-up-arrow", label: "Thống kê", badge: null },
   { path: "notifications", icon: "bell", label: "Thông báo", badge: null },
+  { path: "config", icon: "gear", label: "Cấu hình", badge: null },
 ]);
 
 const currentRoute = computed(() => {

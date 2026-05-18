@@ -84,6 +84,11 @@ const routes = [
         name: "NotificationCenter",
         component: () => import("../views/SuperAdmin/NotificationCenter.vue"),
       },
+      {
+        path: "config",
+        name: "ConfigView",
+        component: () => import("../views/SuperAdmin/ConfigView.vue"),
+      },
     ],
   },
 
