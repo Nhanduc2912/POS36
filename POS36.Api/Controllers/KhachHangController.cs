@@ -24,7 +24,7 @@ namespace POS36.Api.Controllers
         public async Task<IActionResult> GetDanhSach([FromQuery] string? search)
         {
             int cuaHangId = GetCuaHangId();
-            var query = _context.KhachHangs.Where(k => k.CuaHangId == cuaHangId);
+            var query = _context.KhachHangs.Where(k => k.CuaHangId == cuaHangId && !k.IsDeleted);
 
             if (!string.IsNullOrEmpty(search))
             {
@@ -222,26 +222,21 @@ namespace POS36.Api.Controllers
         }
 
         // ==========================================
-        // 6. XÓA KHÁCH HÀNG
+        // 6. XÓA MỀM KHÁCH HÀNG
         // ==========================================
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
             int cuaHangId = GetCuaHangId();
             var khach = await _context.KhachHangs
-                .FirstOrDefaultAsync(k => k.Id == id && k.CuaHangId == cuaHangId);
+                .FirstOrDefaultAsync(k => k.Id == id && k.CuaHangId == cuaHangId && !k.IsDeleted);
             if (khach == null) return NotFound("Không tìm thấy khách hàng!");
 
-            // Gỡ liên kết khỏi hóa đơn cũ (không xóa hóa đơn)
-            var hoaDons = await _context.HoaDons
-                .Where(h => h.KhachHangId == id)
-                .ToListAsync();
-            foreach (var hd in hoaDons)
-            {
-                hd.KhachHangId = null;
-            }
+            // Soft delete — giữ lại lịch sử hóa đơn, chỉ đánh dấu đã xóa
+            khach.IsDeleted = true;
+            khach.NgayXoa = DateTime.Now;
+            khach.NguoiXoa = User.FindFirst("TenDangNhap")?.Value ?? User.Identity?.Name;
 
-            _context.KhachHangs.Remove(khach);
             await _context.SaveChangesAsync();
             return Ok(new { message = "Xóa khách hàng thành công!" });
         }

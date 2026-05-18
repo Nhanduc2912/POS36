@@ -18,10 +18,13 @@ namespace POS36.Api.Models
         public DateTime NgayTao { get; set; } = DateTime.Now;
 
         // === TÍCH ĐIỂM (THIẾT KẾ 2 CỘT) ===
-        // Chỉ CỘNG thêm, không bao giờ trừ → dùng để xét hạng thành viên (Đồng/Bạc/Vàng)
         public int TongDiemTichLuy { get; set; } = 0;
-        // Điểm dùng để thanh toán/quy đổi, có thể CỘNG và bị TRỪ
         public int DiemHienTai { get; set; } = 0;
+
+        // === XÓA MỀM ===
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? NgayXoa { get; set; }
+        public string? NguoiXoa { get; set; }
 
         [ForeignKey("CuaHangId")]
         public virtual CuaHang? CuaHang { get; set; }

@@ -24,14 +24,14 @@ namespace POS36.Api.Controllers
             int cuaHangId = GetCuaHangId();
 
             var ds = await _context.NhanViens
-                .Where(nv => nv.CuaHangId == cuaHangId && nv.ChiNhanhId == chiNhanhId)
+                .Where(nv => nv.CuaHangId == cuaHangId && nv.ChiNhanhId == chiNhanhId && !nv.IsDeleted)
                 .Select(nv => new
                 {
                     nv.Id,
                     nv.MaNhanVien,
                     nv.TenNhanVien,
                     nv.SoDienThoai,
-                    nv.Email, // FIX: Thêm Email vào danh sách trả về
+                    nv.Email,
                     TenDangNhap = _context.TaiKhoans.Where(t => t.NhanVienId == nv.Id).Select(t => t.TenDangNhap).FirstOrDefault(),
                     VaiTro = _context.TaiKhoans.Where(t => t.NhanVienId == nv.Id).Select(t => t.VaiTro).FirstOrDefault()
                 })
@@ -138,28 +138,50 @@ namespace POS36.Api.Controllers
             return Ok(new { message = "Cập nhật thành công!" });
         }
 
-        // 4. XÓA NHÂN VIÊN VÀ THU HỒI TÀI KHOẢN
-        // BUG #12 FIX: Chỉ ChuCuaHang mới được xóa nhân viên
+        // 4. XÓA MỀM NHÂN VIÊN (IsDeleted = true, vô hiệu hóa tài khoản)
         [Authorize(Roles = "ChuCuaHang")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
             int cuaHangId = GetCuaHangId();
-            var nv = await _context.NhanViens.FirstOrDefaultAsync(n => n.Id == id && n.CuaHangId == cuaHangId);
+            var nv = await _context.NhanViens.FirstOrDefaultAsync(n => n.Id == id && n.CuaHangId == cuaHangId && !n.IsDeleted);
             if (nv == null) return NotFound(new { message = "Không tìm thấy nhân viên!" });
 
-            // 1. TÌM VÀ XÓA TÀI KHOẢN LIÊN KẾT TRƯỚC (Chống lỗi Khóa ngoại)
+            // Soft delete: đánh dấu đã xóa thay vì xóa khỏi DB
+            nv.IsDeleted = true;
+            nv.NgayXoa = DateTime.Now;
+            nv.NguoiXoa = User.FindFirst("TenDangNhap")?.Value ?? User.Identity?.Name;
+
+            // Vô hiệu hóa tài khoản liên kết (không xóa, để giữ lịch sử)
             var taiKhoan = await _context.TaiKhoans.FirstOrDefaultAsync(t => t.NhanVienId == id);
             if (taiKhoan != null)
             {
-                _context.TaiKhoans.Remove(taiKhoan);
+                taiKhoan.IsActive = false;
             }
 
-            // 2. SAU ĐÓ MỚI XÓA HỒ SƠ NHÂN VIÊN
-            _context.NhanViens.Remove(nv);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Đã xóa nhân viên và vô hiệu hóa tài khoản thành công!" });
+        }
+
+        // 5. KHÔI PHỤC NHÂN VIÊN ĐÃ XÓA
+        [Authorize(Roles = "ChuCuaHang")]
+        [HttpPut("{id}/restore")]
+        public async Task<IActionResult> Restore(int id)
+        {
+            int cuaHangId = GetCuaHangId();
+            var nv = await _context.NhanViens.FirstOrDefaultAsync(n => n.Id == id && n.CuaHangId == cuaHangId && n.IsDeleted);
+            if (nv == null) return NotFound(new { message = "Không tìm thấy nhân viên đã xóa!" });
+
+            nv.IsDeleted = false;
+            nv.NgayXoa = null;
+            nv.NguoiXoa = null;
+
+            // Mở lại tài khoản
+            var taiKhoan = await _context.TaiKhoans.FirstOrDefaultAsync(t => t.NhanVienId == id);
+            if (taiKhoan != null) taiKhoan.IsActive = true;
 
             await _context.SaveChangesAsync();
-            return Ok(new { message = "Xóa nhân viên và thu hồi tài khoản thành công!" });
+            return Ok(new { message = "Khôi phục nhân viên thành công!" });
         }
     }
 }

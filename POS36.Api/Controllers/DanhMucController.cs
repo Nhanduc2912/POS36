@@ -37,15 +37,8 @@ namespace POS36.Api.Controllers
             int cuaHangId = GetCuaHangId();
 
             var danhMucs = await _context.DanhMucs
-                .Where(d => d.CuaHangId == cuaHangId)
-                .Select(d => new
-                {
-                    d.Id,
-                    d.TenDanhMuc,
-
-                    d.HinhAnh // <--- THÊM ĐÚNG CHỮ NÀY VÀO ĐÂY NỮA LÀ XONG
-
-                })
+                .Where(d => d.CuaHangId == cuaHangId && !d.IsDeleted)
+                .Select(d => new { d.Id, d.TenDanhMuc, d.HinhAnh })
                 .ToListAsync();
 
             return Ok(danhMucs);

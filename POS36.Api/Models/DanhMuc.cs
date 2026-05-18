@@ -6,10 +6,15 @@ namespace POS36.Api.Models
     {
         [Key]
         public int Id { get; set; }
-        public int CuaHangId { get; set; } // Danh mục này của chủ quán nào
+        public int CuaHangId { get; set; }
 
         public string TenDanhMuc { get; set; } = string.Empty;
-        public string? HinhAnh { get; set; } // Dấu ? nghĩa là cho phép null (không bắt buộc phải có ảnh)
+        public string? HinhAnh { get; set; }
+
+        // === XÓA MỀM ===
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? NgayXoa { get; set; }
+        public string? NguoiXoa { get; set; }
 
         public ICollection<SanPham>? SanPhams { get; set; }
     }
