@@ -42,6 +42,7 @@ namespace POS36.Api.Controllers
             return Ok(ds);
         }
 
+
         public class CreateBanDto { public int KhuVucId { get; set; } public string TenBan { get; set; } = string.Empty; public string TrangThai { get; set; } = string.Empty; }
         public class UpdateBanDto { public string TenBan { get; set; } = string.Empty; }
         public class SetHienThiDto { public bool HienThi { get; set; } }

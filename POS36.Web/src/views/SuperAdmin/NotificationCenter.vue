@@ -1,77 +1,176 @@
 <template>
   <div>
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h6 class="text-muted fw-bold mb-0"><i class="bi bi-bell me-2"></i>TRUNG TÂM THÔNG BÁO</h6>
+      <h6 class="fw-bold mb-0" style="color:var(--sa-text-faint);font-size:.75rem;text-transform:uppercase;letter-spacing:.5px">
+        <i class="bi bi-bell me-2"></i>TRUNG TÂM THÔNG BÁO
+      </h6>
     </div>
     <div class="row g-3">
+      <!-- Form gửi -->
       <div class="col-lg-5">
         <div class="dash-card">
-          <h6 class="dash-title">Gửi thông báo mới</h6>
+          <h6 class="dash-card-title"><i class="bi bi-send me-2"></i>Gửi thông báo mới</h6>
           <div class="mb-3">
-            <label class="form-label small fw-bold text-muted">Gửi đến</label>
-            <select v-model="form.cuaHangId" class="sa-input w-100">
-              <option :value="null">Tất cả cửa hàng</option>
+            <label>Gửi đến</label>
+            <select v-model="form.cuaHangId" class="sa-select w-100">
+              <option :value="null">📢 Tất cả cửa hàng</option>
               <option v-for="s in storeList" :key="s.id" :value="s.id">{{ s.tenCuaHang }}</option>
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label small fw-bold text-muted">Loại</label>
-            <select v-model="form.loaiThongBao" class="sa-input w-100">
-              <option value="ThongTin">Thông tin</option>
-              <option value="CanhBao">Cảnh báo</option>
-              <option value="KhanCap">Khẩn cấp</option>
-            </select>
+            <label>Loại thông báo</label>
+            <div class="d-flex gap-2">
+              <button v-for="t in notifTypes" :key="t.val"
+                class="type-btn flex-fill"
+                :class="{ active: form.loaiThongBao === t.val }"
+                :style="form.loaiThongBao === t.val ? `background:${t.color}1a;border-color:${t.color};color:${t.color}` : ''"
+                @click="form.loaiThongBao = t.val">
+                <i :class="'bi bi-' + t.icon + ' me-1'"></i>{{ t.label }}
+              </button>
+            </div>
           </div>
-          <div class="mb-3"><label class="form-label small fw-bold text-muted">Tiêu đề</label><input v-model="form.tieuDe" class="sa-input w-100" /></div>
-          <div class="mb-3"><label class="form-label small fw-bold text-muted">Nội dung</label><textarea v-model="form.noiDung" class="sa-input w-100" rows="4"></textarea></div>
-          <button class="btn btn-warning w-100 fw-bold" @click="send"><i class="bi bi-send me-1"></i>Gửi thông báo</button>
+          <div class="mb-3">
+            <label>Tiêu đề</label>
+            <input v-model="form.tieuDe" class="sa-input w-100" placeholder="Tiêu đề thông báo..." />
+          </div>
+          <div class="mb-4">
+            <label>Nội dung</label>
+            <textarea v-model="form.noiDung" class="sa-input w-100" rows="4" placeholder="Nội dung chi tiết..."></textarea>
+          </div>
+          <button class="send-btn w-100" @click="send" :disabled="sending">
+            <span v-if="sending" class="spinner-border spinner-border-sm me-2"></span>
+            <i v-else class="bi bi-send-fill me-2"></i>
+            {{ sending ? 'Đang gửi...' : 'Gửi thông báo' }}
+          </button>
         </div>
       </div>
+
+      <!-- Lịch sử -->
       <div class="col-lg-7">
         <div class="dash-card h-100">
-          <h6 class="dash-title">Lịch sử thông báo</h6>
-          <div v-for="n in notifications" :key="n.id" class="notif-item" :class="'notif-' + n.loaiThongBao">
-            <div class="notif-header">
-              <span class="notif-type-badge">{{ n.loaiThongBao }}</span>
-              <span class="notif-date">{{ formatDate(n.ngayTao) }}</span>
+          <h6 class="dash-card-title"><i class="bi bi-clock-history me-2"></i>Lịch sử thông báo</h6>
+          <div class="notif-list">
+            <div v-for="n in notifications" :key="n.id" class="notif-item" :class="'notif-' + n.loaiThongBao">
+              <div class="notif-header">
+                <span class="notif-badge" :class="'badge-' + n.loaiThongBao">
+                  <i :class="'bi bi-' + typeIcon(n.loaiThongBao) + ' me-1'"></i>{{ n.loaiThongBao }}
+                </span>
+                <span style="font-size:.72rem;color:var(--sa-text-faint)">{{ formatDate(n.ngayTao) }}</span>
+              </div>
+              <div class="notif-title">{{ n.tieuDe }}</div>
+              <div class="notif-body">{{ n.noiDung }}</div>
+              <div class="notif-target">
+                <i class="bi bi-shop me-1"></i>
+                {{ n.cuaHangId ? `Cửa hàng #${n.cuaHangId}` : 'Tất cả cửa hàng' }}
+              </div>
             </div>
-            <div class="notif-title">{{ n.tieuDe }}</div>
-            <div class="notif-body">{{ n.noiDung }}</div>
-            <div class="notif-target text-muted small">{{ n.cuaHangId ? `Cửa hàng #${n.cuaHangId}` : 'Tất cả' }}</div>
+            <div v-if="!notifications.length" class="text-center py-5" style="color:var(--sa-text-faint)">
+              <i class="bi bi-bell-slash display-4 opacity-25 d-block mb-2"></i>Chưa có thông báo nào
+            </div>
           </div>
-          <div v-if="!notifications.length" class="text-muted text-center py-4">Chưa có thông báo</div>
         </div>
       </div>
     </div>
   </div>
 </template>
+
 <script setup>
 import { ref, onMounted, inject } from "vue";
 import axios from "axios";
 const swal = inject("$swal");
+
 const storeList = ref([]);
 const notifications = ref([]);
+const sending = ref(false);
 const form = ref({ cuaHangId: null, tieuDe: "", noiDung: "", loaiThongBao: "ThongTin" });
-const formatDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN",{hour:"2-digit",minute:"2-digit"}) : "";
+
+const notifTypes = [
+  { val: "ThongTin", label: "Thông tin", icon: "info-circle", color: "#3b82f6" },
+  { val: "CanhBao", label: "Cảnh báo", icon: "exclamation-triangle", color: "#f59e0b" },
+  { val: "KhanCap", label: "Khẩn cấp", icon: "exclamation-octagon", color: "#ef4444" },
+];
+
+const typeIcon = (t) => ({ ThongTin: "info-circle", CanhBao: "exclamation-triangle", KhanCap: "exclamation-octagon" }[t] || "bell");
+
+const formatDate = (d) => d ? new Date(d).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" }) : "";
+
 const load = async () => {
-  try { const [s, n] = await Promise.all([axios.get("/api/SuperAdmin/stores"), axios.get("/api/SuperAdmin/notifications")]); storeList.value = s.data; notifications.value = n.data; } catch(e){}
+  try {
+    const [s, n] = await Promise.all([
+      axios.get("/api/SuperAdmin/stores"),
+      axios.get("/api/SuperAdmin/notifications"),
+    ]);
+    storeList.value = s.data;
+    notifications.value = n.data;
+  } catch (e) { console.error(e); }
 };
+
 const send = async () => {
-  if(!form.value.tieuDe||!form.value.noiDung) return swal.fire("Lỗi","Vui lòng nhập đầy đủ","warning");
-  try { await axios.post("/api/SuperAdmin/notifications", form.value); swal.fire({toast:true,position:"top-end",icon:"success",title:"Đã gửi!",timer:1500,showConfirmButton:false}); form.value={cuaHangId:null,tieuDe:"",noiDung:"",loaiThongBao:"ThongTin"}; load(); } catch(e){ swal.fire("Lỗi","Gửi thất bại","error"); }
+  if (!form.value.tieuDe || !form.value.noiDung)
+    return swal.fire("Thiếu thông tin", "Vui lòng nhập tiêu đề và nội dung", "warning");
+  sending.value = true;
+  try {
+    await axios.post("/api/SuperAdmin/notifications", form.value);
+    swal.fire({ toast: true, position: "top-end", icon: "success", title: "Đã gửi thông báo!", timer: 1800, showConfirmButton: false });
+    form.value = { cuaHangId: null, tieuDe: "", noiDung: "", loaiThongBao: "ThongTin" };
+    load();
+  } catch (e) {
+    swal.fire("Lỗi", "Gửi thất bại", "error");
+  } finally { sending.value = false; }
 };
+
 onMounted(load);
 </script>
+
 <style scoped>
-.dash-card{background:#1a1c23;border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:22px}
-.dash-title{font-weight:700;font-size:.82rem;color:#9ca3af;margin-bottom:16px;text-transform:uppercase;letter-spacing:.5px}
-.sa-input{background:#16181d;color:#e4e4e7;border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 14px;font-size:.85rem}
-.sa-input:focus{outline:none;border-color:#f59e0b}
-.notif-item{padding:14px;border:1px solid rgba(255,255,255,.04);border-radius:10px;margin-bottom:8px;border-left:3px solid #6b7280}
-.notif-ThongTin{border-left-color:#3b82f6}.notif-CanhBao{border-left-color:#f59e0b}.notif-KhanCap{border-left-color:#ef4444}
-.notif-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-.notif-type-badge{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af}
-.notif-date{font-size:.72rem;color:#6b7280}
-.notif-title{font-weight:700;font-size:.9rem;color:#f4f4f5;margin-bottom:4px}
-.notif-body{font-size:.82rem;color:#9ca3af;line-height:1.5}
+@import "./sa-shared.css";
+
+/* Type selector */
+.type-btn {
+  background: var(--sa-nav-hover-bg);
+  border: 1px solid var(--sa-border);
+  color: var(--sa-text-muted);
+  padding: 7px 10px; border-radius: 8px;
+  font-size: .75rem; font-weight: 600; cursor: pointer;
+  transition: .2s; text-align: center;
+}
+.type-btn:hover { background: var(--sa-nav-active-bg); }
+
+/* Send button */
+.send-btn {
+  background: var(--sa-accent); border: none;
+  color: #fff; padding: 12px; border-radius: 8px;
+  font-weight: 700; font-size: .9rem; cursor: pointer;
+  transition: opacity .2s; display: flex; align-items: center; justify-content: center;
+}
+.send-btn:hover { opacity: .85; }
+.send-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+/* Notification list */
+.notif-list { display: flex; flex-direction: column; gap: 10px; max-height: 520px; overflow-y: auto; }
+.notif-item {
+  padding: 14px 16px;
+  border: 1px solid var(--sa-border);
+  border-left: 3px solid var(--sa-text-faint);
+  border-radius: 10px;
+  background: var(--sa-surface-2);
+  transition: .2s;
+}
+.notif-item:hover { border-left-width: 4px; }
+.notif-ThongTin { border-left-color: #3b82f6; }
+.notif-CanhBao  { border-left-color: #f59e0b; }
+.notif-KhanCap  { border-left-color: #ef4444; }
+
+.notif-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.notif-badge {
+  font-size: .68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .5px;
+  padding: 2px 8px; border-radius: 6px;
+}
+.badge-ThongTin { background: rgba(59,130,246,.15); color: #3b82f6; }
+.badge-CanhBao  { background: rgba(245,158,11,.15); color: #f59e0b; }
+.badge-KhanCap  { background: rgba(239,68,68,.15);  color: #ef4444; }
+.notif-title { font-weight: 700; font-size: .9rem; color: var(--sa-text); margin-bottom: 4px; }
+.notif-body  { font-size: .82rem; color: var(--sa-text-muted); line-height: 1.5; margin-bottom: 6px; }
+.notif-target { font-size: .72rem; color: var(--sa-text-faint); }
 </style>
