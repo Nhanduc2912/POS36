@@ -46,6 +46,11 @@ namespace POS36.Api.Data
         public DbSet<LichSuDangKy> LichSuDangKys { get; set; }
         public DbSet<LuotTruyCap> LuotTruyCaps { get; set; }
         public DbSet<ThongBaoHeThong> ThongBaoHeThongs { get; set; }
+
+        // === Phase 6: Config & Audit Log ===
+        public DbSet<CauHinhHeThong> CauHinhHeThangs { get; set; }
+        public DbSet<NhatKyHeThong> NhatKyHeThangs { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);

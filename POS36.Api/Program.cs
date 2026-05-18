@@ -87,6 +87,7 @@ namespace POS36.Api
 
                 builder.Services.AddControllers();
                 builder.Services.AddSignalR();
+                builder.Services.AddHttpContextAccessor(); // For IP tracking in CauHinhController
                 builder.Services.AddHostedService<SubscriptionBackgroundService>();
                 builder.Services.AddEndpointsApiExplorer();
                 builder.Services.AddSwaggerGen(c =>
