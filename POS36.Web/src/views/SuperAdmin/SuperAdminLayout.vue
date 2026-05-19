@@ -84,15 +84,8 @@
           <AITerminal @close="terminalVisible = false" @modeChange="onModeChange" />
         </div>
 
-        <!-- Resizer (bottom mode) -->
-        <div v-if="terminalVisible && terminalMode === 'bottom'" class="sa-resizer"
-          @mousedown="startResize" :class="{ resizing: isResizing }">
-          <div class="resizer-handle"><span></span><span></span><span></span></div>
-        </div>
-
         <!-- Bottom panel -->
-        <div v-if="terminalVisible && terminalMode === 'bottom'" class="sa-terminal-pane"
-          :style="{ height: terminalHeight + 'px' }">
+        <div v-if="terminalVisible && terminalMode === 'bottom'" class="sa-terminal-pane">
           <AITerminal @close="terminalVisible = false" @modeChange="onModeChange" />
         </div>
 
@@ -127,15 +120,12 @@ const terminalHeight = ref(260);
 const isResizing = ref(false);
 const MIN_TERMINAL = 140;
 const MAX_TERMINAL = 600;
-const DEFAULT_TERMINAL = 260;
-
 const topPaneStyle = computed(() => {
   if (terminalMode.value === 'left' || terminalMode.value === 'right') return { flex: '1', overflow: 'auto' };
   if (!splitEl.value) return {};
-  const total = splitEl.value.clientHeight;
-  const h = terminalVisible.value && terminalMode.value === 'bottom'
-    ? total - terminalHeight.value - 6 : total;
-  return { height: h + 'px' };
+  // For bottom mode, flex will naturally handle the remaining space if top pane has flex: 1.
+  // We can just return flex: 1 for bottom mode as well.
+  return { flex: '1', overflow: 'auto' };
 });
 
 // Keep old topHeight for backward compat
@@ -153,34 +143,6 @@ const toggleTerminal = () => {
 
 // Resize drag logic
 let startY = 0;
-let startH = 0;
-
-const startResize = (e) => {
-  isResizing.value = true;
-  startY = e.clientY;
-  startH = terminalHeight.value;
-  document.addEventListener('mousemove', onResize);
-  document.addEventListener('mouseup', stopResize);
-  document.body.style.userSelect = 'none';
-  document.body.style.cursor = 'ns-resize';
-};
-
-const onResize = (e) => {
-  if (!isResizing.value) return;
-  const delta = startY - e.clientY; // dragging up → terminal grows
-  const newH = Math.min(MAX_TERMINAL, Math.max(MIN_TERMINAL, startH + delta));
-  terminalHeight.value = newH;
-  localStorage.setItem('pos36_terminal_h', String(newH));
-};
-
-const stopResize = () => {
-  isResizing.value = false;
-  document.removeEventListener('mousemove', onResize);
-  document.removeEventListener('mouseup', stopResize);
-  document.body.style.userSelect = '';
-  document.body.style.cursor = '';
-};
-
 // Ctrl+` keyboard shortcut
 const handleKeydown = (e) => {
   if (e.ctrlKey && e.key === '`') {
@@ -227,15 +189,11 @@ onMounted(() => {
   isDark.value = savedTheme !== 'light';
   const savedTerm = localStorage.getItem('pos36_terminal_visible');
   if (savedTerm === '1') terminalVisible.value = true;
-  const savedH = localStorage.getItem('pos36_terminal_h');
-  if (savedH) terminalHeight.value = parseInt(savedH) || DEFAULT_TERMINAL;
   window.addEventListener('keydown', handleKeydown);
 });
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown);
-  document.removeEventListener('mousemove', onResize);
-  document.removeEventListener('mouseup', stopResize);
 });
 </script>
 
@@ -355,25 +313,16 @@ onUnmounted(() => {
   overflow: hidden; position: relative;
 }
 
-.sa-content-pane { overflow-y: auto; flex-shrink: 0; }
-.sa-content { padding: 24px 28px; }
-
-/* Resizer */
-.sa-resizer {
-  height: 6px; background: var(--sa-border);
-  cursor: ns-resize; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  transition: background .15s;
+.sa-content-pane {
+  background: var(--sa-bg);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
 }
-.sa-resizer:hover, .sa-resizer.resizing { background: var(--sa-accent); }
-.resizer-handle { display: flex; gap: 3px; }
-.resizer-handle span {
-  width: 20px; height: 2px;
-  background: currentColor; opacity: .4; border-radius: 1px;
-}
-.sa-resizer:hover .resizer-handle span { opacity: .8; }
+.sa-content { flex: 1; padding: 24px 28px; }
 
-.sa-terminal-pane { flex-shrink: 0; overflow: hidden; }
+.sa-terminal-pane { flex-shrink: 0; display: flex; flex-direction: column; }
 
 /* Left/Right panel mode */
 .sa-split:has(.sa-left-pane), .sa-split:has(.sa-right-pane) { flex-direction: row; }

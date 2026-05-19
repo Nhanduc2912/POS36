@@ -1,4 +1,4 @@
-import { ref, watch } from "vue";
+import { ref, reactive, watch } from "vue";
 import axios from "axios";
 
 const THEMES = {
@@ -28,13 +28,10 @@ watch(theme, (val) => localStorage.setItem("pos36_ai_theme", val));
 export function useAIChat() {
   const currentTheme = () => THEMES[theme.value] || THEMES.dark;
 
-  // Fetch models from API
   const fetchModels = async () => {
     try {
       const res = await axios.get("/api/AIChat/models");
       models.value = res.data;
-      
-      // If the currently saved model isn't in the list, fallback
       if (!models.value.some(m => m.id === selectedModel.value)) {
         const def = res.data.find((m) => m.isDefault);
         if (def) selectedModel.value = def.id;
@@ -43,19 +40,16 @@ export function useAIChat() {
     } catch {
       models.value = [
         { id: "gemini-1.5-flash", displayName: "Gemini 1.5 Flash", description: "Nhanh, đa năng (Khuyên dùng)", isDefault: true },
-        { id: "gemini-1.5-pro",   displayName: "Gemini 1.5 Pro",   description: "Thông minh hơn" },
-        { id: "gemini-2.0-flash", displayName: "Gemini 2.0 Flash", description: "Thế hệ mới" }
+        { id: "gemini-1.5-pro",   displayName: "Gemini 1.5 Pro",   description: "Thông minh hơn" }
       ];
-      if (!models.value.some(m => m.id === selectedModel.value)) {
-        selectedModel.value = "gemini-1.5-flash";
-      }
+      if (!models.value.some(m => m.id === selectedModel.value)) selectedModel.value = "gemini-1.5-flash";
     }
   };
 
-  // Typewriter effect
   const typeText = async (msgObj, fullText) => {
+    msgObj.loading = false;
     msgObj.text = "";
-    const SPEED = 12; // ms per char (slower to be visible)
+    const SPEED = 15; // ms per char
     for (const ch of fullText) {
       msgObj.text += ch;
       await new Promise((r) => setTimeout(r, SPEED));
@@ -63,14 +57,23 @@ export function useAIChat() {
     msgObj.typing = false;
   };
 
-  const sendMessage = async (prompt, onApproval) => {
+  const sendMessage = async (prompt) => {
     if (!prompt.trim() || loading.value) return;
     loading.value = true;
     isConnected.value = true;
 
     messages.value.push({ role: "user", text: prompt, time: new Date() });
 
-    const aiMsg = { role: "ai", text: "", typing: true, time: new Date(), usage: null, approval: null };
+    // Using `reactive` to ensure nested properties trigger re-renders instantly
+    const aiMsg = reactive({ 
+      role: "ai", 
+      text: "Đang suy nghĩ...", 
+      typing: true, 
+      loading: true,
+      time: new Date(), 
+      usage: null, 
+      approval: null 
+    });
     messages.value.push(aiMsg);
 
     try {
@@ -83,26 +86,30 @@ export function useAIChat() {
       const d = res.data;
       lastUsage.value = d.usage;
       aiMsg.usage = d.usage;
+      aiMsg.loading = false;
 
       if (d.requiresAction) {
         aiMsg.typing = false;
         aiMsg.text = `⚡ AI muốn thực thi lệnh hệ thống: **${d.functionName}**`;
+        
+        let argsStr = d.functionArgs;
+        try { argsStr = JSON.stringify(JSON.parse(d.functionArgs), null, 2); } catch {}
+
         aiMsg.approval = {
           functionName: d.functionName,
-          functionArgs: d.functionArgs,
+          functionArgsStr: argsStr, // Editable
           riskLevel: d.riskLevel,
         };
-        if (onApproval) onApproval(aiMsg.approval);
       } else {
         await typeText(aiMsg, d.text || "(Không có phản hồi)");
       }
     } catch (e) {
       isConnected.value = false;
       aiMsg.typing = false;
-      
+      aiMsg.loading = false;
       const errorMsg = e.response?.data?.error || e.message;
       if (errorMsg.includes("Quota") || errorMsg.includes("429")) {
-        aiMsg.text = `❌ **Lỗi Quota:** Model hiện tại đã hết lượt dùng miễn phí hoặc đang quá tải. Hãy chuyển sang \`Gemini 1.5 Flash\` và thử lại.`;
+        aiMsg.text = `❌ **Lỗi Quota:** Model hiện tại đã hết lượt dùng. Hãy chọn \`Gemini 1.5 Flash\`.`;
       } else {
         aiMsg.text = `❌ Lỗi: ${errorMsg}`;
       }
@@ -112,19 +119,35 @@ export function useAIChat() {
   };
 
   const confirmAction = async (approval, confirmed) => {
+    if (loading.value) return;
     loading.value = true;
-    const resultMsg = { role: "system", text: "", typing: true, time: new Date() };
+    const resultMsg = reactive({ role: "system", text: "Đang xử lý...", typing: true, loading: true, time: new Date() });
     messages.value.push(resultMsg);
+    
+    // Validate JSON if confirmed
+    if (confirmed) {
+      try {
+        JSON.parse(approval.functionArgsStr);
+      } catch (e) {
+        resultMsg.typing = false;
+        resultMsg.loading = false;
+        resultMsg.text = `❌ Lỗi: Cấu trúc JSON tham số không hợp lệ.\n\nChi tiết: ${e.message}`;
+        loading.value = false;
+        return;
+      }
+    }
+
     try {
       const res = await axios.post("/api/AIChat/confirm", {
         confirmed,
         functionName: approval.functionName,
-        functionArgs: approval.functionArgs,
+        functionArgs: approval.functionArgsStr,
       });
-      const text = res.data.message || (confirmed ? "✅ Thực thi thành công" : "🚫 Đã hủy lệnh");
-      await typeText(resultMsg, text);
+      resultMsg.loading = false;
+      await typeText(resultMsg, res.data.message || (confirmed ? "✅ Thực thi thành công" : "🚫 Đã hủy lệnh"));
     } catch (e) {
       resultMsg.typing = false;
+      resultMsg.loading = false;
       resultMsg.text = `❌ ${e.message}`;
     } finally {
       loading.value = false;

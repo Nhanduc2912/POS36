@@ -194,6 +194,15 @@ namespace POS36.Api.Controllers
                     "XemNhatKy" => await ToolNhatKy(
                         args.TryGetProperty("tuNgay", out var tn) ? tn.GetString() : null,
                         args.TryGetProperty("hanhDong", out var hd) ? hd.GetString() : null),
+                    "ThemGoiSaaS" => await ToolThemGoiSaaS(
+                        args.TryGetProperty("tenGoi", out var tg) ? tg.GetString() : null,
+                        args.TryGetProperty("maGoi", out var mg) ? mg.GetString() : null,
+                        args.TryGetProperty("soThang", out var so) ? so.GetInt32() : 0,
+                        args.TryGetProperty("giaThang", out var gt) ? gt.GetDecimal() : 0,
+                        args.TryGetProperty("tongGia", out var tgi) ? tgi.GetDecimal() : 0,
+                        args.TryGetProperty("gioiHanHoaDon", out var ghd) ? ghd.GetInt32() : 0,
+                        args.TryGetProperty("gioiHanNhanVien", out var gnv) ? gnv.GetInt32() : 0,
+                        args.TryGetProperty("moTa", out var mt) ? mt.GetString() : null),
                     _ => new ToolResult { Success = false, Message = $"Tool '{fn}' không được hỗ trợ." }
                 };
             }
@@ -247,6 +256,32 @@ namespace POS36.Api.Controllers
             ch.TrangThai = ch.NgayHetHan > DateTime.Now ? "HoatDong" : "ChiDoc";
             await _context.SaveChangesAsync();
             return new ToolResult { Success = true, Message = $"✅ Đã mở khóa: [{ch.TenCuaHang}] → {ch.TrangThai}" };
+        }
+
+        private async Task<ToolResult> ToolThemGoiSaaS(string? tenGoi, string? maGoi, int soThang, decimal giaThang, decimal tongGia, int gioiHanHoaDon, int gioiHanNhanVien, string? moTa)
+        {
+            if (string.IsNullOrEmpty(tenGoi) || string.IsNullOrEmpty(maGoi) || soThang <= 0)
+                return new ToolResult { Success = false, Message = "Tên gói, mã gói và số tháng không hợp lệ." };
+
+            var existing = await _context.GoiDichVus.FirstOrDefaultAsync(g => g.MaGoi == maGoi);
+            if (existing != null) return new ToolResult { Success = false, Message = $"Gói '{maGoi}' đã tồn tại." };
+
+            var p = new POS36.Api.Models.GoiDichVu
+            {
+                TenGoi = tenGoi,
+                MaGoi = maGoi,
+                SoThang = soThang,
+                GiaThang = giaThang,
+                TongGia = tongGia > 0 ? tongGia : giaThang * soThang,
+                GioiHanHoaDon = gioiHanHoaDon,
+                GioiHanNhanVien = gioiHanNhanVien,
+                MoTa = moTa,
+                IsActive = true,
+                ThuTuHienThi = await _context.GoiDichVus.CountAsync() + 1
+            };
+            _context.GoiDichVus.Add(p);
+            await _context.SaveChangesAsync();
+            return new ToolResult { Success = true, Message = $"✅ Đã tạo gói mới: [{p.TenGoi}] ({p.MaGoi}) - {p.SoThang} tháng." };
         }
 
         private async Task<ToolResult> ToolGiaHan(int id, int soThang, string? goiMoi)
