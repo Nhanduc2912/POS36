@@ -55,9 +55,8 @@
             <i :class="isDark ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill'"></i>
             <span v-if="!sidebarCollapsed">{{ isDark ? 'Sáng' : 'Tối' }}</span>
           </button>
-          <!-- Ctrl+` hint -->
           <span class="term-hint ms-3" v-if="!sidebarCollapsed">
-            <kbd>Ctrl</kbd>+<kbd>`</kbd> Terminal
+            <kbd>Ctrl</kbd>+<kbd>`</kbd> AI
           </span>
           <span class="sa-admin-name ms-3">
             <i class="bi bi-shield-lock-fill text-warning me-1"></i>SuperAdmin
@@ -70,30 +69,36 @@
 
       <!-- Split Panel Container -->
       <div class="sa-split" ref="splitEl">
-        <!-- Top: Router View -->
-        <div class="sa-content-pane" :style="{ height: topHeight + 'px' }">
-          <div class="sa-content">
-            <router-view />
-          </div>
+        <!-- Left panel AI (left mode) -->
+        <div v-if="terminalVisible && terminalMode === 'left'" class="sa-left-pane">
+          <AITerminal @close="terminalVisible = false" @modeChange="onModeChange" />
         </div>
 
-        <!-- Resizer Bar -->
-        <div v-if="terminalVisible" class="sa-resizer"
-          @mousedown="startResize"
-          :class="{ resizing: isResizing }">
-          <div class="resizer-handle">
-            <span></span><span></span><span></span>
-          </div>
+        <!-- Top: Router View (hidden in fullpage mode) -->
+        <div class="sa-content-pane" v-show="terminalMode !== 'fullpage'" :style="topPaneStyle">
+          <div class="sa-content"><router-view /></div>
         </div>
 
-        <!-- Bottom: AI Terminal -->
-        <div v-if="terminalVisible" class="sa-terminal-pane"
+        <!-- Resizer (bottom mode) -->
+        <div v-if="terminalVisible && terminalMode === 'bottom'" class="sa-resizer"
+          @mousedown="startResize" :class="{ resizing: isResizing }">
+          <div class="resizer-handle"><span></span><span></span><span></span></div>
+        </div>
+
+        <!-- Bottom panel -->
+        <div v-if="terminalVisible && terminalMode === 'bottom'" class="sa-terminal-pane"
           :style="{ height: terminalHeight + 'px' }">
-          <AITerminal
-            :isMinimized="false"
-            @toggle="toggleTerminal"
-          />
+          <AITerminal @close="terminalVisible = false" @modeChange="onModeChange" />
         </div>
+
+        <!-- Fullpage mode -->
+        <div v-if="terminalVisible && terminalMode === 'fullpage'" class="sa-content-pane" style="height:100%">
+          <AITerminal @close="terminalVisible = false" @modeChange="onModeChange" />
+        </div>
+
+        <!-- Window mode: handled by Teleport inside AITerminal -->
+        <AITerminal v-if="terminalVisible && terminalMode === 'window'"
+          @close="terminalVisible = false" @modeChange="onModeChange" />
       </div>
     </main>
   </div>
@@ -112,17 +117,29 @@ const isDark = ref(true);
 // ===== SPLIT PANEL =====
 const splitEl = ref(null);
 const terminalVisible = ref(false);
+const terminalMode = ref('bottom'); // bottom | left | window | fullpage
 const terminalHeight = ref(260);
 const isResizing = ref(false);
 const MIN_TERMINAL = 140;
 const MAX_TERMINAL = 600;
 const DEFAULT_TERMINAL = 260;
 
-const topHeight = computed(() => {
-  if (!splitEl.value) return undefined;
+const topPaneStyle = computed(() => {
+  if (terminalMode.value === 'left') return { flex: '1', overflow: 'auto' };
+  if (!splitEl.value) return {};
   const total = splitEl.value.clientHeight;
-  return terminalVisible.value ? total - terminalHeight.value - 6 : total;
+  const h = terminalVisible.value && terminalMode.value === 'bottom'
+    ? total - terminalHeight.value - 6 : total;
+  return { height: h + 'px' };
 });
+
+// Keep old topHeight for backward compat
+const topHeight = computed(() => topPaneStyle.value?.height?.replace('px',''));
+
+const onModeChange = (m) => {
+  terminalMode.value = m;
+  localStorage.setItem('pos36_ai_mode', m);
+};
 
 const toggleTerminal = () => {
   terminalVisible.value = !terminalVisible.value;
@@ -352,4 +369,8 @@ onUnmounted(() => {
 .sa-resizer:hover .resizer-handle span { opacity: .8; }
 
 .sa-terminal-pane { flex-shrink: 0; overflow: hidden; }
+
+/* Left panel mode */
+.sa-split:has(.sa-left-pane) { flex-direction: row; }
+.sa-left-pane { flex-shrink: 0; overflow: hidden; border-right: 1px solid var(--sa-border); }
 </style>

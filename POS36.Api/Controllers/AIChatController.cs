@@ -28,6 +28,16 @@ namespace POS36.Api.Controllers
         }
 
         // ==========================================
+        // 0. DANH SÁCH MODELS
+        // ==========================================
+        [HttpGet("models")]
+        public async Task<IActionResult> GetModels()
+        {
+            var models = await _gemini.GetModelsAsync();
+            return Ok(models);
+        }
+
+        // ==========================================
         // 1. CHAT — Gửi prompt, nhận phản hồi AI
         // ==========================================
         [HttpPost("chat")]
@@ -41,7 +51,13 @@ namespace POS36.Api.Controllers
             List<GeminiMessage>? history;
             lock (_lock) { _sessions.TryGetValue(sessionId, out history); }
 
-            var response = await _gemini.ChatAsync(req.Prompt, history);
+            // Route sang PureChat nếu mode == "chat"
+            GeminiResponse response;
+            if (req.Mode == "chat")
+                response = await _gemini.PureChatAsync(req.Prompt, history, req.ModelId);
+            else
+                response = await _gemini.ChatAsync(req.Prompt, history, req.ModelId);
+
             if (response.Error != null)
                 return StatusCode(500, new { error = response.Error });
 
@@ -83,7 +99,15 @@ namespace POS36.Api.Controllers
                 functionArgs = response.FunctionArgs,
                 riskLevel = response.RiskLevel,
                 displayMessage = response.DisplayMessage,
-                sessionId
+                sessionId,
+                // Token usage & stats
+                usage = new {
+                    promptTokens = response.Usage.PromptTokens,
+                    responseTokens = response.Usage.ResponseTokens,
+                    totalTokens = response.Usage.TotalTokens,
+                    elapsedMs = response.Usage.ElapsedMs,
+                    model = response.Usage.Model
+                }
             });
         }
 
@@ -261,7 +285,13 @@ namespace POS36.Api.Controllers
         private static string TruncateStr(string s, int max) => s.Length <= max ? s : s[..max] + "...";
     }
 
-    public class ChatRequest { public string Prompt { get; set; } = ""; public string? SessionId { get; set; } }
+    public class ChatRequest
+    {
+        public string Prompt { get; set; } = "";
+        public string? SessionId { get; set; }
+        public string? ModelId { get; set; }       // gemini-1.5-flash, gemini-1.5-pro, etc.
+        public string Mode { get; set; } = "agent"; // "agent" | "chat"
+    }
     public class ConfirmRequest { public bool Confirmed { get; set; } public string FunctionName { get; set; } = ""; public string? FunctionArgs { get; set; } }
     public class ToolResult { public bool Success { get; set; } public string Message { get; set; } = ""; public object? Data { get; set; } }
 }

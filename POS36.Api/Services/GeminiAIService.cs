@@ -6,60 +6,123 @@ using Serilog;
 namespace POS36.Api.Services
 {
     /// <summary>
-    /// Service giao tiếp với Gemini API (Function Calling).
-    /// Hỗ trợ multi-turn conversation và tool execution flow.
+    /// Service giao tiếp với Gemini API.
+    /// Hỗ trợ: Function Calling, multi-turn, model selector, token usage.
     /// </summary>
     public class GeminiAIService
     {
         private readonly HttpClient _http;
         private readonly string _apiKey;
-        private readonly string _model = "gemini-1.5-flash";
+        private const string BASE = "https://generativelanguage.googleapis.com/v1beta";
+        private const string DEFAULT_MODEL = "gemini-1.5-flash";
 
-        // Định nghĩa các tools mà AI có thể gọi
         public static readonly List<GeminiTool> AvailableTools = new()
         {
-            new GeminiTool("ThongKeSaaS", "Xem thống kê tổng quan hệ thống SaaS: số quán, doanh thu, quán sắp hết hạn"),
-            new GeminiTool("DanhSachCuaHang", "Lấy danh sách cửa hàng với bộ lọc. Tham số: trangThai (HoatDong/ChiDoc/BiKhoa/DungThu), sapHetHan (true/false)"),
-            new GeminiTool("KhoaCuaHang", "Khóa cửa hàng. Tham số: cuaHangId (int), lyDo (string)") { RiskLevel = "HIGH" },
-            new GeminiTool("MoKhoaCuaHang", "Mở khóa cửa hàng. Tham số: cuaHangId (int)") { RiskLevel = "MEDIUM" },
-            new GeminiTool("GiaHanGoi", "Gia hạn gói dịch vụ cho cửa hàng. Tham số: cuaHangId (int), soThang (int), goiMoi (STARTER/PRO/ULTIMATE)") { RiskLevel = "LOW" },
-            new GeminiTool("GuiThongBao", "Gửi thông báo hệ thống. Tham số: cuaHangId (int hoặc 0=tất cả), tieuDe (string), noiDung (string), loai (ThongTin/CanhBao/KhanCap)"),
-            new GeminiTool("XemNhatKy", "Xem nhật ký hệ thống. Tham số: tuNgay (yyyy-MM-dd), hanhDong (tùy chọn)"),
+            new GeminiTool("ThongKeSaaS",      "Xem thống kê tổng quan SaaS: số quán, doanh thu, sắp hết hạn"),
+            new GeminiTool("DanhSachCuaHang",  "Danh sách cửa hàng. Params: trangThai, sapHetHan (bool)"),
+            new GeminiTool("KhoaCuaHang",      "Khóa cửa hàng. Params: cuaHangId, lyDo")                    { RiskLevel = "HIGH" },
+            new GeminiTool("MoKhoaCuaHang",    "Mở khóa cửa hàng. Params: cuaHangId")                       { RiskLevel = "MEDIUM" },
+            new GeminiTool("GiaHanGoi",        "Gia hạn gói. Params: cuaHangId, soThang, goiMoi")            { RiskLevel = "LOW" },
+            new GeminiTool("GuiThongBao",      "Gửi thông báo. Params: cuaHangId (0=all), tieuDe, noiDung, loai"),
+            new GeminiTool("XemNhatKy",        "Xem nhật ký. Params: tuNgay (yyyy-MM-dd), hanhDong"),
         };
 
         public GeminiAIService(IConfiguration config, HttpClient http)
         {
-            _apiKey = config["GeminiAI:ApiKey"] ?? throw new InvalidOperationException("GeminiAI:ApiKey chưa được cấu hình!");
+            _apiKey = config["GeminiAI:ApiKey"]
+                ?? throw new InvalidOperationException("GeminiAI:ApiKey chưa cấu hình trong User Secrets!");
             _http = http;
         }
 
-        public async Task<GeminiResponse> ChatAsync(string prompt, List<GeminiMessage>? history = null)
+        // =============================================
+        // 1. LẤY DANH SÁCH MODELS TỪ GOOGLE AI STUDIO
+        // =============================================
+        public async Task<List<GeminiModelInfo>> GetModelsAsync()
         {
-            var url = $"https://generativelanguage.googleapis.com/v1beta/models/{_model}:generateContent?key={_apiKey}";
+            try
+            {
+                var url = $"{BASE}/models?key={_apiKey}&pageSize=50";
+                var res = await _http.GetAsync(url);
+                var json = await res.Content.ReadAsStringAsync();
 
-            // Build system instruction
+                if (!res.IsSuccessStatusCode)
+                {
+                    Log.Warning("GetModels failed: {Status} {Body}", res.StatusCode, json[..Math.Min(json.Length, 200)]);
+                    return GetFallbackModels();
+                }
+
+                using var doc = JsonDocument.Parse(json);
+                var models = new List<GeminiModelInfo>();
+
+                if (!doc.RootElement.TryGetProperty("models", out var modelsEl))
+                    return GetFallbackModels();
+
+                foreach (var m in modelsEl.EnumerateArray())
+                {
+                    var name = m.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
+                    var displayName = m.TryGetProperty("displayName", out var dn) ? dn.GetString() ?? "" : "";
+                    var description = m.TryGetProperty("description", out var d) ? d.GetString() ?? "" : "";
+                    var inputLimit = m.TryGetProperty("inputTokenLimit", out var il) ? il.GetInt64() : 0;
+                    var outputLimit = m.TryGetProperty("outputTokenLimit", out var ol) ? ol.GetInt64() : 0;
+
+                    // Chỉ lấy model hỗ trợ generateContent
+                    bool supportsGenerate = false;
+                    if (m.TryGetProperty("supportedGenerationMethods", out var methods))
+                        supportsGenerate = methods.EnumerateArray().Any(x => x.GetString() == "generateContent");
+
+                    if (!supportsGenerate) continue;
+
+                    // Bỏ qua embedding và legacy models
+                    if (name.Contains("embedding") || name.Contains("aqa")) continue;
+
+                    models.Add(new GeminiModelInfo
+                    {
+                        Id = name.Replace("models/", ""),
+                        FullName = name,
+                        DisplayName = string.IsNullOrEmpty(displayName) ? name.Replace("models/", "") : displayName,
+                        Description = description[..Math.Min(description.Length, 120)],
+                        InputTokenLimit = inputLimit,
+                        OutputTokenLimit = outputLimit,
+                        IsDefault = name.Contains("gemini-1.5-flash") && !name.Contains("latest") && !name.Contains("8b")
+                    });
+                }
+
+                return models.Count > 0 ? models : GetFallbackModels();
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "GetModelsAsync exception");
+                return GetFallbackModels();
+            }
+        }
+
+        private static List<GeminiModelInfo> GetFallbackModels() => new()
+        {
+            new() { Id = "gemini-1.5-flash",     DisplayName = "Gemini 1.5 Flash",    Description = "Nhanh, tiết kiệm, đa năng",             InputTokenLimit = 1000000, IsDefault = true },
+            new() { Id = "gemini-1.5-pro",       DisplayName = "Gemini 1.5 Pro",      Description = "Thông minh hơn, chậm hơn",              InputTokenLimit = 2000000 },
+            new() { Id = "gemini-2.0-flash",     DisplayName = "Gemini 2.0 Flash",    Description = "Thế hệ mới, nhanh & mạnh",              InputTokenLimit = 1000000 },
+            new() { Id = "gemini-2.0-flash-lite",DisplayName = "Gemini 2.0 Flash Lite",Description = "Siêu nhẹ, phù hợp hội thoại đơn giản",InputTokenLimit = 1000000 },
+        };
+
+        // =============================================
+        // 2. CHAT (Agent mode — Function Calling)
+        // =============================================
+        public async Task<GeminiResponse> ChatAsync(string prompt, List<GeminiMessage>? history = null, string? modelId = null)
+        {
+            var model = modelId ?? DEFAULT_MODEL;
+            var url = $"{BASE}/models/{model}:generateContent?key={_apiKey}";
+
             var systemInstruction = @"Bạn là AI Assistant của hệ thống POS36 SaaS. 
-Nhiệm vụ: Hỗ trợ Super Admin quản lý toàn bộ hệ thống cửa hàng.
-Quy tắc:
-- Luôn phản hồi bằng tiếng Việt
-- Với các lệnh NGUY HIỂM (khóa quán, xóa dữ liệu), phải xác nhận rõ ràng trước khi thực thi
-- Chỉ thực hiện các tool đã được định nghĩa
-- Nếu không chắc, hỏi lại Super Admin";
+Nhiệm vụ: Hỗ trợ Super Admin quản lý toàn bộ hệ thống cửa hàng bằng tiếng Việt.
+Quy tắc: Luôn phản hồi tiếng Việt, rõ ràng, súc tích. Với lệnh NGUY HIỂM, xác nhận trước.";
 
-            // Build conversation history
             var contents = new List<object>();
             if (history != null)
                 foreach (var msg in history)
                     contents.Add(new { role = msg.Role, parts = new[] { new { text = msg.Text } } });
-
             contents.Add(new { role = "user", parts = new[] { new { text = prompt } } });
 
-            // Build tool declarations
-            var toolDeclarations = AvailableTools.Select(t => new
-            {
-                name = t.Name,
-                description = t.Description,
-            }).ToList();
+            var toolDeclarations = AvailableTools.Select(t => new { name = t.Name, description = t.Description }).ToList();
 
             var body = new
             {
@@ -67,74 +130,125 @@ Quy tắc:
                 contents,
                 tools = new[] { new { function_declarations = toolDeclarations } },
                 tool_config = new { function_calling_config = new { mode = "AUTO" } },
-                generation_config = new { temperature = 0.3, max_output_tokens = 2048 }
+                generation_config = new { temperature = 0.4, max_output_tokens = 2048 }
             };
 
-            var json = JsonSerializer.Serialize(body);
-            var request = new HttpRequestMessage(HttpMethod.Post, url)
+            return await SendRequestAsync(url, body, model);
+        }
+
+        // =============================================
+        // 3. PURE CHAT (Chỉ hội thoại, không function calling)
+        // =============================================
+        public async Task<GeminiResponse> PureChatAsync(string prompt, List<GeminiMessage>? history = null, string? modelId = null)
+        {
+            var model = modelId ?? DEFAULT_MODEL;
+            var url = $"{BASE}/models/{model}:generateContent?key={_apiKey}";
+
+            var contents = new List<object>();
+            if (history != null)
+                foreach (var msg in history)
+                    contents.Add(new { role = msg.Role, parts = new[] { new { text = msg.Text } } });
+            contents.Add(new { role = "user", parts = new[] { new { text = prompt } } });
+
+            var body = new
             {
-                Content = new StringContent(json, Encoding.UTF8, "application/json")
+                contents,
+                generation_config = new { temperature = 0.7, max_output_tokens = 4096 }
             };
 
+            return await SendRequestAsync(url, body, model);
+        }
+
+        // =============================================
+        // INTERNAL: Gửi request và parse response
+        // =============================================
+        private async Task<GeminiResponse> SendRequestAsync(string url, object body, string model)
+        {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             try
             {
-                var res = await _http.SendAsync(request);
+                var json = JsonSerializer.Serialize(body);
+                var req = new HttpRequestMessage(HttpMethod.Post, url)
+                {
+                    Content = new StringContent(json, Encoding.UTF8, "application/json")
+                };
+
+                var res = await _http.SendAsync(req);
                 var content = await res.Content.ReadAsStringAsync();
+                sw.Stop();
 
                 if (!res.IsSuccessStatusCode)
                 {
-                    Log.Error("Gemini API error {StatusCode}: {Content}", res.StatusCode, content);
-                    return new GeminiResponse { Error = $"Gemini API lỗi: {res.StatusCode}" };
+                    Log.Error("Gemini API {Status}: {Body}", res.StatusCode, content[..Math.Min(content.Length, 300)]);
+                    return new GeminiResponse { Error = $"API lỗi {res.StatusCode}: {ExtractError(content)}" };
                 }
 
-                return ParseResponse(content);
+                return ParseResponse(content, model, sw.ElapsedMilliseconds);
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "Gemini API exception");
+                sw.Stop();
+                Log.Error(ex, "Gemini request exception");
                 return new GeminiResponse { Error = ex.Message };
             }
         }
 
-        private GeminiResponse ParseResponse(string raw)
+        private GeminiResponse ParseResponse(string raw, string model, long elapsedMs)
         {
             using var doc = JsonDocument.Parse(raw);
-            var candidate = doc.RootElement
-                .GetProperty("candidates")[0]
-                .GetProperty("content")
-                .GetProperty("parts")[0];
+            var root = doc.RootElement;
 
-            // Kiểm tra functionCall
+            // Token usage
+            var usage = new GeminiUsage();
+            if (root.TryGetProperty("usageMetadata", out var um))
+            {
+                usage.PromptTokens = um.TryGetProperty("promptTokenCount", out var pt) ? pt.GetInt32() : 0;
+                usage.ResponseTokens = um.TryGetProperty("candidatesTokenCount", out var ct) ? ct.GetInt32() : 0;
+                usage.TotalTokens = um.TryGetProperty("totalTokenCount", out var tt) ? tt.GetInt32() : 0;
+            }
+            usage.ElapsedMs = elapsedMs;
+            usage.Model = model;
+
+            if (!root.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0)
+                return new GeminiResponse { Error = "Không có candidates trong response", Usage = usage };
+
+            var candidate = candidates[0].GetProperty("content").GetProperty("parts")[0];
+
+            // Function Call?
             if (candidate.TryGetProperty("functionCall", out var funcCall))
             {
                 var funcName = funcCall.GetProperty("name").GetString() ?? "";
-                var args = funcCall.TryGetProperty("args", out var argsEl)
-                    ? argsEl.GetRawText()
-                    : "{}";
-
+                var args = funcCall.TryGetProperty("args", out var a) ? a.GetRawText() : "{}";
                 var tool = AvailableTools.FirstOrDefault(t => t.Name == funcName);
-
                 return new GeminiResponse
                 {
                     Type = GeminiResponseType.RequiresAction,
                     FunctionName = funcName,
                     FunctionArgs = args,
                     RiskLevel = tool?.RiskLevel ?? "LOW",
-                    DisplayMessage = $"AI muốn thực thi: **{funcName}**\nTham số: `{args}`"
+                    DisplayMessage = $"AI muốn thực thi: **{funcName}**",
+                    Usage = usage
                 };
             }
 
-            // Trả về text
+            // Text response
             if (candidate.TryGetProperty("text", out var textEl))
-            {
-                return new GeminiResponse
-                {
-                    Type = GeminiResponseType.Text,
-                    Text = textEl.GetString() ?? ""
-                };
-            }
+                return new GeminiResponse { Type = GeminiResponseType.Text, Text = textEl.GetString() ?? "", Usage = usage };
 
-            return new GeminiResponse { Error = "Không thể phân tích phản hồi từ Gemini" };
+            return new GeminiResponse { Error = "Không thể parse response", Usage = usage };
+        }
+
+        private static string ExtractError(string json)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("error", out var err) &&
+                    err.TryGetProperty("message", out var msg))
+                    return msg.GetString() ?? json;
+            }
+            catch { }
+            return json[..Math.Min(json.Length, 100)];
         }
     }
 
@@ -147,22 +261,31 @@ Quy tắc:
         public string Text { get; set; } = "";
         public string? FunctionName { get; set; }
         public string? FunctionArgs { get; set; }
-        public string RiskLevel { get; set; } = "LOW"; // LOW | MEDIUM | HIGH
+        public string RiskLevel { get; set; } = "LOW";
         public string? DisplayMessage { get; set; }
         public string? Error { get; set; }
+        public GeminiUsage Usage { get; set; } = new();
     }
 
-    public class GeminiMessage
+    public class GeminiUsage
     {
-        public string Role { get; set; } = "user"; // user | model
-        public string Text { get; set; } = "";
+        public int PromptTokens { get; set; }
+        public int ResponseTokens { get; set; }
+        public int TotalTokens { get; set; }
+        public long ElapsedMs { get; set; }
+        public string Model { get; set; } = "";
     }
 
-    public class GeminiTool
+    public class GeminiMessage { public string Role { get; set; } = "user"; public string Text { get; set; } = ""; }
+    public class GeminiTool { public string Name { get; set; } public string Description { get; set; } public string RiskLevel { get; set; } = "LOW"; public GeminiTool(string n, string d) { Name = n; Description = d; } }
+    public class GeminiModelInfo
     {
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public string RiskLevel { get; set; } = "LOW";
-        public GeminiTool(string name, string desc) { Name = name; Description = desc; }
+        public string Id { get; set; } = "";
+        public string FullName { get; set; } = "";
+        public string DisplayName { get; set; } = "";
+        public string Description { get; set; } = "";
+        public long InputTokenLimit { get; set; }
+        public long OutputTokenLimit { get; set; }
+        public bool IsDefault { get; set; }
     }
 }
