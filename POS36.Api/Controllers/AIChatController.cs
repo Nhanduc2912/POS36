@@ -240,7 +240,7 @@ namespace POS36.Api.Controllers
         {
             _context.ThongBaoHeThongs.Add(new ThongBaoHeThong
             {
-                TieuDe = tieuDe, NoiDung = noiDung, Loai = loai,
+                TieuDe = tieuDe, NoiDung = noiDung, LoaiThongBao = loai,
                 CuaHangId = cuaHangId == 0 ? null : cuaHangId,
                 NgayTao = DateTime.Now, DaDoc = false
             });
