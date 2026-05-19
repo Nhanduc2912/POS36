@@ -199,6 +199,11 @@ const routes = [
         name: "AdminSubscription",
         component: () => import("../views/SubscriptionView.vue"),
       },
+      {
+        path: "thiet-lap",
+        name: "ThietLap",
+        component: () => import("../views/ThietLapView.vue"),
+      },
     ],
   },
 

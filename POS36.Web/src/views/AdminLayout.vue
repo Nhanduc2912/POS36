@@ -376,6 +376,11 @@ const bannerInfo = computed(() => {
                       ><i class="bi bi-credit-card-2-front me-2"></i> Gói dịch vụ</router-link
                     >
                   </li>
+                  <li>
+                    <router-link class="dropdown-item fw-bold" to="/admin/thiet-lap"
+                      ><i class="bi bi-gear me-2 text-muted"></i> Thiết lập hệ thống</router-link
+                    >
+                  </li>
 
                   <li><hr class="dropdown-divider my-2" /></li>
                   <li>

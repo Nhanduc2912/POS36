@@ -191,5 +191,96 @@ namespace POS36.Api.Controllers
             await _context.SaveChangesAsync();
             return Ok(new { message = "Lưu thiết lập thành công" });
         }
+
+        // ==========================================
+        // 7. LẤY NHIỀU THIẾT LẬP CÙNG LÚC (batch)
+        // ==========================================
+        [HttpGet("batch")]
+        public async Task<IActionResult> GetBatch([FromQuery] string keys)
+        {
+            int cuaHangId = GetCuaHangId();
+            var keyList = keys.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            var result = await _context.ThietLaps
+                .Where(t => t.CuaHangId == cuaHangId && keyList.Contains(t.MaThietLap))
+                .ToDictionaryAsync(t => t.MaThietLap, t => t.DuLieu);
+
+            // Đảm bảo trả về tất cả keys, kể cả chưa có (giá trị rỗng)
+            foreach (var k in keyList)
+                if (!result.ContainsKey(k)) result[k] = "";
+
+            return Ok(result);
+        }
+
+        // ==========================================
+        // 8. LƯU NHIỀU THIẾT LẬP CÙNG LÚC (batch)
+        // ==========================================
+        [Authorize(Roles = "ChuCuaHang")]
+        [HttpPost("batch")]
+        public async Task<IActionResult> SaveBatch([FromBody] Dictionary<string, string> data)
+        {
+            if (data == null || !data.Any()) return BadRequest("Không có dữ liệu!");
+            int cuaHangId = GetCuaHangId();
+
+            foreach (var (key, value) in data)
+            {
+                var tl = await _context.ThietLaps
+                    .FirstOrDefaultAsync(t => t.CuaHangId == cuaHangId && t.MaThietLap == key);
+
+                if (tl == null)
+                    _context.ThietLaps.Add(new ThietLap { CuaHangId = cuaHangId, MaThietLap = key, DuLieu = value });
+                else
+                    tl.DuLieu = value;
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = $"Đã lưu {data.Count} thiết lập!" });
+        }
+
+        // ==========================================
+        // 9. LẤY THÔNG TIN CỬA HÀNG (profile)
+        // ==========================================
+        [HttpGet("store-info")]
+        public async Task<IActionResult> GetStoreInfo()
+        {
+            int cuaHangId = GetCuaHangId();
+            var ch = await _context.CuaHangs.FindAsync(cuaHangId);
+            if (ch == null) return NotFound();
+            return Ok(new
+            {
+                ch.TenCuaHang, ch.SoDienThoai, ch.Email,
+                ch.DiaChi, ch.LogoUrl, ch.TrangThai,
+                ch.NgayHetHan, ch.GoiDichVu
+            });
+        }
+
+        // ==========================================
+        // 10. CẬP NHẬT THÔNG TIN CỬA HÀNG
+        // ==========================================
+        [Authorize(Roles = "ChuCuaHang")]
+        [HttpPut("store-info")]
+        public async Task<IActionResult> UpdateStoreInfo([FromBody] UpdateStoreInfoDto dto)
+        {
+            int cuaHangId = GetCuaHangId();
+            var ch = await _context.CuaHangs.FindAsync(cuaHangId);
+            if (ch == null) return NotFound();
+
+            if (!string.IsNullOrWhiteSpace(dto.TenCuaHang)) ch.TenCuaHang = dto.TenCuaHang.Trim();
+            if (dto.Email != null) ch.Email = dto.Email.Trim();
+            if (dto.DiaChi != null) ch.DiaChi = dto.DiaChi.Trim();
+            if (dto.LogoUrl != null) ch.LogoUrl = dto.LogoUrl.Trim();
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Cập nhật thông tin cửa hàng thành công!" });
+        }
     }
+}
+
+// DTO mới
+public class UpdateStoreInfoDto
+{
+    public string? TenCuaHang { get; set; }
+    public string? Email { get; set; }
+    public string? DiaChi { get; set; }
+    public string? LogoUrl { get; set; }
 }
