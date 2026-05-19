@@ -79,6 +79,11 @@
           <div class="sa-content"><router-view /></div>
         </div>
 
+        <!-- Right panel AI (right mode) -->
+        <div v-if="terminalVisible && terminalMode === 'right'" class="sa-right-pane">
+          <AITerminal @close="terminalVisible = false" @modeChange="onModeChange" />
+        </div>
+
         <!-- Resizer (bottom mode) -->
         <div v-if="terminalVisible && terminalMode === 'bottom'" class="sa-resizer"
           @mousedown="startResize" :class="{ resizing: isResizing }">
@@ -125,7 +130,7 @@ const MAX_TERMINAL = 600;
 const DEFAULT_TERMINAL = 260;
 
 const topPaneStyle = computed(() => {
-  if (terminalMode.value === 'left') return { flex: '1', overflow: 'auto' };
+  if (terminalMode.value === 'left' || terminalMode.value === 'right') return { flex: '1', overflow: 'auto' };
   if (!splitEl.value) return {};
   const total = splitEl.value.clientHeight;
   const h = terminalVisible.value && terminalMode.value === 'bottom'
@@ -370,7 +375,8 @@ onUnmounted(() => {
 
 .sa-terminal-pane { flex-shrink: 0; overflow: hidden; }
 
-/* Left panel mode */
-.sa-split:has(.sa-left-pane) { flex-direction: row; }
+/* Left/Right panel mode */
+.sa-split:has(.sa-left-pane), .sa-split:has(.sa-right-pane) { flex-direction: row; }
 .sa-left-pane { flex-shrink: 0; overflow: hidden; border-right: 1px solid var(--sa-border); }
+.sa-right-pane { flex-shrink: 0; overflow: hidden; border-left: 1px solid var(--sa-border); }
 </style>

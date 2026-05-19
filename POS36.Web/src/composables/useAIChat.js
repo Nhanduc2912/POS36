@@ -1,4 +1,4 @@
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import axios from "axios";
 
 const THEMES = {
@@ -9,17 +9,23 @@ const THEMES = {
   light:   { bg: "#f6f8fa", surface: "#ffffff", text: "#1f2328", muted: "#656d76", accent: "#0969da", border: "#d0d7de", user: "#0969da" },
 };
 
-export function useAIChat() {
-  const messages = ref([]);
-  const loading = ref(false);
-  const models = ref([]);
-  const selectedModel = ref("gemini-1.5-flash");
-  const mode = ref("agent"); // agent | chat
-  const theme = ref("dark");
-  const sessionId = `sa-${Date.now()}`;
-  const lastUsage = ref(null);
-  const isConnected = ref(true);
+// GLOBAL STATE (Singletons) to survive component remounts
+const messages = ref([]);
+const loading = ref(false);
+const models = ref([]);
+const selectedModel = ref(localStorage.getItem("pos36_ai_model") || "gemini-1.5-flash");
+const mode = ref(localStorage.getItem("pos36_ai_chat_mode") || "agent"); // agent | chat
+const theme = ref(localStorage.getItem("pos36_ai_theme") || "dark");
+const sessionId = `sa-${Date.now()}`;
+const lastUsage = ref(null);
+const isConnected = ref(true);
 
+// Persist settings
+watch(selectedModel, (val) => localStorage.setItem("pos36_ai_model", val));
+watch(mode, (val) => localStorage.setItem("pos36_ai_chat_mode", val));
+watch(theme, (val) => localStorage.setItem("pos36_ai_theme", val));
+
+export function useAIChat() {
   const currentTheme = () => THEMES[theme.value] || THEMES.dark;
 
   // Fetch models from API
@@ -27,21 +33,29 @@ export function useAIChat() {
     try {
       const res = await axios.get("/api/AIChat/models");
       models.value = res.data;
-      const def = res.data.find((m) => m.isDefault);
-      if (def) selectedModel.value = def.id;
+      
+      // If the currently saved model isn't in the list, fallback
+      if (!models.value.some(m => m.id === selectedModel.value)) {
+        const def = res.data.find((m) => m.isDefault);
+        if (def) selectedModel.value = def.id;
+        else if (res.data.length > 0) selectedModel.value = res.data[0].id;
+      }
     } catch {
       models.value = [
-        { id: "gemini-1.5-flash", displayName: "Gemini 1.5 Flash", description: "Nhanh, đa năng", isDefault: true },
+        { id: "gemini-1.5-flash", displayName: "Gemini 1.5 Flash", description: "Nhanh, đa năng (Khuyên dùng)", isDefault: true },
         { id: "gemini-1.5-pro",   displayName: "Gemini 1.5 Pro",   description: "Thông minh hơn" },
-        { id: "gemini-2.0-flash", displayName: "Gemini 2.0 Flash", description: "Thế hệ mới" },
+        { id: "gemini-2.0-flash", displayName: "Gemini 2.0 Flash", description: "Thế hệ mới" }
       ];
+      if (!models.value.some(m => m.id === selectedModel.value)) {
+        selectedModel.value = "gemini-1.5-flash";
+      }
     }
   };
 
   // Typewriter effect
   const typeText = async (msgObj, fullText) => {
     msgObj.text = "";
-    const SPEED = 8; // ms per char
+    const SPEED = 12; // ms per char (slower to be visible)
     for (const ch of fullText) {
       msgObj.text += ch;
       await new Promise((r) => setTimeout(r, SPEED));
@@ -72,7 +86,7 @@ export function useAIChat() {
 
       if (d.requiresAction) {
         aiMsg.typing = false;
-        aiMsg.text = `⚡ AI muốn thực thi: **${d.functionName}**`;
+        aiMsg.text = `⚡ AI muốn thực thi lệnh hệ thống: **${d.functionName}**`;
         aiMsg.approval = {
           functionName: d.functionName,
           functionArgs: d.functionArgs,
@@ -85,7 +99,13 @@ export function useAIChat() {
     } catch (e) {
       isConnected.value = false;
       aiMsg.typing = false;
-      aiMsg.text = `❌ Lỗi: ${e.response?.data?.error || e.message}`;
+      
+      const errorMsg = e.response?.data?.error || e.message;
+      if (errorMsg.includes("Quota") || errorMsg.includes("429")) {
+        aiMsg.text = `❌ **Lỗi Quota:** Model hiện tại đã hết lượt dùng miễn phí hoặc đang quá tải. Hãy chuyển sang \`Gemini 1.5 Flash\` và thử lại.`;
+      } else {
+        aiMsg.text = `❌ Lỗi: ${errorMsg}`;
+      }
     } finally {
       loading.value = false;
     }

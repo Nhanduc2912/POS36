@@ -106,9 +106,11 @@
         </div>
       </div>
 
-      <!-- RESIZE HANDLE (bottom & left modes) -->
+      <!-- RESIZE HANDLE -->
       <div v-if="layoutMode==='bottom'" class="resize-bar-h" @mousedown="startResizeH" />
-      <div v-if="layoutMode==='left'"   class="resize-bar-v" @mousedown="startResizeV" />
+      <div v-if="layoutMode==='left'"   class="resize-bar-v left-mode" @mousedown="startResizeV('left')" />
+      <div v-if="layoutMode==='right'"  class="resize-bar-v right-mode" @mousedown="startResizeV('right')" />
+      <div v-if="layoutMode==='window'" class="resize-handle-win" @mousedown="startResizeWin" />
 
       <!-- INPUT -->
       <div class="ai-input-area">
@@ -143,8 +145,9 @@ const {
 } = useAIChat();
 
 const MODES = [
-  { key: "bottom",   icon: "layout-sidebar-reverse", label: "Dưới" },
+  { key: "bottom",   icon: "window-split",            label: "Dưới" },
   { key: "left",     icon: "layout-sidebar",          label: "Trái" },
+  { key: "right",    icon: "layout-sidebar-reverse",  label: "Phải" },
   { key: "window",   icon: "pip",                     label: "Cửa sổ" },
   { key: "fullpage", icon: "fullscreen",              label: "Toàn màn" },
 ];
@@ -161,9 +164,9 @@ const winSize = ref({ w: 520, h: 480 });
 let dragging = false, dragStart = { mx: 0, my: 0, px: 0, py: 0 };
 
 // Resize state
-let resizing = false, resizeStart = { y: 0, x: 0, h: 0, w: 0 };
+let resizing = false, resizeStart = { y: 0, x: 0, h: 0, w: 0, dir: '' };
 const bottomH  = ref(300);
-const leftW    = ref(420);
+const sideW    = ref(420);
 
 const panelStyle = computed(() => {
   const t = currentTheme();
@@ -176,7 +179,7 @@ const panelStyle = computed(() => {
       width: winSize.value.w + "px", height: winSize.value.h + "px" };
   }
   if (layoutMode.value === "bottom")   return { ...base, height: bottomH.value + "px" };
-  if (layoutMode.value === "left")     return { ...base, width: leftW.value + "px" };
+  if (layoutMode.value === "left" || layoutMode.value === "right") return { ...base, width: sideW.value + "px" };
   return base;
 });
 
@@ -208,14 +211,38 @@ const startResizeH = (e) => {
 };
 const onResizeH = (e) => { if (resizing) bottomH.value = Math.max(160, Math.min(700, resizeStart.h - (e.clientY - resizeStart.y))); };
 
-// Resize left
-const startResizeV = (e) => {
-  resizing = true; resizeStart = { x: e.clientX, w: leftW.value };
+// Resize side (left or right)
+const startResizeV = (dir) => {
+  resizing = true; resizeStart = { x: event.clientX, w: sideW.value, dir };
   document.body.style.cursor = "ew-resize"; document.body.style.userSelect = "none";
   window.addEventListener("mousemove", onResizeV); window.addEventListener("mouseup", stopResize);
 };
-const onResizeV = (e) => { if (resizing) leftW.value = Math.max(280, Math.min(700, resizeStart.w + (e.clientX - resizeStart.x))); };
-const stopResize = () => { resizing = false; document.body.style.cursor = ""; document.body.style.userSelect = ""; window.removeEventListener("mousemove", onResizeH); window.removeEventListener("mousemove", onResizeV); window.removeEventListener("mouseup", stopResize); };
+const onResizeV = (e) => { 
+  if (!resizing) return;
+  const delta = resizeStart.dir === 'left' ? (e.clientX - resizeStart.x) : (resizeStart.x - e.clientX);
+  sideW.value = Math.max(280, Math.min(800, resizeStart.w + delta)); 
+};
+
+// Resize window
+const startResizeWin = (e) => {
+  e.stopPropagation();
+  resizing = true; resizeStart = { x: e.clientX, y: e.clientY, w: winSize.value.w, h: winSize.value.h };
+  document.body.style.cursor = "nwse-resize"; document.body.style.userSelect = "none";
+  window.addEventListener("mousemove", onResizeWin); window.addEventListener("mouseup", stopResize);
+};
+const onResizeWin = (e) => {
+  if (!resizing) return;
+  winSize.value.w = Math.max(320, resizeStart.w + (e.clientX - resizeStart.x));
+  winSize.value.h = Math.max(200, resizeStart.h + (e.clientY - resizeStart.y));
+};
+
+const stopResize = () => { 
+  resizing = false; document.body.style.cursor = ""; document.body.style.userSelect = ""; 
+  window.removeEventListener("mousemove", onResizeH); 
+  window.removeEventListener("mousemove", onResizeV); 
+  window.removeEventListener("mousemove", onResizeWin);
+  window.removeEventListener("mouseup", stopResize); 
+};
 
 // Send
 const sendMsg = async () => {
@@ -278,7 +305,8 @@ onUnmounted(() => { stopDrag(); stopResize(); });
 
 /* Layout modes */
 .mode-bottom  { border-top:1px solid var(--border); border-left:none; border-right:none; border-bottom:none; }
-.mode-left    { border-right:1px solid var(--border); height:100%; }
+.mode-left    { border-right:1px solid var(--border); height:100%; border-top:none; border-bottom:none; border-left:none; }
+.mode-right   { border-left:1px solid var(--border); height:100%; border-top:none; border-bottom:none; border-right:none; }
 .mode-window  { position:fixed; z-index:9999; border-radius:12px; box-shadow:0 20px 60px rgba(0,0,0,.5); min-width:320px; min-height:200px; }
 .mode-fullpage{ position:fixed; inset:0; z-index:9990; border:none; }
 
@@ -414,10 +442,22 @@ button:disabled { opacity:.4; cursor:not-allowed; }
 .resize-bar-h:hover { background:var(--accent); }
 .resize-bar-v {
   width:5px; cursor:ew-resize; flex-shrink:0;
-  background:var(--border); position:absolute; right:0; top:0; bottom:0; z-index:10;
+  background:var(--border); position:absolute; top:0; bottom:0; z-index:10;
   transition:.15s;
 }
+.resize-bar-v.left-mode { right:0; }
+.resize-bar-v.right-mode { left:0; }
 .resize-bar-v:hover { background:var(--accent); }
+
+.resize-handle-win {
+  position: absolute; right: 0; bottom: 0;
+  width: 15px; height: 15px; cursor: nwse-resize;
+  z-index: 20;
+}
+.resize-handle-win::after {
+  content: ''; position: absolute; right: 3px; bottom: 3px;
+  width: 6px; height: 6px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+}
 
 /* Input */
 .ai-input-area {
