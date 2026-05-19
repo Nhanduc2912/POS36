@@ -12,6 +12,11 @@
 # CHO PHÉP push file mẫu
 !.env.example
 
+# .NET User Secrets — tự động lưu ở %APPDATA%\Microsoft\UserSecrets\, không bao giờ trong repo
+# Chạy: dotnet user-secrets set "GeminiAI:ApiKey" "YOUR_KEY"
+# KHÔNG BAO GIỜ lưu API key thật vào appsettings.json!
+appsettings.Development.json
+
 # 2. Thư mục build tự động & Logs (Từ file .bat)
 publish/
 logs/
