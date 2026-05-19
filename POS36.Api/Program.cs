@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using POS36.Api.Data;
+using POS36.Api.Middleware;
 using POS36.Api.Services;
 using Serilog;
 using Serilog.Events;
@@ -87,8 +88,13 @@ namespace POS36.Api
 
                 builder.Services.AddControllers();
                 builder.Services.AddSignalR();
-                builder.Services.AddHttpContextAccessor(); // For IP tracking in CauHinhController
+                builder.Services.AddHttpContextAccessor();
                 builder.Services.AddHostedService<SubscriptionBackgroundService>();
+
+                // Phase 7B: Gemini AI Service
+                builder.Services.AddHttpClient<GeminiAIService>();
+                builder.Services.AddScoped<GeminiAIService>();
+
                 builder.Services.AddEndpointsApiExplorer();
                 builder.Services.AddSwaggerGen(c =>
                 {
@@ -202,6 +208,7 @@ namespace POS36.Api
                 app.UseCors("AllowVueApp");
                 app.UseAuthentication();
                 app.UseAuthorization();
+                app.UseSubscriptionGuard(); // Phase 7A: Chặn quán hết hạn/bị khóa
 
                 app.MapHub<POS36.Api.Hubs.KitchenHub>("/kitchenHub");
                 app.MapControllers();

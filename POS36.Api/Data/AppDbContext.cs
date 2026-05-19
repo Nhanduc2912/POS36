@@ -1,53 +1,72 @@
 using Microsoft.EntityFrameworkCore;
 using POS36.Api.Models;
+using System.Security.Claims;
 
 namespace POS36.Api.Data
 {
     public class AppDbContext : DbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+        private readonly IHttpContextAccessor? _httpContextAccessor;
 
-        // 1. Phân hệ Hệ thống & Nhân sự
+        public AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAccessor? httpContextAccessor = null)
+            : base(options)
+        {
+            _httpContextAccessor = httpContextAccessor;
+        }
+
+        // Helper: lấy CuaHangId từ JWT. Trả về 0 nếu là SuperAdmin hoặc chưa auth.
+        private int? GetCurrentCuaHangId()
+        {
+            var user = _httpContextAccessor?.HttpContext?.User;
+            if (user == null || !user.Identity!.IsAuthenticated) return null;
+
+            var role = user.FindFirst(ClaimTypes.Role)?.Value ?? user.FindFirst("VaiTro")?.Value;
+            if (role == "SuperAdmin") return null; // SuperAdmin thấy tất cả
+
+            var claim = user.FindFirst("CuaHangId")?.Value;
+            return int.TryParse(claim, out int id) ? id : null;
+        }
+
+        // ===== PHÂN HỆ 1: Hệ thống & Nhân sự =====
         public DbSet<CuaHang> CuaHangs { get; set; }
         public DbSet<ChiNhanh> ChiNhanhs { get; set; }
         public DbSet<TaiKhoan> TaiKhoans { get; set; }
-        public DbSet<NhanVien> NhanViens { get; set; } // Mới
-        public DbSet<KhachHang> KhachHangs { get; set; } // Mới
-        public DbSet<OtpRequest> OtpRequests { get; set; } // BUG #2 FIX: Lưu OTP vào DB thay RAM
+        public DbSet<NhanVien> NhanViens { get; set; }
+        public DbSet<KhachHang> KhachHangs { get; set; }
+        public DbSet<OtpRequest> OtpRequests { get; set; }
 
-        // 2. Phân hệ Bán hàng
+        // ===== PHÂN HỆ 2: Bán hàng =====
         public DbSet<KhuVuc> KhuVucs { get; set; }
         public DbSet<Ban> Bans { get; set; }
         public DbSet<DanhMuc> DanhMucs { get; set; }
         public DbSet<SanPham> SanPhams { get; set; }
 
-        // 3. Phân hệ Giao dịch
+        // ===== PHÂN HỆ 3: Giao dịch =====
         public DbSet<HoaDon> HoaDons { get; set; }
         public DbSet<ChiTietHoaDon> ChiTietHoaDons { get; set; }
-        public DbSet<ThanhToan> ThanhToans { get; set; } // Mới
+        public DbSet<ThanhToan> ThanhToans { get; set; }
 
-        // 4. Phân hệ Quản lý Kho PRO
+        // ===== PHÂN HỆ 4: Kho =====
         public DbSet<TonKho> TonKhos { get; set; }
         public DbSet<PhieuNhap> PhieuNhaps { get; set; }
-        public DbSet<ChiTietPhieuNhap> ChiTietPhieuNhaps { get; set; } // Mới
-        public DbSet<LichSuKho> LichSuKhos { get; set; } // Mới
+        public DbSet<ChiTietPhieuNhap> ChiTietPhieuNhaps { get; set; }
+        public DbSet<LichSuKho> LichSuKhos { get; set; }
 
-
-        // 5. Phân hệ Kiểm kê (THÊM 2 DÒNG NÀY VÀO ĐÂY)
+        // ===== PHÂN HỆ 5: Kiểm kê =====
         public DbSet<PhieuKiemKe> PhieuKiemKes { get; set; }
         public DbSet<ChiTietKiemKe> ChiTietKiemKes { get; set; }
 
-        // 6. Phân hệ Sổ Quỹ (Thu Chi)
+        // ===== PHÂN HỆ 6: Sổ Quỹ =====
         public DbSet<PhieuThuChi> PhieuThuChis { get; set; }
         public DbSet<ThietLap> ThietLaps { get; set; }
 
-        // 7. Phân hệ SaaS (Cho thuê phần mềm)
+        // ===== PHÂN HỆ 7: SaaS (Global — không filter theo tenant) =====
         public DbSet<GoiDichVu> GoiDichVus { get; set; }
         public DbSet<LichSuDangKy> LichSuDangKys { get; set; }
         public DbSet<LuotTruyCap> LuotTruyCaps { get; set; }
         public DbSet<ThongBaoHeThong> ThongBaoHeThongs { get; set; }
 
-        // === Phase 6: Config & Audit Log ===
+        // ===== Phase 6: Config & Audit Log (Global) =====
         public DbSet<CauHinhHeThong> CauHinhHeThangs { get; set; }
         public DbSet<NhatKyHeThong> NhatKyHeThangs { get; set; }
 
@@ -55,12 +74,60 @@ namespace POS36.Api.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Xử lý chống lỗi Cascade Delete (Giữ nguyên, rất quan trọng)
+            // ====================================================
+            // GLOBAL QUERY FILTERS — Tự động lọc theo CuaHangId
+            // SuperAdmin (GetCurrentCuaHangId() == null) → thấy TẤT CẢ
+            // Nhân viên/Chủ quán → chỉ thấy dữ liệu quán mình
+            // ====================================================
+
+            modelBuilder.Entity<ChiNhanh>().HasQueryFilter(e =>
+                GetCurrentCuaHangId() == null || (e.CuaHangId == GetCurrentCuaHangId() && !e.IsDeleted));
+
+            modelBuilder.Entity<TaiKhoan>().HasQueryFilter(e =>
+                GetCurrentCuaHangId() == null || e.CuaHangId == GetCurrentCuaHangId());
+
+            modelBuilder.Entity<NhanVien>().HasQueryFilter(e =>
+                GetCurrentCuaHangId() == null || (e.CuaHangId == GetCurrentCuaHangId() && !e.IsDeleted));
+
+            modelBuilder.Entity<KhachHang>().HasQueryFilter(e =>
+                GetCurrentCuaHangId() == null || (e.CuaHangId == GetCurrentCuaHangId() && !e.IsDeleted));
+
+            modelBuilder.Entity<KhuVuc>().HasQueryFilter(e =>
+                GetCurrentCuaHangId() == null || e.CuaHangId == GetCurrentCuaHangId());
+
+            modelBuilder.Entity<Ban>().HasQueryFilter(e =>
+                GetCurrentCuaHangId() == null || e.CuaHangId == GetCurrentCuaHangId());
+
+            modelBuilder.Entity<DanhMuc>().HasQueryFilter(e =>
+                GetCurrentCuaHangId() == null || (e.CuaHangId == GetCurrentCuaHangId() && !e.IsDeleted));
+
+            modelBuilder.Entity<SanPham>().HasQueryFilter(e =>
+                GetCurrentCuaHangId() == null || e.CuaHangId == GetCurrentCuaHangId());
+
+            modelBuilder.Entity<HoaDon>().HasQueryFilter(e =>
+                GetCurrentCuaHangId() == null || e.CuaHangId == GetCurrentCuaHangId());
+
+            // ChiTietHoaDon: filter gián tiếp qua HoaDon (Include sẽ tự lọc)
+
+            modelBuilder.Entity<TonKho>().HasQueryFilter(e =>
+                GetCurrentCuaHangId() == null || e.ChiNhanhId != 0); // Filter qua ChiNhanh
+
+            modelBuilder.Entity<PhieuNhap>().HasQueryFilter(e =>
+                GetCurrentCuaHangId() == null || e.CuaHangId == GetCurrentCuaHangId());
+
+            modelBuilder.Entity<PhieuThuChi>().HasQueryFilter(e =>
+                GetCurrentCuaHangId() == null || e.CuaHangId == GetCurrentCuaHangId());
+
+            modelBuilder.Entity<ThietLap>().HasQueryFilter(e =>
+                GetCurrentCuaHangId() == null || e.CuaHangId == GetCurrentCuaHangId());
+
+            // ====================================================
+            // CHỐNG LỖI CASCADE DELETE (Giữ nguyên)
+            // ====================================================
             foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
             {
                 relationship.DeleteBehavior = DeleteBehavior.Restrict;
             }
         }
-
     }
 }
