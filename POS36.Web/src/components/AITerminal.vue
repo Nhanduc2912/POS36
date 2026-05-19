@@ -1,6 +1,6 @@
 <template>
-  <!-- Teleport to body for window/fullpage modes -->
-  <Teleport :to="teleportTarget">
+  <!-- Teleport to body only for window/fullpage modes -->
+  <Teleport to="body" :disabled="layoutMode !== 'window' && layoutMode !== 'fullpage'">
     <div
       class="ai-panel"
       :class="['mode-' + layoutMode, 'theme-' + theme]"
@@ -154,8 +154,6 @@ const panelEl    = ref(null);
 const msgEl      = ref(null);
 const inputEl    = ref(null);
 const inputText  = ref("");
-
-// Window drag
 const winPos = ref({ x: 80, y: 80 });
 const winSize = ref({ w: 520, h: 480 });
 let dragging = false, dragStart = { mx: 0, my: 0, px: 0, py: 0 };
