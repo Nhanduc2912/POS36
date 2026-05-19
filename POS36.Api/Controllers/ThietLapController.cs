@@ -55,11 +55,38 @@ namespace POS36.Api.Controllers
         {
             int cuaHangId = GetCuaHangId();
             var branches = await _context.ChiNhanhs
-                .Where(c => c.CuaHangId == cuaHangId)
+                .Where(c => c.CuaHangId == cuaHangId && !c.IsDeleted)
                 .Select(c => new { c.Id, c.TenChiNhanh, c.DiaChi })
                 .ToListAsync();
 
             return Ok(branches);
+        }
+
+        // XÓA MỀM CHI NHÁNH
+        [Authorize(Roles = "ChuCuaHang")]
+        [HttpDelete("chinhanh/{id}")]
+        public async Task<IActionResult> DeleteChiNhanh(int id)
+        {
+            int cuaHangId = GetCuaHangId();
+            var cn = await _context.ChiNhanhs.FirstOrDefaultAsync(c => c.Id == id && c.CuaHangId == cuaHangId && !c.IsDeleted);
+            if (cn == null) return NotFound("Không tìm thấy chi nhánh!");
+            cn.IsDeleted = true; cn.NgayXoa = DateTime.Now;
+            cn.NguoiXoa = User.FindFirst("TenDangNhap")?.Value ?? User.Identity?.Name;
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Xóa chi nhánh thành công!" });
+        }
+
+        // KHÔI PHỤC CHI NHÁNH
+        [Authorize(Roles = "ChuCuaHang")]
+        [HttpPut("chinhanh/{id}/restore")]
+        public async Task<IActionResult> RestoreChiNhanh(int id)
+        {
+            int cuaHangId = GetCuaHangId();
+            var cn = await _context.ChiNhanhs.FirstOrDefaultAsync(c => c.Id == id && c.CuaHangId == cuaHangId && c.IsDeleted);
+            if (cn == null) return NotFound("Không tìm thấy chi nhánh đã xóa!");
+            cn.IsDeleted = false; cn.NgayXoa = null; cn.NguoiXoa = null;
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Khôi phục chi nhánh thành công!" });
         }
 
         // ==========================================
@@ -73,7 +100,7 @@ namespace POS36.Api.Controllers
             int cuaHangId = GetCuaHangId();
 
             // Check xem chi nhánh này có đúng là của ông chủ này không
-            var checkChiNhanh = await _context.ChiNhanhs.AnyAsync(c => c.Id == request.ChiNhanhId && c.CuaHangId == cuaHangId);
+            var checkChiNhanh = await _context.ChiNhanhs.AnyAsync(c => c.Id == request.ChiNhanhId && c.CuaHangId == cuaHangId && !c.IsDeleted);
             if (!checkChiNhanh) return BadRequest("Chi nhánh không hợp lệ!");
 
             var newKhuVuc = new KhuVuc
