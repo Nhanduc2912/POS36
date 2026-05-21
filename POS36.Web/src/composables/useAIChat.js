@@ -31,8 +31,12 @@ watch(selectedModel, (val) => localStorage.setItem("pos36_ai_model", val));
 watch(mode, (val) => localStorage.setItem("pos36_ai_chat_mode", val));
 watch(theme, (val) => localStorage.setItem("pos36_ai_theme", val));
 
-// Functions that produce reportable data
-const REPORT_FUNCTIONS = ["ThongKeSaaS","ThongKe","BaoCao","XuatBaoCao","Analytics","DoanhThu","TongHop","PhanTich","XuatBaoCaoAI"];
+// Functions that produce reportable data - includes list queries too
+const REPORT_FUNCTIONS = [
+  "ThongKeSaaS", "ThongKe", "BaoCao", "XuatBaoCao",
+  "Analytics", "DoanhThu", "TongHop", "PhanTich",
+  "XuatBaoCaoAI", "DanhSachCuaHang", "XemNhatKy"
+];
 const isReportFunction = (name) => REPORT_FUNCTIONS.some(f => name?.toLowerCase().includes(f.toLowerCase()));
 
 // Build minimal HTML from plain text result (fallback)
@@ -73,10 +77,12 @@ export function useAIChat() {
       }
     } catch {
       models.value = [
-        { id: "gemini-1.5-flash", displayName: "Gemini 1.5 Flash", description: "Nhanh, đa năng (Khuyên dùng)", isDefault: true },
-        { id: "gemini-1.5-pro",   displayName: "Gemini 1.5 Pro",   description: "Thông minh hơn" }
+        { id: "gemini-2.0-flash-lite", displayName: "Gemini 2.0 Flash Lite", description: "Nhanh, nhẹ (Mặc định)", isDefault: true },
+        { id: "gemini-2.0-flash",      displayName: "Gemini 2.0 Flash",      description: "Cân bằng" },
+        { id: "gemini-1.5-flash",      displayName: "Gemini 1.5 Flash",      description: "Ổn định" },
+        { id: "gemini-1.5-pro",        displayName: "Gemini 1.5 Pro",        description: "Thông minh hơn" }
       ];
-      if (!models.value.some(m => m.id === selectedModel.value)) selectedModel.value = "gemini-1.5-flash";
+      if (!models.value.some(m => m.id === selectedModel.value)) selectedModel.value = "gemini-2.0-flash-lite";
     }
   };
 
@@ -193,19 +199,15 @@ export function useAIChat() {
         const reportPrompt = lastUserPrompt || `Báo cáo: ${approval.functionName}`;
         let htmlReport = null;
 
-        // Thử gọi /api/AIChat/report để tạo HTML đẹp hơn
+        // Gọi /api/AIChat/report để tạo HTML báo cáo đẹp từ dữ liệu thực
         try {
-          const token = localStorage.getItem("pos36_token") || localStorage.getItem("token") || "";
-          const reportRes = await fetch("/api/AIChat/report", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ Prompt: reportPrompt }),
-          });
-          if (reportRes.ok) {
-            const d = await reportRes.json();
-            htmlReport = d.htmlReport || d.html || null;
+          const reportRes = await axios.post("/api/AIChat/report", { prompt: reportPrompt });
+          if (reportRes.data?.htmlReport) {
+            htmlReport = reportRes.data.htmlReport;
           }
-        } catch { /* fallback to text */ }
+        } catch (err) {
+          console.warn("Report API failed, using fallback:", err.message);
+        }
 
         // Nếu không có API report, build HTML từ text
         if (!htmlReport) {
