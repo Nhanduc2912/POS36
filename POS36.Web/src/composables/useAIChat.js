@@ -201,13 +201,17 @@ export function useAIChat() {
 
         // Gọi /api/AIChat/report để tạo HTML báo cáo đẹp từ dữ liệu thực
         try {
-          const reportRes = await axios.post("/api/AIChat/report", { prompt: reportPrompt });
+          const reportRes = await axios.post("/api/AIChat/report", {
+            prompt: reportPrompt,
+            functionName: approval.functionName   // Giúp backend chọn đúng loại báo cáo
+          });
           if (reportRes.data?.htmlReport) {
             htmlReport = reportRes.data.htmlReport;
           }
         } catch (err) {
           console.warn("Report API failed, using fallback:", err.message);
         }
+
 
         // Nếu không có API report, build HTML từ text
         if (!htmlReport) {

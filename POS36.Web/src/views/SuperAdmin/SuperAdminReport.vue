@@ -156,12 +156,12 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
+import axios from 'axios';
 
 const prompt = ref('');
 const isLoading = ref(false);
 const viewMode = ref('grid');
 const reports = ref([]);
-const backendUrl = 'http://localhost:5098';
 
 const loadingTips = [
   'Đang thu thập dữ liệu từ hệ thống...',
@@ -194,28 +194,18 @@ const generateReport = async () => {
   }, 1500);
 
   try {
-    const token = localStorage.getItem('pos36_token') || localStorage.getItem('token') || '';
-    const response = await fetch(`${backendUrl}/api/AIChat/report`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ Prompt: prompt.value }),
+    const response = await axios.post('/api/AIChat/report', {
+      prompt: prompt.value,
     });
+    const data = response.data;
 
-    if (!response.ok) throw new Error('Lỗi gọi AI');
-    const data = await response.json();
+    // Use user's prompt as title (clean, no HTML entities)
+    const title = prompt.value.length > 70
+      ? prompt.value.slice(0, 70) + '...'
+      : prompt.value;
 
-    // Extract title from HTML (first h1/h2/h3)
-    let title = prompt.value.slice(0, 60) + (prompt.value.length > 60 ? '...' : '');
-    const titleMatch = data.htmlReport?.match(/<h[1-3][^>]*>([^<]+)<\/h[1-3]>/i);
-    if (titleMatch) title = titleMatch[1].trim();
-
-    // Generate AI suggestions based on the report context
     const aiSuggestions = generateAISuggestions(prompt.value);
 
-    // Add to the TOP of reports board
     reports.value.unshift({
       id: Date.now(),
       title,
@@ -226,11 +216,11 @@ const generateReport = async () => {
       suggestions: aiSuggestions,
     });
 
-    // Save to localStorage
     saveReports();
     prompt.value = '';
   } catch (error) {
-    alert('Lỗi tạo báo cáo: ' + error.message);
+    const msg = error.response?.data?.message || error.response?.data?.error || error.message;
+    alert('Lỗi tạo báo cáo: ' + msg);
   } finally {
     isLoading.value = false;
     clearInterval(tipInterval);
@@ -301,8 +291,10 @@ const checkIncomingReport = () => {
     localStorage.removeItem('pos36_ai_report_html');
     localStorage.removeItem('pos36_ai_report_prompt');
 
-    const titleMatch = incoming.match(/<h[1-3][^>]*>([^<]+)<\/h[1-3]>/i);
-    const title = titleMatch ? titleMatch[1].trim() : (incomingPrompt?.slice(0, 60) || 'Báo cáo AI');
+    // Use incomingPrompt directly as title (no HTML entity issue)
+    const title = incomingPrompt
+      ? (incomingPrompt.length > 70 ? incomingPrompt.slice(0, 70) + '...' : incomingPrompt)
+      : 'Báo cáo AI';
 
     reports.value.unshift({
       id: Date.now(),
