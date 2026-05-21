@@ -115,9 +115,7 @@ namespace POS36.Api.Services
             var model = modelId ?? DEFAULT_MODEL;
             var url = $"{BASE}/models/{model}:generateContent?key={_apiKey}";
 
-            var systemInstruction = @"Bạn là AI Assistant của hệ thống POS36 SaaS. 
-Nhiệm vụ: Hỗ trợ Super Admin quản lý toàn bộ hệ thống cửa hàng bằng tiếng Việt.
-Quy tắc: Luôn phản hồi tiếng Việt, rõ ràng, súc tích. Với lệnh NGUY HIỂM, xác nhận trước.";
+            var systemInstruction = LoadPrompt("SuperAdmin_Agent.md");
 
             var contents = new List<object>();
             if (history != null)
@@ -138,6 +136,90 @@ Quy tắc: Luôn phản hồi tiếng Việt, rõ ràng, súc tích. Với lện
 
             return await SendRequestAsync(url, body, model);
         }
+
+        // =============================================
+        // 3. AI REPORT — Gemini tự tạo HTML từ dữ liệu thực
+        // =============================================
+        public async Task<string> GenerateReportWithAI(string userPrompt, object realData, string? modelId = null)
+        {
+            var model = modelId ?? "gemini-2.0-flash-lite";
+            var url = $"{BASE}/models/{model}:generateContent?key={_apiKey}";
+
+            var systemPrompt = LoadPrompt("SuperAdmin_Agent.md");
+
+            // Serialize data đẹp để AI đọc
+            var dataJson = JsonSerializer.Serialize(realData, new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            });
+
+            var reportPrompt = $"""
+YÊU CẦU BÁO CÁO: {userPrompt}
+
+DỮ LIỆU THỰC TỪ DATABASE (JSON):
+{dataJson}
+
+Hãy tạo báo cáo HTML hoàn chỉnh dựa trên dữ liệu trên.
+QUAN TRỌNG:
+- Chỉ trả về HTML thuần túy, không có markdown, không có ```html
+- Dùng dark theme: background #0f1117, accent #f59e0b
+- Format linh hoạt theo yêu cầu (bảng, stats, phân tích...)
+- Thêm nhận xét/insight ngắn từ dữ liệu thực
+""";
+
+            var body = new
+            {
+                system_instruction = new { parts = new[] { new { text = systemPrompt } } },
+                contents = new[] { new { role = "user", parts = new[] { new { text = reportPrompt } } } },
+                generation_config = new { temperature = 0.6, max_output_tokens = 8192 }
+            };
+
+            var response = await SendRequestAsync(url, body, model);
+            if (response.Error != null)
+                return $"<div style='color:#ef4444;padding:16px'>⚠️ Lỗi AI: {response.Error}</div>";
+
+            var html = response.Text?.Trim() ?? "";
+            // Clean markdown nếu AI vẫn trả về
+            if (html.StartsWith("```html")) html = html[7..];
+            if (html.StartsWith("```")) html = html[3..];
+            if (html.EndsWith("```")) html = html[..^3];
+            return html.Trim();
+        }
+
+        // Load prompt file từ Prompts/
+        private static string? _cachedSuperAdminPrompt;
+        private static string LoadPrompt(string fileName)
+        {
+            if (_cachedSuperAdminPrompt != null) return _cachedSuperAdminPrompt;
+            try
+            {
+                // Tìm file từ thư mục ứng dụng
+                var basePaths = new[]
+                {
+                    Path.Combine(AppContext.BaseDirectory, "Prompts", fileName),
+                    Path.Combine(Directory.GetCurrentDirectory(), "Prompts", fileName),
+                    Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "Prompts", fileName),
+                };
+                foreach (var p in basePaths)
+                {
+                    if (File.Exists(p))
+                    {
+                        _cachedSuperAdminPrompt = File.ReadAllText(p);
+                        Log.Information("Loaded AI prompt: {Path}", p);
+                        return _cachedSuperAdminPrompt;
+                    }
+                }
+                Log.Warning("Prompt file not found: {File}", fileName);
+            }
+            catch (Exception ex) { Log.Error(ex, "LoadPrompt error"); }
+
+            // Fallback ngắn gọn
+            return "Bạn là AI Agent SuperAdmin của POS36 SaaS. Trả lời tiếng Việt. Khi tạo báo cáo chỉ dùng HTML thuần, dark theme nền #0f1117.";
+        }
+
+
+
 
         // =============================================
         // 3. PURE CHAT (Chỉ hội thoại, không function calling)
