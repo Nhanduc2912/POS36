@@ -80,13 +80,22 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import axios from "axios";
 
 const prompt = ref("");
 const reportHtml = ref("");
 const isLoading = ref(false);
 const reportContainer = ref(null);
+
+onMounted(() => {
+  const cachedReport = localStorage.getItem("pos36_ai_report_html");
+  if (cachedReport) {
+    reportHtml.value = cachedReport;
+    // Tự động clear sau khi load để tránh hiện lại báo cáo cũ khi vào trang từ menu thông thường
+    localStorage.removeItem("pos36_ai_report_html");
+  }
+});
 
 // 👉 SỬA CHỖ NÀY ĐỂ TRỎ VỀ ĐÚNG BACKEND IP (GIỐNG BÊN AICOPILOT.VUE)
 const backendUrl = "http://localhost:5098"; // Sếp nhớ đổi thành IP mạng LAN (ví dụ 192.168.1.xxx:5098) nếu test trên máy khác

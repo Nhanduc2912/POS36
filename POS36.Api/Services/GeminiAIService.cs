@@ -26,6 +26,8 @@ namespace POS36.Api.Services
             new GeminiTool("GuiThongBao",      "Gửi thông báo. Params: cuaHangId (0=all), tieuDe, noiDung, loai"),
             new GeminiTool("XemNhatKy",        "Xem nhật ký. Params: tuNgay (yyyy-MM-dd), hanhDong"),
             new GeminiTool("ThemGoiSaaS",      "Thêm gói dịch vụ SaaS. Params: tenGoi, maGoi, soThang, giaThang, tongGia, gioiHanHoaDon, gioiHanNhanVien, moTa") { RiskLevel = "HIGH" },
+            new GeminiTool("XuatBaoCaoAI",     "Sinh ra báo cáo thống kê chuyên sâu dạng mã HTML. Dùng khi người dùng yêu cầu lập báo cáo, vẽ bảng thống kê. Params: htmlContent") { RiskLevel = "LOW" },
+            new GeminiTool("ThietLapHeThong",  "Chỉnh sửa cấu hình toàn hệ thống (SuperAdmin). Params: key, value") { RiskLevel = "HIGH" },
         };
 
         public GeminiAIService(IConfiguration config, HttpClient http)

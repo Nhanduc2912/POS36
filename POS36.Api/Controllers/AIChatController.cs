@@ -203,6 +203,10 @@ namespace POS36.Api.Controllers
                         args.TryGetProperty("gioiHanHoaDon", out var ghd) ? ghd.GetInt32() : 0,
                         args.TryGetProperty("gioiHanNhanVien", out var gnv) ? gnv.GetInt32() : 0,
                         args.TryGetProperty("moTa", out var mt) ? mt.GetString() : null),
+                    "ThietLapHeThong" => await ToolThietLap(
+                        args.TryGetProperty("key", out var k) ? k.GetString() : null,
+                        args.TryGetProperty("value", out var v) ? v.GetString() : null),
+                    "XuatBaoCaoAI" => new ToolResult { Success = true, Message = "✅ Báo cáo AI đã được mở ở trang độc lập." },
                     _ => new ToolResult { Success = false, Message = $"Tool '{fn}' không được hỗ trợ." }
                 };
             }
@@ -282,6 +286,33 @@ namespace POS36.Api.Controllers
             _context.GoiDichVus.Add(p);
             await _context.SaveChangesAsync();
             return new ToolResult { Success = true, Message = $"✅ Đã tạo gói mới: [{p.TenGoi}] ({p.MaGoi}) - {p.SoThang} tháng." };
+        }
+
+        private async Task<ToolResult> ToolThietLap(string? key, string? value)
+        {
+            if (string.IsNullOrEmpty(key) || value == null)
+                return new ToolResult { Success = false, Message = "Thiếu tham số Key hoặc Value." };
+
+            var config = await _context.CauHinhHeThangs.FirstOrDefaultAsync(c => c.MaKey == key);
+            if (config != null)
+            {
+                config.GiaTri = value;
+                config.NgayCapNhat = DateTime.Now;
+                config.NguoiCapNhat = User.Identity?.Name ?? "AI Agent";
+            }
+            else
+            {
+                _context.CauHinhHeThangs.Add(new CauHinhHeThong
+                {
+                    MaKey = key,
+                    GiaTri = value,
+                    NhomCauHinh = "System",
+                    NguoiCapNhat = User.Identity?.Name ?? "AI Agent",
+                    NgayCapNhat = DateTime.Now
+                });
+            }
+            await _context.SaveChangesAsync();
+            return new ToolResult { Success = true, Message = $"✅ Đã cập nhật cấu hình: {key} = {value}" };
         }
 
         private async Task<ToolResult> ToolGiaHan(int id, int soThang, string? goiMoi)
