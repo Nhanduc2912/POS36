@@ -274,8 +274,10 @@
 
 <script setup>
 import { ref, reactive, onMounted, inject, computed, watch } from "vue";
+import { useRoute } from "vue-router";
 import axios from "axios";
 const swal = inject("$swal");
+const route = useRoute();
 
 // ===== STATE =====
 const saving = ref(false);
@@ -285,7 +287,13 @@ const showSmtpPw = ref(false);
 const backendUrl = "http://localhost:5098";
 
 // ===== SIMPLE NAV ITEMS =====
-const activeTab = ref("general");
+const activeTab = ref(route.query.tab || "general");
+
+// Sync with route query when sidebar dropdown navigates here
+watch(() => route.query.tab, (tab) => {
+  if (tab) activeTab.value = tab;
+  else activeTab.value = "general";
+});
 
 const navItems = [
   { key: "general",  label: "Cấu hình chung",       icon: "sliders" },
