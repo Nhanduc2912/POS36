@@ -14,19 +14,50 @@ const messages = ref([]);
 const loading = ref(false);
 const models = ref([]);
 const selectedModel = ref(localStorage.getItem("pos36_ai_model") || "gemini-1.5-flash");
-const mode = ref(localStorage.getItem("pos36_ai_chat_mode") || "agent"); // agent | chat
+const mode = ref(localStorage.getItem("pos36_ai_chat_mode") || "agent");
 const theme = ref(localStorage.getItem("pos36_ai_theme") || "dark");
 const sessionId = `sa-${Date.now()}`;
 const lastUsage = ref(null);
 const isConnected = ref(true);
 
-// Navigation confirmation - when AI wants to navigate with report, ask user first
-const pendingNavigation = ref(null); // { html, prompt, route, label }
+// Store last user prompt for report generation after confirm
+let lastUserPrompt = "";
+
+// Navigation confirmation
+const pendingNavigation = ref(null);
 
 // Persist settings
 watch(selectedModel, (val) => localStorage.setItem("pos36_ai_model", val));
 watch(mode, (val) => localStorage.setItem("pos36_ai_chat_mode", val));
 watch(theme, (val) => localStorage.setItem("pos36_ai_theme", val));
+
+// Functions that produce reportable data
+const REPORT_FUNCTIONS = ["ThongKeSaaS","ThongKe","BaoCao","XuatBaoCao","Analytics","DoanhThu","TongHop","PhanTich","XuatBaoCaoAI"];
+const isReportFunction = (name) => REPORT_FUNCTIONS.some(f => name?.toLowerCase().includes(f.toLowerCase()));
+
+// Build minimal HTML from plain text result (fallback)
+const buildHtmlFromResult = (functionName, resultText, userPrompt) => {
+  const now = new Date().toLocaleString("vi-VN");
+  const lines = resultText.split("\n").filter(l => l.trim());
+  let body = "";
+  lines.forEach(line => {
+    if (line.startsWith("#")) {
+      const lvl = Math.min((line.match(/^#+/) || [""])[0].length, 3);
+      body += `<h${lvl} style="color:#333;margin-top:12px">${line.replace(/^#+\s*/, "")}</h${lvl}>`;
+    } else if (line.startsWith("-") || line.startsWith("•") || line.startsWith("*")) {
+      body += `<li style="margin:4px 0">${line.replace(/^[-•*]\s*/, "")}</li>`;
+    } else if (line.trim()) {
+      body += `<p style="margin:6px 0;color:#444">${line}</p>`;
+    }
+  });
+  return `<div style="font-family:Arial,sans-serif;padding:16px;max-width:900px">
+  <h2 style="color:#f59e0b;border-bottom:3px solid #f59e0b;padding-bottom:10px;margin-bottom:12px">
+    📊 ${userPrompt || functionName}
+  </h2>
+  <p style="color:#888;font-size:0.82rem;margin-bottom:16px">🕐 Tạo lúc: ${now} &nbsp;|&nbsp; 📌 Nguồn: ${functionName}</p>
+  <div>${body}</div>
+</div>`;
+};
 
 export function useAIChat() {
   const currentTheme = () => THEMES[theme.value] || THEMES.dark;
@@ -52,7 +83,7 @@ export function useAIChat() {
   const typeText = async (msgObj, fullText) => {
     msgObj.loading = false;
     msgObj.text = "";
-    const SPEED = 15; // ms per char
+    const SPEED = 12;
     for (const ch of fullText) {
       msgObj.text += ch;
       await new Promise((r) => setTimeout(r, SPEED));
@@ -64,27 +95,19 @@ export function useAIChat() {
     if (!prompt.trim() || loading.value) return;
     loading.value = true;
     isConnected.value = true;
+    lastUserPrompt = prompt; // Save for use in confirmAction
 
     messages.value.push({ role: "user", text: prompt, time: new Date() });
 
-    // Using `reactive` to ensure nested properties trigger re-renders instantly
-    const aiMsg = reactive({ 
-      role: "ai", 
-      text: "Đang suy nghĩ...", 
-      typing: true, 
-      loading: true,
-      time: new Date(), 
-      usage: null, 
-      approval: null 
+    const aiMsg = reactive({
+      role: "ai", text: "Đang suy nghĩ...", typing: true, loading: true,
+      time: new Date(), usage: null, approval: null
     });
     messages.value.push(aiMsg);
 
     try {
       const res = await axios.post("/api/AIChat/chat", {
-        prompt,
-        sessionId,
-        modelId: selectedModel.value,
-        mode: mode.value,
+        prompt, sessionId, modelId: selectedModel.value, mode: mode.value,
       });
       const d = res.data;
       lastUsage.value = d.usage;
@@ -96,37 +119,30 @@ export function useAIChat() {
           try {
             const argsObj = JSON.parse(d.functionArgs);
             if (argsObj.htmlContent) {
-              // Store report for report page
               localStorage.setItem("pos36_ai_report_html", argsObj.htmlContent);
               localStorage.setItem("pos36_ai_report_prompt", prompt);
-
               aiMsg.typing = false;
               aiMsg.text = `✅ Báo cáo AI đã được tạo!\n\n📊 Bạn có muốn chuyển sang **Trang Báo Cáo** để xem không?`;
-
-              // Signal to SuperAdminLayout to show navigation confirmation
               pendingNavigation.value = {
-                html: argsObj.htmlContent,
-                prompt: prompt,
-                route: "/super-admin/ai-report",
-                label: "Trang Báo Cáo AI",
+                html: argsObj.htmlContent, prompt,
+                route: "/super-admin/ai-report", label: "Trang Báo Cáo AI",
               };
               return;
             }
-          } catch (e) {
-             console.error("Lỗi parse XuatBaoCaoAI", e);
-          }
+          } catch (e) { console.error("Parse XuatBaoCaoAI lỗi", e); }
         }
 
         aiMsg.typing = false;
-        aiMsg.text = `⚡ AI muốn thực thi lệnh hệ thống: **${d.functionName}**`;
-        
+        const reportHint = isReportFunction(d.functionName) ? "\n\n📊 Sau khi xác nhận, báo cáo sẽ được tạo và mở trang Báo Cáo AI." : "";
+        aiMsg.text = `⚡ AI muốn thực thi: **${d.functionName}**${reportHint}`;
+
         let argsStr = d.functionArgs;
         try { argsStr = JSON.stringify(JSON.parse(d.functionArgs), null, 2); } catch {}
-
         aiMsg.approval = {
           functionName: d.functionName,
-          functionArgsStr: argsStr, // Editable
+          functionArgsStr: argsStr,
           riskLevel: d.riskLevel,
+          isReport: isReportFunction(d.functionName),
         };
       } else {
         await typeText(aiMsg, d.text || "(Không có phản hồi)");
@@ -137,7 +153,7 @@ export function useAIChat() {
       aiMsg.loading = false;
       const errorMsg = e.response?.data?.error || e.message;
       if (errorMsg.includes("Quota") || errorMsg.includes("429")) {
-        aiMsg.text = `❌ **Lỗi Quota:** Model hiện tại đã hết lượt dùng. Hãy chọn \`Gemini 1.5 Flash\`.`;
+        aiMsg.text = `❌ **Lỗi Quota:** Hãy chọn \`Gemini 1.5 Flash\`.`;
       } else {
         aiMsg.text = `❌ Lỗi: ${errorMsg}`;
       }
@@ -151,17 +167,13 @@ export function useAIChat() {
     loading.value = true;
     const resultMsg = reactive({ role: "system", text: "Đang xử lý...", typing: true, loading: true, time: new Date() });
     messages.value.push(resultMsg);
-    
-    // Validate JSON if confirmed
+
     if (confirmed) {
-      try {
-        JSON.parse(approval.functionArgsStr);
-      } catch (e) {
-        resultMsg.typing = false;
-        resultMsg.loading = false;
-        resultMsg.text = `❌ Lỗi: Cấu trúc JSON tham số không hợp lệ.\n\nChi tiết: ${e.message}`;
-        loading.value = false;
-        return;
+      try { JSON.parse(approval.functionArgsStr); }
+      catch (e) {
+        resultMsg.typing = false; resultMsg.loading = false;
+        resultMsg.text = `❌ JSON không hợp lệ: ${e.message}`;
+        loading.value = false; return;
       }
     }
 
@@ -172,10 +184,45 @@ export function useAIChat() {
         functionArgs: approval.functionArgsStr,
       });
       resultMsg.loading = false;
-      await typeText(resultMsg, res.data.message || (confirmed ? "✅ Thực thi thành công" : "🚫 Đã hủy lệnh"));
+      const resultText = res.data.message || (confirmed ? "✅ Thực thi thành công" : "🚫 Đã hủy lệnh");
+
+      // KEY FIX: Khi confirm hàm báo cáo → tạo HTML → trigger navigation
+      if (confirmed && isReportFunction(approval.functionName)) {
+        await typeText(resultMsg, resultText + "\n\n📊 Đang tạo báo cáo HTML...");
+
+        const reportPrompt = lastUserPrompt || `Báo cáo: ${approval.functionName}`;
+        let htmlReport = null;
+
+        // Thử gọi /api/AIChat/report để tạo HTML đẹp hơn
+        try {
+          const token = localStorage.getItem("pos36_token") || localStorage.getItem("token") || "";
+          const reportRes = await fetch("/api/AIChat/report", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ Prompt: reportPrompt }),
+          });
+          if (reportRes.ok) {
+            const d = await reportRes.json();
+            htmlReport = d.htmlReport || d.html || null;
+          }
+        } catch { /* fallback to text */ }
+
+        // Nếu không có API report, build HTML từ text
+        if (!htmlReport) {
+          htmlReport = buildHtmlFromResult(approval.functionName, resultText, reportPrompt);
+        }
+
+        localStorage.setItem("pos36_ai_report_html", htmlReport);
+        localStorage.setItem("pos36_ai_report_prompt", reportPrompt);
+        pendingNavigation.value = {
+          html: htmlReport, prompt: reportPrompt,
+          route: "/super-admin/ai-report", label: "Trang Báo Cáo AI",
+        };
+      } else {
+        await typeText(resultMsg, resultText);
+      }
     } catch (e) {
-      resultMsg.typing = false;
-      resultMsg.loading = false;
+      resultMsg.typing = false; resultMsg.loading = false;
       resultMsg.text = `❌ ${e.message}`;
     } finally {
       loading.value = false;
