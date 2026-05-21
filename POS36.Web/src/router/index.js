@@ -89,6 +89,11 @@ const routes = [
         name: "ConfigView",
         component: () => import("../views/SuperAdmin/ConfigView.vue"),
       },
+      {
+        path: "ai-report",
+        name: "SuperAdminAiReport",
+        component: () => import("../views/SuperAdmin/SuperAdminReport.vue"),
+      },
     ],
   },
 
