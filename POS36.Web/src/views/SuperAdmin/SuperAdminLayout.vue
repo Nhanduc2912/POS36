@@ -99,18 +99,59 @@
           @close="terminalVisible = false" @modeChange="onModeChange" />
       </div>
     </main>
+
+    <!-- AI Navigation Confirmation Dialog -->
+    <Teleport to="body">
+      <div class="sa-nav-confirm-overlay" v-if="navConfirm" @click.self="denyNavigation">
+        <div class="sa-nav-confirm-modal">
+          <div class="sa-nav-confirm-icon">
+            <i class="bi bi-robot"></i>
+          </div>
+          <h5 class="sa-nav-confirm-title">AI đã tạo báo cáo!</h5>
+          <p class="sa-nav-confirm-desc">
+            Báo cáo đã được tạo thành công. Bạn có muốn AI chuyển bạn sang
+            <strong>{{ navConfirm.label }}</strong> ngay bây giờ không?
+          </p>
+          <div class="sa-nav-confirm-prompt" v-if="navConfirm.prompt">
+            <i class="bi bi-chat-dots me-2"></i>
+            <em>{{ navConfirm.prompt }}</em>
+          </div>
+          <div class="sa-nav-confirm-btns">
+            <button class="sa-nav-btn-yes" @click="acceptNavigation">
+              <i class="bi bi-arrow-right-circle-fill me-2"></i>Có, chuyển trang
+            </button>
+            <button class="sa-nav-btn-no" @click="denyNavigation">
+              <i class="bi bi-x-circle me-2"></i>Không, ở lại đây
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AITerminal from '../../components/AITerminal.vue';
+import { useAIChat } from '../../composables/useAIChat.js';
 
 const route = useRoute();
 const router = useRouter();
 const sidebarCollapsed = ref(false);
 const isDark = ref(true);
+
+// AI Chat - watch for report navigation requests
+const { pendingNavigation, clearPendingNavigation } = useAIChat();
+const navConfirm = ref(null);
+
+// Watch for AI pending navigation
+watch(pendingNavigation, (nav) => {
+  if (nav) {
+    navConfirm.value = nav;
+    clearPendingNavigation();
+  }
+});
 
 // ===== SPLIT PANEL =====
 const splitEl = ref(null);
@@ -164,6 +205,7 @@ const menuItems = ref([
   { path: 'subscriptions', icon: 'credit-card-2-front', label: 'Đơn đăng ký', badge: null },
   { path: 'plans', icon: 'box-seam', label: 'Gói dịch vụ', badge: null },
   { path: 'analytics', icon: 'graph-up-arrow', label: 'Thống kê', badge: null },
+  { path: 'ai-report', icon: 'robot', label: 'Báo Cáo AI', badge: null },
   { path: 'notifications', icon: 'bell', label: 'Thông báo', badge: null },
   { path: 'config', icon: 'gear', label: 'Cấu hình', badge: null },
 ]);
@@ -183,6 +225,16 @@ const currentDate = computed(() =>
 );
 
 const logout = () => { localStorage.clear(); window.location.href = '/login'; };
+
+// Navigation confirmation handlers
+const acceptNavigation = () => {
+  const nav = navConfirm.value;
+  navConfirm.value = null;
+  if (nav?.route) router.push(nav.route);
+};
+const denyNavigation = () => {
+  navConfirm.value = null;
+};
 
 onMounted(() => {
   const savedTheme = localStorage.getItem('pos36_sa_theme');
@@ -328,4 +380,83 @@ onUnmounted(() => {
 .sa-split:has(.sa-left-pane), .sa-split:has(.sa-right-pane) { flex-direction: row; }
 .sa-left-pane { flex-shrink: 0; overflow: hidden; border-right: 1px solid var(--sa-border); }
 .sa-right-pane { flex-shrink: 0; overflow: hidden; border-left: 1px solid var(--sa-border); }
+
+/* ===== AI NAVIGATION CONFIRM DIALOG ===== */
+.sa-nav-confirm-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.7);
+  backdrop-filter: blur(6px);
+  z-index: 99999;
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeInOverlay .2s ease;
+}
+@keyframes fadeInOverlay { from { opacity: 0; } to { opacity: 1; } }
+
+.sa-nav-confirm-modal {
+  background: var(--sa-surface);
+  border: 1px solid var(--sa-border);
+  border-radius: 20px;
+  padding: 36px;
+  max-width: 460px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 30px 80px rgba(0,0,0,.5);
+  animation: popIn .25s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes popIn {
+  from { transform: scale(.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.sa-nav-confirm-icon {
+  width: 70px; height: 70px;
+  background: rgba(245,158,11,.12);
+  border: 2px solid rgba(245,158,11,.3);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.8rem; color: var(--sa-accent);
+  margin: 0 auto 20px;
+  animation: robotBounce 2s ease infinite;
+}
+@keyframes robotBounce {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.sa-nav-confirm-title {
+  color: var(--sa-text); font-weight: 800; margin-bottom: 10px;
+}
+.sa-nav-confirm-desc {
+  color: var(--sa-text-muted); font-size: .9rem; line-height: 1.6; margin-bottom: 16px;
+}
+.sa-nav-confirm-desc strong { color: var(--sa-accent); }
+.sa-nav-confirm-prompt {
+  background: rgba(245,158,11,.07);
+  border: 1px solid rgba(245,158,11,.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: .82rem; color: var(--sa-text-muted);
+  text-align: left;
+  margin-bottom: 24px;
+  display: flex; align-items: flex-start; gap: 6px;
+}
+.sa-nav-confirm-btns {
+  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
+}
+.sa-nav-btn-yes {
+  display: flex; align-items: center;
+  background: var(--sa-accent); color: #000;
+  border: none; padding: 12px 24px; border-radius: 12px;
+  font-weight: 800; font-size: .9rem; cursor: pointer;
+  transition: all .2s;
+}
+.sa-nav-btn-yes:hover { filter: brightness(1.1); transform: translateY(-2px); }
+.sa-nav-btn-no {
+  display: flex; align-items: center;
+  background: rgba(127,127,127,.1);
+  border: 1px solid var(--sa-border);
+  color: var(--sa-text-muted);
+  padding: 12px 24px; border-radius: 12px;
+  font-weight: 600; font-size: .9rem; cursor: pointer;
+  transition: all .2s;
+}
+.sa-nav-btn-no:hover { background: rgba(127,127,127,.2); color: var(--sa-text); }
 </style>

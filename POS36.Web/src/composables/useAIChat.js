@@ -20,6 +20,9 @@ const sessionId = `sa-${Date.now()}`;
 const lastUsage = ref(null);
 const isConnected = ref(true);
 
+// Navigation confirmation - when AI wants to navigate with report, ask user first
+const pendingNavigation = ref(null); // { html, prompt, route, label }
+
 // Persist settings
 watch(selectedModel, (val) => localStorage.setItem("pos36_ai_model", val));
 watch(mode, (val) => localStorage.setItem("pos36_ai_chat_mode", val));
@@ -89,6 +92,31 @@ export function useAIChat() {
       aiMsg.loading = false;
 
       if (d.requiresAction) {
+        if (d.functionName === "XuatBaoCaoAI") {
+          try {
+            const argsObj = JSON.parse(d.functionArgs);
+            if (argsObj.htmlContent) {
+              // Store report for report page
+              localStorage.setItem("pos36_ai_report_html", argsObj.htmlContent);
+              localStorage.setItem("pos36_ai_report_prompt", prompt);
+
+              aiMsg.typing = false;
+              aiMsg.text = `✅ Báo cáo AI đã được tạo!\n\n📊 Bạn có muốn chuyển sang **Trang Báo Cáo** để xem không?`;
+
+              // Signal to SuperAdminLayout to show navigation confirmation
+              pendingNavigation.value = {
+                html: argsObj.htmlContent,
+                prompt: prompt,
+                route: "/super-admin/ai-report",
+                label: "Trang Báo Cáo AI",
+              };
+              return;
+            }
+          } catch (e) {
+             console.error("Lỗi parse XuatBaoCaoAI", e);
+          }
+        }
+
         aiMsg.typing = false;
         aiMsg.text = `⚡ AI muốn thực thi lệnh hệ thống: **${d.functionName}**`;
         
@@ -154,11 +182,13 @@ export function useAIChat() {
     }
   };
 
+  const clearPendingNavigation = () => { pendingNavigation.value = null; };
   const clearMessages = () => { messages.value = []; lastUsage.value = null; };
 
   return {
     messages, loading, models, selectedModel, mode, theme,
     lastUsage, isConnected, currentTheme, THEMES,
+    pendingNavigation, clearPendingNavigation,
     fetchModels, sendMessage, confirmAction, clearMessages,
   };
 }
