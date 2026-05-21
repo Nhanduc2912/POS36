@@ -14,11 +14,17 @@ import axios from "axios";
 // axios.defaults.baseURL = "http://localhost:5098"; 
 axios.interceptors.request.use(
   (config) => {
-    // 1. Bật Loader chặn màn hình
-    globalState.value.isLoading = true;
+    // Bỏ qua global loader cho các endpoint AI (có loading riêng trong AITerminal)
+    const isAiEndpoint = config.url && (
+      config.url.includes("/api/AIChat/") ||
+      config.url.includes("/api/ai")
+    );
+    if (!isAiEndpoint) {
+      globalState.value.isLoading = true;
+    }
 
-    // 2. Tìm thẻ Token trong ví (localStorage) và gắn vào Header
-    const token = localStorage.getItem("pos36_token"); // Tên biến em lưu lúc login
+    // Gắn Token vào Header
+    const token = localStorage.getItem("pos36_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
