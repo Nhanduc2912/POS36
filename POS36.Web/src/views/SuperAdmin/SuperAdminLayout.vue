@@ -9,21 +9,60 @@
       </div>
 
       <nav class="sa-nav">
-        <router-link
-          v-for="item in menuItems" :key="item.path"
-          :to="'/super-admin/' + item.path"
-          class="sa-nav-item" :class="{ active: currentRoute === item.path }"
-        >
-          <i :class="'bi bi-' + item.icon"></i>
-          <span v-if="!sidebarCollapsed">{{ item.label }}</span>
-          <span v-if="item.badge && !sidebarCollapsed" class="sa-badge">{{ item.badge }}</span>
-        </router-link>
+        <template v-for="item in menuItems" :key="item.path ?? item.label">
+          <!-- Group item (dropdown) -->
+          <div v-if="item.isGroup" class="sa-nav-group">
+            <button
+              class="sa-nav-item sa-nav-group-btn"
+              :class="{ active: isGroupActive(item) }"
+              @click="toggleGroup(item.label)"
+              :title="sidebarCollapsed ? item.label : ''"
+            >
+              <i :class="'bi bi-' + item.icon"></i>
+              <span v-if="!sidebarCollapsed">{{ item.label }}</span>
+              <i v-if="!sidebarCollapsed"
+                :class="expandedGroups[item.label] ? 'bi bi-chevron-down' : 'bi bi-chevron-right'"
+                class="sa-group-arrow ms-auto"></i>
+            </button>
+
+            <!-- Dropdown children -->
+            <transition name="dropdown">
+              <div
+                v-if="expandedGroups[item.label] && !sidebarCollapsed"
+                class="sa-nav-children"
+              >
+                <button
+                  v-for="child in item.children"
+                  :key="child.tab"
+                  class="sa-nav-child"
+                  :class="{ active: isChildActive(child) }"
+                  @click="navigateChild(child)"
+                >
+                  <i :class="'bi bi-' + child.icon"></i>
+                  {{ child.label }}
+                </button>
+              </div>
+            </transition>
+          </div>
+
+          <!-- Regular nav item -->
+          <router-link
+            v-else
+            :to="'/super-admin/' + item.path"
+            class="sa-nav-item"
+            :class="{ active: currentRoute === item.path }"
+            :title="sidebarCollapsed ? item.label : ''"
+          >
+            <i :class="'bi bi-' + item.icon"></i>
+            <span v-if="!sidebarCollapsed">{{ item.label }}</span>
+            <span v-if="item.badge && !sidebarCollapsed" class="sa-badge">{{ item.badge }}</span>
+          </router-link>
+        </template>
       </nav>
 
       <!-- AI Terminal Toggle in sidebar -->
       <div class="sa-ai-btn-wrap" v-if="!sidebarCollapsed">
-        <button class="sa-ai-btn" @click="toggleTerminal"
-          :class="{ active: terminalVisible }">
+        <button class="sa-ai-btn" @click="toggleTerminal" :class="{ active: terminalVisible }">
           <i class="bi bi-terminal-fill me-2"></i>
           AI Terminal
           <span class="ai-dot" :class="{ pulse: terminalVisible }"></span>
@@ -69,32 +108,26 @@
 
       <!-- Split Panel Container -->
       <div class="sa-split" ref="splitEl">
-        <!-- Left panel AI (left mode) -->
         <div v-if="terminalVisible && terminalMode === 'left'" class="sa-left-pane">
           <AITerminal @close="terminalVisible = false" @modeChange="onModeChange" />
         </div>
 
-        <!-- Top: Router View (hidden in fullpage mode) -->
         <div class="sa-content-pane" v-show="terminalMode !== 'fullpage'" :style="topPaneStyle">
           <div class="sa-content"><router-view /></div>
         </div>
 
-        <!-- Right panel AI (right mode) -->
         <div v-if="terminalVisible && terminalMode === 'right'" class="sa-right-pane">
           <AITerminal @close="terminalVisible = false" @modeChange="onModeChange" />
         </div>
 
-        <!-- Bottom panel -->
         <div v-if="terminalVisible && terminalMode === 'bottom'" class="sa-terminal-pane">
           <AITerminal @close="terminalVisible = false" @modeChange="onModeChange" />
         </div>
 
-        <!-- Fullpage mode -->
         <div v-if="terminalVisible && terminalMode === 'fullpage'" class="sa-content-pane" style="height:100%">
           <AITerminal @close="terminalVisible = false" @modeChange="onModeChange" />
         </div>
 
-        <!-- Window mode: handled by Teleport inside AITerminal -->
         <AITerminal v-if="terminalVisible && terminalMode === 'window'"
           @close="terminalVisible = false" @modeChange="onModeChange" />
       </div>
@@ -145,7 +178,6 @@ const isDark = ref(true);
 const { pendingNavigation, clearPendingNavigation } = useAIChat();
 const navConfirm = ref(null);
 
-// Watch for AI pending navigation
 watch(pendingNavigation, (nav) => {
   if (nav) {
     navConfirm.value = nav;
@@ -156,21 +188,11 @@ watch(pendingNavigation, (nav) => {
 // ===== SPLIT PANEL =====
 const splitEl = ref(null);
 const terminalVisible = ref(false);
-const terminalMode = ref('bottom'); // bottom | left | window | fullpage
-const terminalHeight = ref(260);
-const isResizing = ref(false);
-const MIN_TERMINAL = 140;
-const MAX_TERMINAL = 600;
+const terminalMode = ref('bottom');
 const topPaneStyle = computed(() => {
   if (terminalMode.value === 'left' || terminalMode.value === 'right') return { flex: '1', overflow: 'auto' };
-  if (!splitEl.value) return {};
-  // For bottom mode, flex will naturally handle the remaining space if top pane has flex: 1.
-  // We can just return flex: 1 for bottom mode as well.
   return { flex: '1', overflow: 'auto' };
 });
-
-// Keep old topHeight for backward compat
-const topHeight = computed(() => topPaneStyle.value?.height?.replace('px',''));
 
 const onModeChange = (m) => {
   terminalMode.value = m;
@@ -182,14 +204,8 @@ const toggleTerminal = () => {
   localStorage.setItem('pos36_terminal_visible', terminalVisible.value ? '1' : '0');
 };
 
-// Resize drag logic
-let startY = 0;
-// Ctrl+` keyboard shortcut
 const handleKeydown = (e) => {
-  if (e.ctrlKey && e.key === '`') {
-    e.preventDefault();
-    toggleTerminal();
-  }
+  if (e.ctrlKey && e.key === '`') { e.preventDefault(); toggleTerminal(); }
 };
 
 // ===== THEME =====
@@ -198,25 +214,60 @@ const toggleTheme = () => {
   localStorage.setItem('pos36_sa_theme', isDark.value ? 'dark' : 'light');
 };
 
-// ===== MENU =====
+// ===== MENU WITH GROUP SUPPORT =====
+const expandedGroups = ref({ 'Cấu hình': false });
+
 const menuItems = ref([
-  { path: '', icon: 'speedometer2', label: 'Dashboard', badge: null },
-  { path: 'stores', icon: 'shop', label: 'Cửa hàng', badge: null },
-  { path: 'subscriptions', icon: 'credit-card-2-front', label: 'Đơn đăng ký', badge: null },
-  { path: 'plans', icon: 'box-seam', label: 'Gói dịch vụ', badge: null },
-  { path: 'analytics', icon: 'graph-up-arrow', label: 'Thống kê', badge: null },
-  { path: 'ai-report', icon: 'robot', label: 'Báo Cáo AI', badge: null },
-  { path: 'notifications', icon: 'bell', label: 'Thông báo', badge: null },
-  { path: 'config', icon: 'gear', label: 'Cấu hình', badge: null },
+  { path: '',              icon: 'speedometer2',       label: 'Dashboard' },
+  { path: 'stores',        icon: 'shop',               label: 'Cửa hàng' },
+  { path: 'subscriptions', icon: 'credit-card-2-front', label: 'Đơn đăng ký' },
+  { path: 'plans',         icon: 'box-seam',           label: 'Gói dịch vụ' },
+  { path: 'analytics',     icon: 'graph-up-arrow',     label: 'Thống kê' },
+  { path: 'ai-report',     icon: 'robot',              label: 'Báo Cáo AI' },
+  { path: 'notifications', icon: 'bell',               label: 'Thông báo' },
+  {
+    icon: 'gear', label: 'Cấu hình', isGroup: true,
+    children: [
+      { tab: 'general',  icon: 'sliders',      label: 'Cấu hình chung' },
+      { tab: 'logs',     icon: 'journal-text', label: 'Nhật ký hệ thống' },
+      { tab: 'payment',  icon: 'credit-card',  label: 'Thanh toán & Webhook' },
+      { tab: 'email',    icon: 'envelope',     label: 'Email & SMTP' },
+    ]
+  },
 ]);
 
+const toggleGroup = (label) => {
+  expandedGroups.value[label] = !expandedGroups.value[label];
+};
+
+const isGroupActive = (item) =>
+  item.children?.some(c => route.path.includes('config') && (route.query.tab === c.tab || (!route.query.tab && c.tab === 'general')));
+
+const isChildActive = (child) =>
+  route.path.includes('config') && (route.query.tab === child.tab || (!route.query.tab && child.tab === 'general'));
+
+const navigateChild = (child) => {
+  router.push({ path: '/super-admin/config', query: { tab: child.tab } });
+};
+
+// Auto-expand Cấu hình group when on config page
+watch(() => route.path, (path) => {
+  if (path.includes('config')) expandedGroups.value['Cấu hình'] = true;
+}, { immediate: true });
+
 const currentRoute = computed(() => {
-  const path = route.path.replace('/super-admin/', '').replace('/super-admin', '');
-  return path || '';
+  return route.path.replace('/super-admin/', '').replace('/super-admin', '') || '';
 });
 
 const currentTitle = computed(() => {
-  const item = menuItems.value.find(m => m.path === currentRoute.value);
+  // Check config sub-items
+  if (currentRoute.value.startsWith('config')) {
+    const tab = route.query.tab;
+    const group = menuItems.value.find(m => m.isGroup && m.label === 'Cấu hình');
+    const child = group?.children?.find(c => c.tab === (tab || 'general'));
+    return child ? `Cấu hình — ${child.label}` : 'Cấu hình hệ thống';
+  }
+  const item = menuItems.value.find(m => !m.isGroup && m.path === currentRoute.value);
   return item ? item.label : 'Super Admin';
 });
 
@@ -226,27 +277,24 @@ const currentDate = computed(() =>
 
 const logout = () => { localStorage.clear(); window.location.href = '/login'; };
 
-// Navigation confirmation handlers
 const acceptNavigation = () => {
   const nav = navConfirm.value;
   navConfirm.value = null;
   if (nav?.route) router.push(nav.route);
 };
-const denyNavigation = () => {
-  navConfirm.value = null;
-};
+const denyNavigation = () => { navConfirm.value = null; };
 
 onMounted(() => {
   const savedTheme = localStorage.getItem('pos36_sa_theme');
   isDark.value = savedTheme !== 'light';
   const savedTerm = localStorage.getItem('pos36_terminal_visible');
   if (savedTerm === '1') terminalVisible.value = true;
+  const savedMode = localStorage.getItem('pos36_ai_mode');
+  if (savedMode) terminalMode.value = savedMode;
   window.addEventListener('keydown', handleKeydown);
 });
 
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown);
-});
+onUnmounted(() => { window.removeEventListener('keydown', handleKeydown); });
 </script>
 
 <style scoped>
@@ -291,17 +339,47 @@ onUnmounted(() => {
 .sa-logo-sub { font-size: .7rem; color: var(--sa-text-faint); text-transform: uppercase; letter-spacing: 2px; }
 
 .sa-nav { flex: 1; padding: 12px 10px; overflow-y: auto; }
+
+/* Regular nav item */
 .sa-nav-item {
   display: flex; align-items: center; gap: 12px;
   padding: 11px 16px; border-radius: 10px;
   color: var(--sa-text-muted); text-decoration: none;
   font-weight: 500; font-size: .9rem; margin-bottom: 4px; transition: all .2s;
+  width: 100%; border: none; background: none; cursor: pointer; text-align: left;
 }
 .sa-nav-item:hover { background: var(--sa-nav-hover-bg); color: var(--sa-accent); }
 .sa-nav-item.active { background: var(--sa-nav-active-bg); color: var(--sa-accent); font-weight: 600; }
-.sa-nav-item i { font-size: 1.15rem; width: 22px; text-align: center; }
-
+.sa-nav-item i { font-size: 1.15rem; width: 22px; text-align: center; flex-shrink: 0; }
 .sa-badge { margin-left: auto; background: #ef4444; color: #fff; font-size: .7rem; padding: 2px 8px; border-radius: 99px; font-weight: 700; }
+
+/* Group & dropdown */
+.sa-nav-group { margin-bottom: 2px; }
+.sa-nav-group-btn { margin-bottom: 0 !important; }
+.sa-group-arrow { font-size: .75rem; transition: transform .25s; flex-shrink: 0; }
+
+.sa-nav-children {
+  padding: 4px 0 6px 14px;
+  overflow: hidden;
+}
+.sa-nav-child {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 9px 14px; border-radius: 8px;
+  background: none; border: none; border-left: 2px solid var(--sa-border);
+  color: var(--sa-text-faint); font-size: .85rem; font-weight: 500;
+  cursor: pointer; transition: all .15s; text-align: left;
+  margin-bottom: 2px;
+}
+.sa-nav-child:hover { background: var(--sa-nav-hover-bg); color: var(--sa-text); border-left-color: var(--sa-text-faint); }
+.sa-nav-child.active {
+  background: var(--sa-nav-active-bg); color: var(--sa-accent);
+  border-left-color: var(--sa-accent); font-weight: 700;
+}
+.sa-nav-child i { font-size: .95rem; width: 18px; text-align: center; flex-shrink: 0; }
+
+/* Dropdown animation */
+.dropdown-enter-active, .dropdown-leave-active { transition: all .25s ease; max-height: 300px; overflow: hidden; }
+.dropdown-enter-from, .dropdown-leave-to { max-height: 0; opacity: 0; transform: translateY(-6px); }
 
 /* AI Terminal Button */
 .sa-ai-btn-wrap { padding: 8px 10px; }
@@ -329,10 +407,7 @@ onUnmounted(() => {
 .sa-toggle-btn:hover { background: rgba(127,127,127,.15); color: var(--sa-text); }
 
 /* ===== MAIN ===== */
-.sa-main {
-  flex: 1; display: flex; flex-direction: column;
-  min-width: 0; overflow: hidden;
-}
+.sa-main { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
 
 .sa-header {
   display: flex; justify-content: space-between; align-items: center;
@@ -360,103 +435,63 @@ onUnmounted(() => {
 }
 
 /* ===== SPLIT PANEL ===== */
-.sa-split {
-  flex: 1; display: flex; flex-direction: column;
-  overflow: hidden; position: relative;
-}
-
+.sa-split { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
 .sa-content-pane {
-  background: var(--sa-bg);
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow-y: auto;
+  background: var(--sa-bg); display: flex; flex-direction: column; flex: 1; overflow-y: auto;
 }
 .sa-content { flex: 1; padding: 24px 28px; }
-
 .sa-terminal-pane { flex-shrink: 0; display: flex; flex-direction: column; }
 
-/* Left/Right panel mode */
 .sa-split:has(.sa-left-pane), .sa-split:has(.sa-right-pane) { flex-direction: row; }
 .sa-left-pane { flex-shrink: 0; overflow: hidden; border-right: 1px solid var(--sa-border); }
 .sa-right-pane { flex-shrink: 0; overflow: hidden; border-left: 1px solid var(--sa-border); }
 
 /* ===== AI NAVIGATION CONFIRM DIALOG ===== */
 .sa-nav-confirm-overlay {
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,.7);
-  backdrop-filter: blur(6px);
-  z-index: 99999;
+  position: fixed; inset: 0; background: rgba(0,0,0,.7);
+  backdrop-filter: blur(6px); z-index: 99999;
   display: flex; align-items: center; justify-content: center;
   animation: fadeInOverlay .2s ease;
 }
 @keyframes fadeInOverlay { from { opacity: 0; } to { opacity: 1; } }
 
 .sa-nav-confirm-modal {
-  background: var(--sa-surface);
-  border: 1px solid var(--sa-border);
-  border-radius: 20px;
-  padding: 36px;
-  max-width: 460px;
-  width: 90%;
-  text-align: center;
-  box-shadow: 0 30px 80px rgba(0,0,0,.5);
+  background: var(--sa-surface); border: 1px solid var(--sa-border);
+  border-radius: 20px; padding: 36px; max-width: 460px; width: 90%;
+  text-align: center; box-shadow: 0 30px 80px rgba(0,0,0,.5);
   animation: popIn .25s cubic-bezier(.34,1.56,.64,1);
 }
-@keyframes popIn {
-  from { transform: scale(.85); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
+@keyframes popIn { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
 .sa-nav-confirm-icon {
-  width: 70px; height: 70px;
-  background: rgba(245,158,11,.12);
-  border: 2px solid rgba(245,158,11,.3);
-  border-radius: 50%;
+  width: 70px; height: 70px; background: rgba(245,158,11,.12);
+  border: 2px solid rgba(245,158,11,.3); border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 1.8rem; color: var(--sa-accent);
-  margin: 0 auto 20px;
+  font-size: 1.8rem; color: var(--sa-accent); margin: 0 auto 20px;
   animation: robotBounce 2s ease infinite;
 }
-@keyframes robotBounce {
-  0%,100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-.sa-nav-confirm-title {
-  color: var(--sa-text); font-weight: 800; margin-bottom: 10px;
-}
-.sa-nav-confirm-desc {
-  color: var(--sa-text-muted); font-size: .9rem; line-height: 1.6; margin-bottom: 16px;
-}
+@keyframes robotBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+.sa-nav-confirm-title { color: var(--sa-text); font-weight: 800; margin-bottom: 10px; }
+.sa-nav-confirm-desc { color: var(--sa-text-muted); font-size: .9rem; line-height: 1.6; margin-bottom: 16px; }
 .sa-nav-confirm-desc strong { color: var(--sa-accent); }
 .sa-nav-confirm-prompt {
-  background: rgba(245,158,11,.07);
-  border: 1px solid rgba(245,158,11,.2);
-  border-radius: 10px;
-  padding: 10px 14px;
-  font-size: .82rem; color: var(--sa-text-muted);
-  text-align: left;
-  margin-bottom: 24px;
-  display: flex; align-items: flex-start; gap: 6px;
+  background: rgba(245,158,11,.07); border: 1px solid rgba(245,158,11,.2);
+  border-radius: 10px; padding: 10px 14px; font-size: .82rem; color: var(--sa-text-muted);
+  text-align: left; margin-bottom: 24px; display: flex; align-items: flex-start; gap: 6px;
 }
-.sa-nav-confirm-btns {
-  display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;
-}
+.sa-nav-confirm-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 .sa-nav-btn-yes {
-  display: flex; align-items: center;
-  background: var(--sa-accent); color: #000;
+  display: flex; align-items: center; background: var(--sa-accent); color: #000;
   border: none; padding: 12px 24px; border-radius: 12px;
-  font-weight: 800; font-size: .9rem; cursor: pointer;
-  transition: all .2s;
+  font-weight: 800; font-size: .9rem; cursor: pointer; transition: all .2s;
 }
 .sa-nav-btn-yes:hover { filter: brightness(1.1); transform: translateY(-2px); }
 .sa-nav-btn-no {
-  display: flex; align-items: center;
-  background: rgba(127,127,127,.1);
-  border: 1px solid var(--sa-border);
-  color: var(--sa-text-muted);
+  display: flex; align-items: center; background: rgba(127,127,127,.1);
+  border: 1px solid var(--sa-border); color: var(--sa-text-muted);
   padding: 12px 24px; border-radius: 12px;
-  font-weight: 600; font-size: .9rem; cursor: pointer;
-  transition: all .2s;
+  font-weight: 600; font-size: .9rem; cursor: pointer; transition: all .2s;
 }
 .sa-nav-btn-no:hover { background: rgba(127,127,127,.2); color: var(--sa-text); }
 </style>
