@@ -14,7 +14,7 @@ namespace POS36.Api.Services
         private readonly HttpClient _http;
         private readonly string _apiKey;
         private const string BASE = "https://generativelanguage.googleapis.com/v1beta";
-        private const string DEFAULT_MODEL = "gemini-1.5-flash";
+        private const string DEFAULT_MODEL = "gemini-3.1-flash-lite";
 
         public static readonly List<GeminiTool> AvailableTools = new()
         {
@@ -86,7 +86,7 @@ namespace POS36.Api.Services
                         Description = description[..Math.Min(description.Length, 120)],
                         InputTokenLimit = inputLimit,
                         OutputTokenLimit = outputLimit,
-                        IsDefault = name.Contains("gemini-1.5-flash") && !name.Contains("latest") && !name.Contains("8b")
+                        IsDefault = name.Contains("gemini-3.1-flash-lite")
                     });
                 }
 
@@ -101,10 +101,10 @@ namespace POS36.Api.Services
 
         private static List<GeminiModelInfo> GetFallbackModels() => new()
         {
-            new() { Id = "gemini-1.5-flash",     DisplayName = "Gemini 1.5 Flash",    Description = "Nhanh, tiết kiệm, đa năng",             InputTokenLimit = 1000000, IsDefault = true },
-            new() { Id = "gemini-1.5-pro",       DisplayName = "Gemini 1.5 Pro",      Description = "Thông minh hơn, chậm hơn",              InputTokenLimit = 2000000 },
-            new() { Id = "gemini-2.0-flash",     DisplayName = "Gemini 2.0 Flash",    Description = "Thế hệ mới, nhanh & mạnh",              InputTokenLimit = 1000000 },
-            new() { Id = "gemini-2.0-flash-lite",DisplayName = "Gemini 2.0 Flash Lite",Description = "Siêu nhẹ, phù hợp hội thoại đơn giản",InputTokenLimit = 1000000 },
+            new() { Id = "gemini-3.1-flash-lite",DisplayName = "Gemini 3.1 Flash Lite",Description = "Nhanh, siêu nhẹ, tiết kiệm",          InputTokenLimit = 1000000, IsDefault = true },
+            new() { Id = "gemini-3.5-flash",     DisplayName = "Gemini 3.5 Flash",    Description = "Cân bằng hiệu năng tốt nhất",            InputTokenLimit = 1000000 },
+            new() { Id = "gemini-2.5-flash",     DisplayName = "Gemini 2.5 Flash",    Description = "Thế hệ 2.5 nhanh & mạnh",                InputTokenLimit = 1000000 },
+            new() { Id = "gemini-3.1-pro-preview",DisplayName = "Gemini 3.1 Pro Preview",Description = "Thông minh nhất thế hệ mới",         InputTokenLimit = 2000000 },
         };
 
         // =============================================

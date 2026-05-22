@@ -13,7 +13,7 @@ const THEMES = {
 const messages = ref([]);
 const loading = ref(false);
 const models = ref([]);
-const selectedModel = ref(localStorage.getItem("pos36_ai_model") || "gemini-1.5-flash");
+const selectedModel = ref(localStorage.getItem("pos36_ai_model") || "gemini-3.1-flash-lite");
 const mode = ref(localStorage.getItem("pos36_ai_chat_mode") || "agent");
 const theme = ref(localStorage.getItem("pos36_ai_theme") || "dark");
 const sessionId = `sa-${Date.now()}`;
@@ -77,12 +77,12 @@ export function useAIChat() {
       }
     } catch {
       models.value = [
-        { id: "gemini-1.5-flash",      displayName: "Gemini 1.5 Flash",      description: "Mặc định (Ổn định)", isDefault: true },
-        { id: "gemini-2.0-flash-lite", displayName: "Gemini 2.0 Flash Lite", description: "Nhanh, nhẹ" },
-        { id: "gemini-2.0-flash",      displayName: "Gemini 2.0 Flash",      description: "Thế hệ mới" },
-        { id: "gemini-1.5-pro",        displayName: "Gemini 1.5 Pro",        description: "Thông minh hơn" }
+        { id: "gemini-3.1-flash-lite", displayName: "Gemini 3.1 Flash Lite", description: "Mặc định (Nhanh, siêu nhẹ)", isDefault: true },
+        { id: "gemini-3.5-flash",      displayName: "Gemini 3.5 Flash",      description: "Cân bằng" },
+        { id: "gemini-2.5-flash",      displayName: "Gemini 2.5 Flash",      description: "Nhanh & mạnh" },
+        { id: "gemini-3.1-pro-preview",displayName: "Gemini 3.1 Pro Preview",description: "Thông minh nhất" }
       ];
-      if (!models.value.some(m => m.id === selectedModel.value)) selectedModel.value = "gemini-1.5-flash";
+      if (!models.value.some(m => m.id === selectedModel.value)) selectedModel.value = "gemini-3.1-flash-lite";
     }
   };
 
