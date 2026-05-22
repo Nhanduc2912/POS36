@@ -77,12 +77,12 @@ export function useAIChat() {
       }
     } catch {
       models.value = [
-        { id: "gemini-2.0-flash-lite", displayName: "Gemini 2.0 Flash Lite", description: "Nhanh, nhẹ (Mặc định)", isDefault: true },
-        { id: "gemini-2.0-flash",      displayName: "Gemini 2.0 Flash",      description: "Cân bằng" },
-        { id: "gemini-1.5-flash",      displayName: "Gemini 1.5 Flash",      description: "Ổn định" },
+        { id: "gemini-1.5-flash",      displayName: "Gemini 1.5 Flash",      description: "Mặc định (Ổn định)", isDefault: true },
+        { id: "gemini-2.0-flash-lite", displayName: "Gemini 2.0 Flash Lite", description: "Nhanh, nhẹ" },
+        { id: "gemini-2.0-flash",      displayName: "Gemini 2.0 Flash",      description: "Thế hệ mới" },
         { id: "gemini-1.5-pro",        displayName: "Gemini 1.5 Pro",        description: "Thông minh hơn" }
       ];
-      if (!models.value.some(m => m.id === selectedModel.value)) selectedModel.value = "gemini-2.0-flash-lite";
+      if (!models.value.some(m => m.id === selectedModel.value)) selectedModel.value = "gemini-1.5-flash";
     }
   };
 
@@ -203,7 +203,8 @@ export function useAIChat() {
         try {
           const reportRes = await axios.post("/api/AIChat/report", {
             prompt: reportPrompt,
-            functionName: approval.functionName   // Giúp backend chọn đúng loại báo cáo
+            functionName: approval.functionName,  // Giúp backend chọn đúng loại báo cáo
+            modelId: selectedModel.value          // Dùng model người dùng đang chọn
           });
           if (reportRes.data?.htmlReport) {
             htmlReport = reportRes.data.htmlReport;

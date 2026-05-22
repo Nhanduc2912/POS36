@@ -142,7 +142,7 @@ namespace POS36.Api.Services
         // =============================================
         public async Task<string> GenerateReportWithAI(string userPrompt, object realData, string? modelId = null)
         {
-            var model = modelId ?? "gemini-2.0-flash-lite";
+            var model = modelId ?? DEFAULT_MODEL; // Tránh lỗi limit: 0 của gemini-2.0-flash-lite trên free tier
             var url = $"{BASE}/models/{model}:generateContent?key={_apiKey}";
 
             var systemPrompt = LoadPrompt("SuperAdmin_Agent.md");
