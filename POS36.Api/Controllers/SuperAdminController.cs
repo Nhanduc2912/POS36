@@ -404,7 +404,7 @@ Dữ liệu:
 Hãy nhận xét về: tỉ lệ chuyển đổi, cảnh báo doanh thu, đề xuất upsell, và các hành động ưu tiên.";
 
             var payload = new { contents = new[] { new { parts = new[] { new { text = prompt } } } } };
-            string endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={apiKey}";
+            string endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key={apiKey}";
 
             using var client = new System.Net.Http.HttpClient();
             var content = new System.Net.Http.StringContent(
