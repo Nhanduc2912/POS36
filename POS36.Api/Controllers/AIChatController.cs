@@ -11,7 +11,7 @@ namespace POS36.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "SuperAdmin")]
+    [Authorize]
     public class AIChatController : ControllerBase
     {
         private readonly GeminiAIService _gemini;
@@ -27,6 +27,7 @@ namespace POS36.Api.Controllers
         }
 
         // ── GET /api/AIChat/models ──────────────────────────────────────
+        [Authorize(Roles = "SuperAdmin")]
         [HttpGet("models")]
         public async Task<IActionResult> GetModels()
         {
@@ -35,6 +36,7 @@ namespace POS36.Api.Controllers
         }
 
         // ── POST /api/AIChat/chat ───────────────────────────────────────
+        [Authorize(Roles = "SuperAdmin")]
         [HttpPost("chat")]
         public async Task<IActionResult> Chat([FromBody] ChatRequest req)
         {
@@ -101,6 +103,7 @@ namespace POS36.Api.Controllers
         }
 
         // ── POST /api/AIChat/confirm ────────────────────────────────────
+        [Authorize(Roles = "SuperAdmin")]
         [HttpPost("confirm")]
         public async Task<IActionResult> Confirm([FromBody] ConfirmRequest req)
         {
@@ -136,6 +139,7 @@ namespace POS36.Api.Controllers
 
         // ── POST /api/AIChat/report ─────────────────────────────────────
         // Thu thập dữ liệu thực từ DB → gửi cho Gemini AI tự tạo HTML
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin")]
         [HttpPost("report")]
         public async Task<IActionResult> GenerateReport([FromBody] ReportRequest req)
         {
@@ -269,12 +273,14 @@ namespace POS36.Api.Controllers
             }
 
             // ── 3. Gemini AI tự viết HTML từ dữ liệu thực ─────────────
-            var htmlReport = await _gemini.GenerateReportWithAI(prompt, realData, req.ModelId);
+            bool isSuperAdmin = User.IsInRole("SuperAdmin");
+            var htmlReport = await _gemini.GenerateReportWithAI(prompt, realData, req.ModelId, isSuperAdmin);
 
             return Ok(new { htmlReport, prompt, generatedAt = now, context });
         }
 
         // ── DELETE /api/AIChat/session/{id} ────────────────────────────
+        [Authorize(Roles = "SuperAdmin")]
         [HttpDelete("session/{sessionId}")]
         public IActionResult ClearSession(string sessionId)
         {
@@ -283,6 +289,7 @@ namespace POS36.Api.Controllers
         }
 
         // ── GET /api/AIChat/tools ───────────────────────────────────────
+        [Authorize(Roles = "SuperAdmin")]
         [HttpGet("tools")]
         public IActionResult GetTools() =>
             Ok(GeminiAIService.AvailableTools.Select(t => new { t.Name, t.Description, t.RiskLevel }));
@@ -450,6 +457,64 @@ namespace POS36.Api.Controllers
         }
 
         private static string Truncate(string s, int max) => s.Length <= max ? s : s[..max] + "...";
+
+        // ── POST /api/AIChat/ask ─────────────────────────────────────────
+        // Dành cho Quản lý / Chủ cửa hàng / Nhân viên (Copilot Chatbot)
+        [HttpPost("ask")]
+        [Authorize]
+        public async Task<IActionResult> Ask([FromBody] AskRequest req)
+        {
+            if (string.IsNullOrWhiteSpace(req.Question))
+                return BadRequest(new { error = "Câu hỏi không được để trống!" });
+
+            // SessionId phân biệt theo từng tài khoản
+            var sessionId = User.Identity?.Name ?? "guest";
+            List<GeminiMessage>? history;
+            lock (_lock) { _sessions.TryGetValue(sessionId, out history); }
+
+            // Xác định vai trò của người dùng để chọn Prompt phù hợp
+            var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? req.Role ?? "NhanVien";
+            string promptFileName = userRole switch
+            {
+                "ChuCuaHang" or "Admin" or "Owner" => "Chat_QuanLy.md",
+                "ThuNgan" => "Chat_ThuNgan.md",
+                "NhanVien" or "Order" or "Waiter" => "Chat_Order.md",
+                _ => "Chat_Order.md"
+            };
+
+            // Gọi service với Owner API Key và prompt động theo vai trò
+            var response = await _gemini.AskAsync(req.Question, promptFileName, history, req.ModelId);
+
+            if (response.Error != null)
+                return StatusCode(500, new { error = response.Error });
+
+            // Lưu lịch sử hội thoại
+            lock (_lock)
+            {
+                if (!_sessions.ContainsKey(sessionId))
+                    _sessions[sessionId] = new List<GeminiMessage>();
+                _sessions[sessionId].Add(new GeminiMessage { Role = "user", Text = req.Question });
+                _sessions[sessionId].Add(new GeminiMessage
+                {
+                    Role = "model",
+                    Text = response.Text
+                });
+                if (_sessions[sessionId].Count > 40) _sessions[sessionId].RemoveRange(0, 2);
+            }
+
+            // Ghi nhận nhật ký hoạt động
+            _context.NhatKyHeThangs.Add(new NhatKyHeThong
+            {
+                HanhDong = "AICopilotAsk",
+                MoTa = $"Chủ quán/Nhân viên hỏi AI: \"{Truncate(req.Question, 100)}\"",
+                NguoiThucHien = User.Identity?.Name,
+                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                ThoiGian = DateTime.Now
+            });
+            await _context.SaveChangesAsync();
+
+            return Ok(new { answer = response.Text });
+        }
     }
 
     // ── DTOs ──────────────────────────────────────────────────────────
@@ -477,5 +542,11 @@ namespace POS36.Api.Controllers
         public bool Success { get; set; }
         public string Message { get; set; } = "";
         public object? Data { get; set; }
+    }
+    public class AskRequest
+    {
+        public string Question { get; set; } = "";
+        public string? Role { get; set; }
+        public string? ModelId { get; set; }
     }
 }

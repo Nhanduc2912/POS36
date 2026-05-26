@@ -13,6 +13,7 @@ namespace POS36.Api.Services
     {
         private readonly HttpClient _http;
         private readonly string _apiKey;
+        private readonly string _ownerApiKey;
         private const string BASE = "https://generativelanguage.googleapis.com/v1beta";
         private const string DEFAULT_MODEL = "gemini-3.1-flash-lite";
 
@@ -34,6 +35,7 @@ namespace POS36.Api.Services
         {
             _apiKey = config["GeminiAI:ApiKey"]
                 ?? throw new InvalidOperationException("GeminiAI:ApiKey chưa cấu hình trong User Secrets!");
+            _ownerApiKey = config["GeminiAI:OwnerApiKey"] ?? _apiKey;
             _http = http;
         }
 
@@ -140,12 +142,13 @@ namespace POS36.Api.Services
         // =============================================
         // 3. AI REPORT — Gemini tự tạo HTML từ dữ liệu thực
         // =============================================
-        public async Task<string> GenerateReportWithAI(string userPrompt, object realData, string? modelId = null)
+        public async Task<string> GenerateReportWithAI(string userPrompt, object realData, string? modelId = null, bool isSuperAdmin = true)
         {
             var model = modelId ?? DEFAULT_MODEL; // Tránh lỗi limit: 0 của gemini-2.0-flash-lite trên free tier
-            var url = $"{BASE}/models/{model}:generateContent?key={_apiKey}";
+            var apiKeyToUse = isSuperAdmin ? _apiKey : _ownerApiKey;
+            var url = $"{BASE}/models/{model}:generateContent?key={apiKeyToUse}";
 
-            var systemPrompt = LoadPrompt("SuperAdmin_Agent.md");
+            var systemPrompt = LoadPrompt(isSuperAdmin ? "SuperAdmin_Agent.md" : "ReportCopilot.md");
 
             // Serialize data đẹp để AI đọc
             var dataJson = JsonSerializer.Serialize(realData, new JsonSerializerOptions
@@ -188,10 +191,10 @@ QUAN TRỌNG:
         }
 
         // Load prompt file từ Prompts/
-        private static string? _cachedSuperAdminPrompt;
+        private static readonly Dictionary<string, string> _promptCache = new();
         private static string LoadPrompt(string fileName)
         {
-            if (_cachedSuperAdminPrompt != null) return _cachedSuperAdminPrompt;
+            if (_promptCache.TryGetValue(fileName, out var cachedPrompt)) return cachedPrompt;
             try
             {
                 // Tìm file từ thư mục ứng dụng
@@ -205,9 +208,10 @@ QUAN TRỌNG:
                 {
                     if (File.Exists(p))
                     {
-                        _cachedSuperAdminPrompt = File.ReadAllText(p);
+                        var prompt = File.ReadAllText(p);
+                        _promptCache[fileName] = prompt;
                         Log.Information("Loaded AI prompt: {Path}", p);
-                        return _cachedSuperAdminPrompt;
+                        return prompt;
                     }
                 }
                 Log.Warning("Prompt file not found: {File}", fileName);
@@ -215,7 +219,7 @@ QUAN TRỌNG:
             catch (Exception ex) { Log.Error(ex, "LoadPrompt error"); }
 
             // Fallback ngắn gọn
-            return "Bạn là AI Agent SuperAdmin của POS36 SaaS. Trả lời tiếng Việt. Khi tạo báo cáo chỉ dùng HTML thuần, dark theme nền #0f1117.";
+            return "Bạn là trợ lý AI của POS36. Trả lời tiếng Việt.";
         }
 
 
@@ -239,6 +243,32 @@ QUAN TRỌNG:
             {
                 contents,
                 generation_config = new { temperature = 0.7, max_output_tokens = 4096 }
+            };
+
+            return await SendRequestAsync(url, body, model);
+        }
+
+        // =============================================
+        // 4. ASK (Dành cho Quản lý / Chủ cửa hàng - Copilot)
+        // =============================================
+        public async Task<GeminiResponse> AskAsync(string prompt, string promptFileName, List<GeminiMessage>? history = null, string? modelId = null)
+        {
+            var model = modelId ?? DEFAULT_MODEL;
+            var url = $"{BASE}/models/{model}:generateContent?key={_ownerApiKey}";
+
+            var systemInstruction = LoadPrompt(promptFileName);
+
+            var contents = new List<object>();
+            if (history != null)
+                foreach (var msg in history)
+                    contents.Add(new { role = msg.Role, parts = new[] { new { text = msg.Text } } });
+            contents.Add(new { role = "user", parts = new[] { new { text = prompt } } });
+
+            var body = new
+            {
+                system_instruction = new { parts = new[] { new { text = systemInstruction } } },
+                contents,
+                generation_config = new { temperature = 0.6, max_output_tokens = 2048 }
             };
 
             return await SendRequestAsync(url, body, model);
