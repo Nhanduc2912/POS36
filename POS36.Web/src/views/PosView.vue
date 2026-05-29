@@ -152,6 +152,8 @@ const notificationList = ref([]);
 // pendingPayments for QR tracking
 const pendingPayments = ref([]);
 
+let refreshTimer = null;
+
 onMounted(async () => {
   try {
     await startConnection();
@@ -183,19 +185,30 @@ onMounted(async () => {
 
   fetchTables(globalState.value.activeBranchId);
 
+  // Đơn hàng mới (gọi món mới) → refresh danh sách bàn
   connection.on("CoDonHangMoi", (data) => {
     fetchTables(globalState.value.activeBranchId);
   });
 
+  // Cập nhật bàn (chuyển bàn, tách bàn, ghép bàn, thanh toán, hủy món)
+  connection.on("CapNhatBan", (data) => {
+    fetchTables(globalState.value.activeBranchId);
+    // Nếu đang mở bàn nào thì refresh lại order của bàn đó
+    if (activeTable.value && activeTable.value.trangThai !== "Trống") {
+      openTable(activeTable.value);
+    }
+  });
+
   await getBranchIdAndFetch();
 
-  setInterval(() => {
+  refreshTimer = setInterval(() => {
     tables.value = [...tables.value];
   }, 60000);
 });
 
 onUnmounted(() => {
   stopConnection();
+  if (refreshTimer) clearInterval(refreshTimer);
 });
 
 const getBranchIdAndFetch = async () => {

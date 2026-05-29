@@ -567,9 +567,12 @@ const logout = () => {
 };
 
 // ===== LIFECYCLE =====
+let refreshTimer = null;
+
 onMounted(async () => {
   try {
     await startConnection();
+    // Nhận đơn hàng MỚI thật sự (gọi món mới)
     connection.on("CoDonHangMoi", (data) => {
       const isCancel = data?.message === "Hủy món";
       if (!isCancel) {
@@ -584,14 +587,22 @@ onMounted(async () => {
         fetchPendingItems(globalState.value.activeBranchId);
       }
     });
+
+    // Cập nhật bàn (chuyển bàn, tách bàn, ghép bàn, thanh toán, hủy món)
+    // KHÔNG hiện toast "có món mới" — chỉ refresh dữ liệu
+    connection.on("CapNhatBan", (data) => {
+      if (globalState.value.activeBranchId) {
+        fetchPendingItems(globalState.value.activeBranchId);
+      }
+    });
   } catch (err) {
     console.error(err);
   }
 
   await getBranchIdAndFetch();
 
-  // Refresh định kỳ
-  setInterval(() => {
+  // Refresh định kỳ (lưu reference để clear)
+  refreshTimer = setInterval(() => {
     if (globalState.value.activeBranchId) {
       fetchPendingItems(globalState.value.activeBranchId);
     }
@@ -601,6 +612,7 @@ onMounted(async () => {
 onUnmounted(() => {
   stopConnection();
   clearInterval(clockTimer);
+  if (refreshTimer) clearInterval(refreshTimer);
 });
 </script>
 

@@ -552,6 +552,8 @@ const showCartDetail = ref(true);
 
 
 
+let refreshTimer = null;
+
 onMounted(async () => {
   window.addEventListener("resize", () => {
     isMobile.value = window.innerWidth < 768;
@@ -561,7 +563,13 @@ onMounted(async () => {
 
   try {
     await startConnection();
+    // Đơn hàng mới (gọi món) → refresh sơ đồ bàn
     connection.on("CoDonHangMoi", () =>
+      fetchStructure(globalState.value.activeBranchId),
+    );
+
+    // Cập nhật bàn (chuyển bàn, tách bàn, ghép bàn, thanh toán, hủy món)
+    connection.on("CapNhatBan", () =>
       fetchStructure(globalState.value.activeBranchId),
     );
 
@@ -584,7 +592,7 @@ onMounted(async () => {
         showConfirmButton: false,
         timer: 4000,
       });
-      fetchStructure(globalState.value.activeBranchId); // SỬA Ở ĐÂY NỮA
+      fetchStructure(globalState.value.activeBranchId);
     });
   } catch (err) {
     console.error("SignalR Lỗi: ", err);
@@ -592,13 +600,14 @@ onMounted(async () => {
 
   await getBranchIdAndFetch();
 
-  setInterval(() => {
+  refreshTimer = setInterval(() => {
     tables.value = [...tables.value];
   }, 60000);
 });
 
 onUnmounted(() => {
   stopConnection();
+  if (refreshTimer) clearInterval(refreshTimer);
 });
 
 const calculateTimeElapsed = (timeOpenString) => {
