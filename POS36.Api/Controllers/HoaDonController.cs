@@ -106,7 +106,7 @@ namespace POS36.Api.Controllers
 
                 if (_hubContext != null)
                 {
-                    await _hubContext.Clients.All.SendAsync("CoDonHangMoi", new
+                    await _hubContext.Clients.Group($"store_{cuaHangId}").SendAsync("CoDonHangMoi", new
                     {
                         banId = request.BanId,
                         tenBan = ban.TenBan,
@@ -189,6 +189,17 @@ namespace POS36.Api.Controllers
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
+                // Phát SignalR cho tất cả màn hình cùng cửa hàng cập nhật sơ đồ bàn
+                if (_hubContext != null)
+                {
+                    await _hubContext.Clients.Group($"store_{cuaHangId}").SendAsync("CapNhatBan", new
+                    {
+                        message = "Chuyển bàn",
+                        tuBan = tuBan.TenBan,
+                        denBan = denBan.TenBan
+                    });
+                }
+
                 return Ok(new { message = $"Đã chuyển bàn thành công sang {denBan.TenBan}!" });
             }
             catch (Exception ex)
@@ -244,6 +255,17 @@ namespace POS36.Api.Controllers
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+
+                // Phát SignalR cho tất cả màn hình cùng cửa hàng cập nhật sơ đồ bàn
+                if (_hubContext != null)
+                {
+                    await _hubContext.Clients.Group($"store_{cuaHangId}").SendAsync("CapNhatBan", new
+                    {
+                        message = "Ghép bàn",
+                        tuBan = tuBan.TenBan,
+                        denBan = denBan.TenBan
+                    });
+                }
 
                 return Ok(new { message = $"Đã ghép bàn thành công vào {denBan.TenBan}!" });
             }
@@ -322,8 +344,14 @@ namespace POS36.Api.Controllers
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
+                // Dùng "CapNhatBan" thay vì "CoDonHangMoi" để Bếp KHÔNG hiện "có món mới"
                 if (_hubContext != null)
-                    await _hubContext.Clients.All.SendAsync("CoDonHangMoi", new { message = "Tách bàn" });
+                    await _hubContext.Clients.Group($"store_{cuaHangId}").SendAsync("CapNhatBan", new
+                    {
+                        message = "Tách bàn",
+                        tuBan = tuBan.TenBan,
+                        denBan = denBan.TenBan
+                    });
 
                 return Ok(new { message = $"Đã tách bàn thành công sang {denBan.TenBan}!" });
             }
@@ -445,7 +473,7 @@ namespace POS36.Api.Controllers
                 // Kích hoạt fetchTables bên Vue tải lại màu sắc của Bàn
                 if (_hubContext != null)
                 {
-                    await _hubContext.Clients.All.SendAsync("CoDonHangMoi", new { message = "Đã thanh toán" });
+                    await _hubContext.Clients.Group($"store_{cuaHangId}").SendAsync("CapNhatBan", new { message = "Đã thanh toán" });
                 }
 
                 return Ok(new { message = "Thanh toán thành công!", diemCong, tienGiam });
@@ -512,17 +540,24 @@ namespace POS36.Api.Controllers
         [HttpPut("bep/xong/{chiTietId}")]
         public async Task<IActionResult> MonDaXong(int chiTietId)
         {
-            var chiTiet = await _context.ChiTietHoaDons.Include(c => c.HoaDon).ThenInclude(h => h.Ban).FirstOrDefaultAsync(c => c.Id == chiTietId);
+            var chiTiet = await _context.ChiTietHoaDons
+                .Include(c => c.SanPham)
+                .Include(c => c.HoaDon).ThenInclude(h => h.Ban)
+                .FirstOrDefaultAsync(c => c.Id == chiTietId);
             if (chiTiet == null) return NotFound();
 
             chiTiet.TrangThaiMon = "Đã Xong";
             await _context.SaveChangesAsync();
 
-            await _hubContext.Clients.All.SendAsync("MonAnDaXong", new
+            // Lấy CuaHangId để gửi đúng group
+            var storeId = chiTiet.HoaDon?.CuaHangId ?? 0;
+            var tenMon = chiTiet.SanPham?.TenSanPham ?? "Món ăn";
+
+            await _hubContext.Clients.Group($"store_{storeId}").SendAsync("MonAnDaXong", new
             {
                 banId = chiTiet.HoaDon!.BanId,
                 tenBan = chiTiet.HoaDon.Ban!.TenBan,
-                tenMon = chiTiet.SoLuong + "x Đã xong"
+                tenMon = $"{chiTiet.SoLuong}x {tenMon} — Đã xong"
             });
 
             return Ok();
@@ -642,9 +677,11 @@ namespace POS36.Api.Controllers
                 await transaction.CommitAsync();
 
                 // Phát sự kiện SignalR để tất cả màn hình cập nhật realtime
+                // Lấy CuaHangId từ hóa đơn
+                int storeId = hoaDon?.CuaHangId ?? 0;
                 if (_hubContext != null)
                 {
-                    await _hubContext.Clients.All.SendAsync("CoDonHangMoi", new { message = "Hủy món" });
+                    await _hubContext.Clients.Group($"store_{storeId}").SendAsync("CapNhatBan", new { message = "Hủy món" });
                 }
 
                 return Ok(new { message = "Hủy món thành công!" });

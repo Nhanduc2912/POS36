@@ -37,8 +37,13 @@ namespace POS36.Api.Controllers
             if (matchBill.Success)
             {
                 int banId = int.Parse(matchBill.Groups[1].Value);
-                await _hubContext.Clients.All.SendAsync("ThanhToanQRThanhCong", banId);
-                Log.Information("💰 SePay: Nhận {Amount} cho Bàn {BanId}", payload.transferAmount, banId);
+
+                // Tìm cửa hàng sở hữu bàn này để gửi đúng group
+                var ban = await _context.Bans.FirstOrDefaultAsync(b => b.Id == banId);
+                var cuaHangId = ban?.CuaHangId ?? 0;
+
+                await _hubContext.Clients.Group($"store_{cuaHangId}").SendAsync("ThanhToanQRThanhCong", banId);
+                Log.Information("💰 SePay: Nhận {Amount} cho Bàn {BanId} (CuaHang {CuaHangId})", payload.transferAmount, banId, cuaHangId);
                 return Ok(new { success = true, message = $"Đã nhận {payload.transferAmount} cho Bàn {banId}" });
             }
 

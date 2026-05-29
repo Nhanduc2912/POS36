@@ -84,6 +84,21 @@ namespace POS36.Api
                             ValidAudience = builder.Configuration["Jwt:Audience"],
                             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
                         };
+
+                        // SignalR: Đọc JWT từ query string vì WebSocket không gửi được HTTP Headers
+                        options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+                        {
+                            OnMessageReceived = context =>
+                            {
+                                var accessToken = context.Request.Query["access_token"];
+                                var path = context.HttpContext.Request.Path;
+                                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/kitchenHub"))
+                                {
+                                    context.Token = accessToken;
+                                }
+                                return System.Threading.Tasks.Task.CompletedTask;
+                            }
+                        };
                     });
 
                 builder.Services.AddControllers();
