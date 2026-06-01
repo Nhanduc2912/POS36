@@ -209,6 +209,11 @@ const routes = [
         name: "ThietLap",
         component: () => import("../views/ThietLapView.vue"),
       },
+      {
+        path: "audit-log",
+        name: "AuditLog",
+        component: () => import("../views/AuditLogView.vue"),
+      },
     ],
   },
 

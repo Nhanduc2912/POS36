@@ -1,255 +1,361 @@
 <template>
-  <div class="thiet-lap-wrap">
-    <div class="tl-header">
-      <h5><i class="bi bi-gear me-2"></i>Thiết lập cửa hàng</h5>
-      <button class="tl-save-btn" @click="saveAll" :disabled="saving">
-        <span v-if="saving" class="spinner-border spinner-border-sm me-1"></span>
-        <i v-else class="bi bi-floppy me-1"></i>{{ saving ? 'Đang lưu...' : 'Lưu tất cả' }}
+  <div class="container-fluid px-4 py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
+      <div>
+        <h4 class="fw-bold text-dark mb-1">
+          <i class="bi bi-gear-fill text-primary me-2"></i> THIẾT LẬP CỬA HÀNG
+        </h4>
+        <p class="text-muted mb-0 small">Cấu hình tham số vận hành, phân quyền nhân viên và thông tin thương hiệu.</p>
+      </div>
+      <button class="btn btn-primary fw-bold px-4 rounded-pill shadow-sm d-flex align-items-center gap-2" @click="saveAll" :disabled="saving">
+        <span v-if="saving" class="spinner-border spinner-border-sm"></span>
+        <i v-else class="bi bi-cloud-arrow-up-fill fs-5"></i>
+        {{ saving ? 'Đang lưu...' : 'LƯU TẤT CẢ' }}
       </button>
     </div>
 
-    <!-- Tabs -->
-    <div class="tl-tabs">
-      <button v-for="t in tabs" :key="t.key" class="tl-tab" :class="{active: activeTab===t.key}" @click="activeTab=t.key">
-        <i :class="'bi bi-'+t.icon+' me-1'"></i>{{ t.label }}
-      </button>
-    </div>
-
-    <!-- TAB 1: Thông tin cửa hàng -->
-    <div v-show="activeTab==='info'" class="tl-body">
-      <div class="tl-card">
-        <h6 class="tl-card-title"><i class="bi bi-shop me-2"></i>Thông tin cơ bản</h6>
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label>Tên cửa hàng</label>
-            <input v-model="info.tenCuaHang" class="tl-input w-100" placeholder="Quán Ăn ABC" />
-          </div>
-          <div class="col-md-6">
-            <label>Số điện thoại</label>
-            <input v-model="info.soDienThoai" class="tl-input w-100" placeholder="0901234567" disabled />
-            <small class="tl-hint">Liên hệ Super Admin để đổi SĐT</small>
-          </div>
-          <div class="col-md-6">
-            <label>Email</label>
-            <input v-model="info.email" class="tl-input w-100" placeholder="quan@gmail.com" />
-          </div>
-          <div class="col-md-6">
-            <label>Địa chỉ</label>
-            <input v-model="info.diaChi" class="tl-input w-100" placeholder="123 Nguyễn Văn A, Q1..." />
-          </div>
-          <div class="col-12">
-            <label>URL Logo</label>
-            <input v-model="info.logoUrl" class="tl-input w-100" placeholder="https://..." />
-            <div class="mt-2" v-if="info.logoUrl">
-              <img :src="info.logoUrl" style="max-height:60px;border-radius:8px;border:1px solid var(--border-color)" />
-            </div>
+    <!-- Layout chia hai cột -->
+    <div class="row g-4">
+      <!-- Cột trái: Tab Navigation -->
+      <div class="col-lg-3 col-md-4">
+        <div class="card border-0 shadow-sm rounded-3 p-2">
+          <div class="nav flex-column nav-pills custom-settings-pills">
+            <button v-for="t in tabs" :key="t.key" 
+                    class="nav-link text-start py-3 px-3 mb-1 rounded-3 d-flex align-items-center gap-3" 
+                    :class="{active: activeTab === t.key}" 
+                    @click="activeTab = t.key">
+              <i :class="'bi bi-' + t.icon + ' fs-5'"></i>
+              <span class="fw-semibold">{{ t.label }}</span>
+            </button>
           </div>
         </div>
       </div>
-      <div class="tl-card mt-3">
-        <h6 class="tl-card-title"><i class="bi bi-receipt me-2"></i>Mẫu in hóa đơn</h6>
-        <div class="mb-3">
-          <label>Tiêu đề hóa đơn</label>
-          <input v-model="cfg.InHoaDon_TieuDe" class="tl-input w-100" placeholder="HÓA ĐƠN THANH TOÁN" />
-        </div>
-        <div class="mb-3">
-          <label>Ghi chú cuối hóa đơn</label>
-          <textarea v-model="cfg.InHoaDon_GhiChu" class="tl-input w-100" rows="2" placeholder="Cảm ơn quý khách!"></textarea>
-        </div>
-        <div class="mb-3">
-          <label>Prefix mã hóa đơn</label>
-          <input v-model="cfg.InHoaDon_Prefix" class="tl-input w-100" placeholder="HD" maxlength="5" />
-        </div>
-      </div>
-    </div>
 
-    <!-- TAB 2: Tùy chọn POS -->
-    <div v-show="activeTab==='pos'" class="tl-body">
-      <div class="tl-card">
-        <h6 class="tl-card-title"><i class="bi bi-cash-register me-2"></i>Tùy chọn thanh toán & vận hành</h6>
-        <div class="tl-toggle-group">
-          <div class="tl-toggle-item">
-            <div>
-              <div class="tl-toggle-label">Cho phép giảm giá thủ công</div>
-              <div class="tl-toggle-desc">Thu ngân có thể nhập % hoặc số tiền giảm trực tiếp</div>
-            </div>
-            <label class="tl-switch">
-              <input type="checkbox" v-model="cfgBool.POS_ChophepGiamGia" />
-              <span class="tl-slider"></span>
-            </label>
-          </div>
-          <div class="tl-toggle-item">
-            <div>
-              <div class="tl-toggle-label">Tự động in hóa đơn sau thanh toán</div>
-              <div class="tl-toggle-desc">In ngay khi xác nhận thanh toán thành công</div>
-            </div>
-            <label class="tl-switch">
-              <input type="checkbox" v-model="cfgBool.POS_TuDongIn" />
-              <span class="tl-slider"></span>
-            </label>
-          </div>
-          <div class="tl-toggle-item">
-            <div>
-              <div class="tl-toggle-label">Yêu cầu xác nhận trước khi gửi bếp</div>
-              <div class="tl-toggle-desc">Hiện popup xác nhận trước khi order sang màn hình bếp</div>
-            </div>
-            <label class="tl-switch">
-              <input type="checkbox" v-model="cfgBool.POS_XacNhanGuiBep" />
-              <span class="tl-slider"></span>
-            </label>
-          </div>
-          <div class="tl-toggle-item">
-            <div>
-              <div class="tl-toggle-label">Hiển thị QR thanh toán tự động</div>
-              <div class="tl-toggle-desc">Tự hiện VietQR khi bắt đầu thanh toán</div>
-            </div>
-            <label class="tl-switch">
-              <input type="checkbox" v-model="cfgBool.POS_HienQR" />
-              <span class="tl-slider"></span>
-            </label>
-          </div>
-        </div>
-        <div class="row g-3 mt-2">
-          <div class="col-md-6">
-            <label>Giảm giá tối đa (%)</label>
-            <input type="number" v-model.number="cfg.POS_GiamGiaMax" class="tl-input w-100" min="0" max="100" />
-          </div>
-          <div class="col-md-6">
-            <label>Cảnh báo kho khi còn (đơn vị)</label>
-            <input type="number" v-model.number="cfg.POS_CanhBaoKho" class="tl-input w-100" min="0" />
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 3: Tích điểm -->
-    <div v-show="activeTab==='loyalty'" class="tl-body">
-      <div class="tl-card">
-        <h6 class="tl-card-title"><i class="bi bi-star me-2"></i>Chương trình tích điểm</h6>
-        <div class="tl-toggle-item mb-4">
-          <div>
-            <div class="tl-toggle-label">Bật tích điểm khách hàng</div>
-            <div class="tl-toggle-desc">Khách hàng được tích điểm mỗi khi thanh toán</div>
-          </div>
-          <label class="tl-switch">
-            <input type="checkbox" v-model="cfgBool.Loyalty_BatTat" />
-            <span class="tl-slider"></span>
-          </label>
-        </div>
-        <div class="row g-3" :class="{'opacity-50': !cfgBool.Loyalty_BatTat}">
-          <div class="col-md-6">
-            <label>Tỉ lệ tích điểm (VNĐ → điểm)</label>
-            <div class="d-flex align-items-center gap-2">
-              <input type="number" v-model.number="cfg.Loyalty_TiLeKiem" class="tl-input flex-fill" min="1000" step="1000" />
-              <span style="color:var(--text-muted);white-space:nowrap;font-size:.82rem">đ = 1 điểm</span>
-            </div>
-          </div>
-          <div class="col-md-6">
-            <label>Tỉ lệ quy đổi (điểm → VNĐ)</label>
-            <div class="d-flex align-items-center gap-2">
-              <input type="number" v-model.number="cfg.Loyalty_TiLeDoiDiem" class="tl-input flex-fill" min="1" />
-              <span style="color:var(--text-muted);white-space:nowrap;font-size:.82rem">điểm = 1.000đ</span>
-            </div>
-          </div>
-          <div class="col-12">
-            <label style="font-size:.78rem;font-weight:700;color:var(--text-muted)">NGƯỠNG HẠNG THÀNH VIÊN (điểm tích lũy)</label>
-            <div class="row g-2 mt-1">
-              <div class="col-md-4">
-                <div class="rank-card rank-dong">
-                  <i class="bi bi-award me-2"></i>Đồng
-                  <input type="number" v-model.number="cfg.Loyalty_NguongDong" class="tl-input w-100 mt-2" min="0" placeholder="0" />
-                </div>
+      <!-- Cột phải: Tab Content -->
+      <div class="col-lg-9 col-md-8">
+        <!-- TAB 1: Thông tin cơ bản -->
+        <div v-show="activeTab === 'info'" class="tab-pane-content">
+          <div class="card border-0 shadow-sm rounded-3 p-4 mb-4">
+            <h5 class="fw-bold text-primary mb-4 pb-2 border-bottom d-flex align-items-center gap-2">
+              <i class="bi bi-shop fs-4"></i> Thông Tin Thương Hiệu
+            </h5>
+            
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold text-secondary small">Tên cửa hàng <span class="text-danger">*</span></label>
+                <input v-model="info.tenCuaHang" class="form-control form-control-lg bg-light border-0 text-dark fs-6" placeholder="Quán Ăn ABC" />
               </div>
-              <div class="col-md-4">
-                <div class="rank-card rank-bac">
-                  <i class="bi bi-award-fill me-2"></i>Bạc
-                  <input type="number" v-model.number="cfg.Loyalty_NguongBac" class="tl-input w-100 mt-2" min="0" placeholder="500" />
-                </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold text-secondary small">Số điện thoại liên hệ</label>
+                <input v-model="info.soDienThoai" class="form-control form-control-lg bg-light border-0 text-muted fs-6" placeholder="0901234567" disabled />
+                <div class="form-text small text-warning"><i class="bi bi-info-circle me-1"></i>Liên hệ Super Admin để thay đổi số điện thoại dùng thử/SaaS</div>
               </div>
-              <div class="col-md-4">
-                <div class="rank-card rank-vang">
-                  <i class="bi bi-trophy-fill me-2"></i>Vàng
-                  <input type="number" v-model.number="cfg.Loyalty_NguongVang" class="tl-input w-100 mt-2" min="0" placeholder="2000" />
+              <div class="col-md-6">
+                <label class="form-label fw-semibold text-secondary small">Email cửa hàng</label>
+                <input v-model="info.email" type="email" class="form-control form-control-lg bg-light border-0 text-dark fs-6" placeholder="quan@gmail.com" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold text-secondary small">Địa chỉ hoạt động</label>
+                <input v-model="info.diaChi" class="form-control form-control-lg bg-light border-0 text-dark fs-6" placeholder="123 Nguyễn Văn A, Q1..." />
+              </div>
+              <div class="col-12">
+                <label class="form-label fw-semibold text-secondary small">Đường dẫn Logo (URL)</label>
+                <input v-model="info.logoUrl" class="form-control form-control-lg bg-light border-0 text-dark fs-6 mb-3" placeholder="https://abc.com/logo.png" />
+                <div v-if="info.logoUrl" class="logo-preview-card p-3 border rounded-3 bg-light d-inline-block">
+                  <span class="d-block text-secondary small fw-semibold mb-2">Xem trước Logo:</span>
+                  <img :src="info.logoUrl" class="img-thumbnail border-0 shadow-sm" style="max-height:80px; object-fit:contain;" />
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- TAB 4: Thanh toán -->
-    <div v-show="activeTab==='payment'" class="tl-body">
-      <div class="tl-card">
-        <h6 class="tl-card-title"><i class="bi bi-qr-code me-2"></i>VietQR / Chuyển khoản</h6>
-        <div class="row g-3">
-          <div class="col-md-4">
-            <label>Mã ngân hàng</label>
-            <select v-model="cfg.Bank_Code" class="tl-select w-100">
-              <option value="">-- Chọn ngân hàng --</option>
-              <option v-for="b in banks" :key="b.code" :value="b.code">{{ b.name }}</option>
-            </select>
-          </div>
-          <div class="col-md-4">
-            <label>Số tài khoản</label>
-            <input v-model="cfg.Bank_AccountNo" class="tl-input w-100" placeholder="0123456789" />
-          </div>
-          <div class="col-md-4">
-            <label>Tên chủ tài khoản</label>
-            <input v-model="cfg.Bank_AccountName" class="tl-input w-100" placeholder="NGUYEN VAN A" />
-          </div>
-          <div class="col-12" v-if="cfg.Bank_Code && cfg.Bank_AccountNo">
-            <label>Preview QR</label>
-            <div class="qr-preview">
-              <img :src="`https://img.vietqr.io/image/${cfg.Bank_Code}-${cfg.Bank_AccountNo}-compact2.png?accountName=${encodeURIComponent(cfg.Bank_AccountName||'')}`"
-                alt="VietQR" style="max-height:180px;border-radius:8px" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+        <!-- TAB 2: Tùy chọn POS -->
+        <div v-show="activeTab === 'pos'" class="tab-pane-content">
+          <div class="card border-0 shadow-sm rounded-3 p-4 mb-4">
+            <h5 class="fw-bold text-primary mb-4 pb-2 border-bottom d-flex align-items-center gap-2">
+              <i class="bi bi-cash-register fs-4"></i> Tùy Chọn Vận Hành POS
+            </h5>
 
-    <!-- TAB 5: Bảo mật & Nhân viên -->
-    <div v-show="activeTab==='security'" class="tl-body">
-      <div class="tl-card">
-        <h6 class="tl-card-title"><i class="bi bi-shield-lock me-2"></i>Bảo mật vận hành</h6>
-        <div class="tl-toggle-group">
-          <div class="tl-toggle-item">
-            <div>
-              <div class="tl-toggle-label">Yêu cầu PIN nhân viên</div>
-              <div class="tl-toggle-desc">Nhân viên cần xác nhận PIN 4 số khi thực hiện thao tác quan trọng</div>
+            <div class="toggle-list-group">
+              <!-- Switch 1 -->
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Cho phép giảm giá thủ công ở POS</h6>
+                  <p class="text-muted mb-0 small">Thu ngân có thể điều chỉnh giảm giá theo % hoặc tiền mặt trực tiếp trên giỏ hàng.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_ChophepGiamGia" />
+                </div>
+              </div>
+
+              <!-- Switch 2 -->
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Tự động in hóa đơn ngay sau khi thanh toán</h6>
+                  <p class="text-muted mb-0 small">Máy in POS sẽ tự kích hoạt xuất hóa đơn giấy ngay khi nhận tín hiệu thanh toán thành công.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_TuDongIn" />
+                </div>
+              </div>
+
+              <!-- Switch 3 -->
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Yêu cầu xác nhận khi gửi đơn xuống Bếp</h6>
+                  <p class="text-muted mb-0 small">Hiện hộp thoại hỏi lại nhân viên order để tránh thao tác nhầm hoặc trùng lặp.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_XacNhanGuiBep" />
+                </div>
+              </div>
+
+              <!-- Switch 4 -->
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Hiển thị mã QR thanh toán động VietQR</h6>
+                  <p class="text-muted mb-0 small">Tự tạo và hiển thị mã chuyển khoản nhanh có số tiền kèm theo khi Thu ngân bấm thanh toán.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_HienQR" />
+                </div>
+              </div>
+
+              <!-- NEW Switch 5 -->
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center" :class="{'opacity-50': !cfgBool.POS_HienQR}">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Chỉ hiển thị mã QR trên màn hình Thu ngân (Thu ngân Only)</h6>
+                  <p class="text-muted mb-0 small">Không hiện QR trên màn hình Order của nhân viên bàn ăn khác để tránh gây gián đoạn công việc.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_HienQrThuNganOnly" :disabled="!cfgBool.POS_HienQR" />
+                </div>
+              </div>
+
+              <!-- NEW Switch 6 -->
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Cho phép nhân viên Order thanh toán trực tiếp ngay trên bàn</h6>
+                  <p class="text-muted mb-0 small">Nhân viên phục vụ có thể bấm thanh toán hóa đơn tiền mặt cho khách mà không cần chờ ở quầy thu ngân.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_OrderThanhToanNgay" />
+                </div>
+              </div>
+
+              <!-- NEW Switch 7 -->
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Cho phép nhân viên Order tạm in hóa đơn/in thử</h6>
+                  <p class="text-muted mb-0 small">Thêm chức năng in thử hóa đơn tạm tính ngay từ giao diện điện thoại của nhân viên Order.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_OrderInBillNgay" />
+                </div>
+              </div>
+
+              <!-- NEW Switch 8 -->
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Cho phép in nhiều bản hóa đơn tại Thu ngân</h6>
+                  <p class="text-muted mb-0 small">Bật nút in bill linh động trên giao diện tính tiền của Thu ngân để in lại bất cứ lúc nào.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_ThuNganInNhieuBill" />
+                </div>
+              </div>
+
+              <!-- NEW Switch 9 -->
+              <div class="toggle-item-row py-3 d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Cho phép Thu ngân xem lịch sử & in lại hóa đơn cũ</h6>
+                  <p class="text-muted mb-0 small">Hiển thị danh sách hóa đơn đã thanh toán gần nhất ở POS để Thu ngân truy xuất đối chiếu hoặc in lại.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_ThuNganXemLichSu" />
+                </div>
+              </div>
             </div>
-            <label class="tl-switch">
-              <input type="checkbox" v-model="cfgBool.Security_YeuCauPIN" />
-              <span class="tl-slider"></span>
-            </label>
-          </div>
-          <div class="tl-toggle-item">
-            <div>
-              <div class="tl-toggle-label">Tự động đăng xuất khi không hoạt động</div>
-              <div class="tl-toggle-desc">Bảo vệ màn hình POS khi bỏ trống</div>
+
+            <!-- Các ô nhập số cấu hình POS -->
+            <div class="row g-3 mt-4 pt-3 border-top">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold text-secondary small">Tỉ lệ Giảm Giá Tối Đa (%)</label>
+                <input type="number" v-model.number="cfg.POS_GiamGiaMax" class="form-control bg-light border-0 text-dark fs-6" min="0" max="100" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold text-secondary small">Cảnh báo hạn mức kho (đơn vị)</label>
+                <input type="number" v-model.number="cfg.POS_CanhBaoKho" class="form-control bg-light border-0 text-dark fs-6" min="0" />
+              </div>
             </div>
-            <label class="tl-switch">
-              <input type="checkbox" v-model="cfgBool.Security_AutoLogout" />
-              <span class="tl-slider"></span>
-            </label>
           </div>
         </div>
-        <div class="row g-3 mt-2">
-          <div class="col-md-6" v-if="cfgBool.Security_AutoLogout">
-            <label>Thời gian tự đăng xuất (phút)</label>
-            <input type="number" v-model.number="cfg.Security_TimeoutPhut" class="tl-input w-100" min="5" max="120" />
+
+        <!-- TAB 3: Phân quyền nhân viên (NEW) -->
+        <div v-show="activeTab === 'permission'" class="tab-pane-content">
+          <div class="card border-0 shadow-sm rounded-3 p-4 mb-4">
+            <h5 class="fw-bold text-primary mb-4 pb-2 border-bottom d-flex align-items-center gap-2">
+              <i class="bi bi-shield-check fs-4"></i> Phân Quyền Nhân Viên Chi Tiết
+            </h5>
+            <p class="text-muted small mb-3">Tùy biến quyền thao tác vận hành riêng lẻ cho nhân viên Order và nhân viên Thu ngân nhằm tối ưu hóa quy trình bảo mật.</p>
+
+            <div class="toggle-list-group">
+              <!-- Quyền 1 -->
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Cho phép nhân viên Order được quyền HỦY MÓN</h6>
+                  <p class="text-muted mb-0 small">Cho phép nhân viên phục vụ hủy món ăn đã gửi xuống bếp. (Khuyên tắt để quản lý kiểm soát tránh gian lận).</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.Perm_Order_HuyMon" />
+                </div>
+              </div>
+
+              <!-- Quyền 2 -->
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Cho phép nhân viên Order thực hiện CHUYỂN BÀN / TÁCH BÀN / GHÉP BÀN</h6>
+                  <p class="text-muted mb-0 small">Cho phép nhân viên tự thao tác chuyển sơ đồ phục vụ của khách ngay trên điện thoại di động.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.Perm_Order_ChuyenTach" />
+                </div>
+              </div>
+
+              <!-- Quyền 3 -->
+              <div class="toggle-item-row py-3 d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Cho phép Thu ngân HỦY / XÓA hóa đơn chưa thanh toán</h6>
+                  <p class="text-muted mb-0 small">Cho phép Thu ngân tự hủy hóa đơn khách gọi sai. Nếu tắt, chỉ có Chủ cửa hàng hoặc Quản lý được thao tác.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.Perm_ThuNgan_XoaHoaDon" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="tl-card mt-3">
-        <h6 class="tl-card-title"><i class="bi bi-info-circle me-2"></i>Gói dịch vụ hiện tại</h6>
-        <div class="plan-info-box">
-          <div class="plan-name">{{ info.goiDichVu ? info.goiDichVu.toUpperCase() : 'DÙNG THỬ' }}</div>
-          <div class="plan-expire">Hết hạn: <strong>{{ formatDate(info.ngayHetHan) }}</strong></div>
-          <router-link to="/admin/subscription" class="plan-upgrade-btn">
-            <i class="bi bi-arrow-up-circle me-1"></i>Nâng cấp gói
-          </router-link>
+
+        <!-- TAB 4: Tích điểm khách hàng -->
+        <div v-show="activeTab === 'loyalty'" class="tab-pane-content">
+          <div class="card border-0 shadow-sm rounded-3 p-4 mb-4">
+            <h5 class="fw-bold text-primary mb-4 pb-2 border-bottom d-flex align-items-center gap-2">
+              <i class="bi bi-star-fill fs-4"></i> Chương Trình Khách Hàng Thân Thiết
+            </h5>
+
+            <div class="toggle-item-row py-3 mb-4 d-flex justify-content-between align-items-center bg-light p-3 rounded-3">
+              <div>
+                <h6 class="fw-bold text-dark mb-1">Bật tích lũy điểm khi mua hàng</h6>
+                <p class="text-muted mb-0 small">Khách hàng được cộng điểm tự động khi hóa đơn được thanh toán thành công.</p>
+              </div>
+              <div class="form-check form-switch form-switch-lg">
+                <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.Loyalty_BatTat" />
+              </div>
+            </div>
+
+            <div class="row g-4" :class="{'opacity-50 pointer-events-none': !cfgBool.Loyalty_BatTat}">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold text-secondary small">Tỉ lệ quy đổi chi tiêu (VNĐ → 1 Điểm)</label>
+                <div class="input-group input-group-lg">
+                  <input type="number" v-model.number="cfg.Loyalty_TiLeKiem" class="form-control bg-light border-0 text-dark" min="1000" step="1000" :disabled="!cfgBool.Loyalty_BatTat" />
+                  <span class="input-group-text bg-white border-0 text-muted small fw-bold">VNĐ = 1 Điểm</span>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold text-secondary small">Giá trị sử dụng điểm quy đổi (1 Điểm → VNĐ)</label>
+                <div class="input-group input-group-lg">
+                  <input type="number" v-model.number="cfg.Loyalty_TiLeDoiDiem" class="form-control bg-light border-0 text-dark" min="1" :disabled="!cfgBool.Loyalty_BatTat" />
+                  <span class="input-group-text bg-white border-0 text-muted small fw-bold">Điểm = 1.000đ trừ bill</span>
+                </div>
+              </div>
+
+              <!-- Hạng thành viên -->
+              <div class="col-12 mt-4">
+                <label class="form-label fw-bold text-muted small text-uppercase tracking-wider d-block mb-3">Ngưỡng Tích Lũy Nâng Hạng Thành Viên</label>
+                <div class="row g-3">
+                  <!-- Rank Đồng -->
+                  <div class="col-md-4">
+                    <div class="card border border-amber bg-amber-light text-amber-dark p-3 text-center shadow-xs">
+                      <div class="fw-bold mb-2"><i class="bi bi-award me-1"></i>Hạng Đồng</div>
+                      <input type="number" v-model.number="cfg.Loyalty_NguongDong" class="form-control form-control-sm text-center border-0 bg-white" min="0" placeholder="0" :disabled="!cfgBool.Loyalty_BatTat" />
+                    </div>
+                  </div>
+                  <!-- Rank Bạc -->
+                  <div class="col-md-4">
+                    <div class="card border border-slate bg-slate-light text-slate-dark p-3 text-center shadow-xs">
+                      <div class="fw-bold mb-2"><i class="bi bi-award-fill me-1"></i>Hạng Bạc</div>
+                      <input type="number" v-model.number="cfg.Loyalty_NguongBac" class="form-control form-control-sm text-center border-0 bg-white" min="0" placeholder="500" :disabled="!cfgBool.Loyalty_BatTat" />
+                    </div>
+                  </div>
+                  <!-- Rank Vàng -->
+                  <div class="col-md-4">
+                    <div class="card border border-gold bg-gold-light text-gold-dark p-3 text-center shadow-xs">
+                      <div class="fw-bold mb-2"><i class="bi bi-trophy-fill me-1"></i>Hạng Vàng</div>
+                      <input type="number" v-model.number="cfg.Loyalty_NguongVang" class="form-control form-control-sm text-center border-0 bg-white" min="0" placeholder="2000" :disabled="!cfgBool.Loyalty_BatTat" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 5: Bảo mật & Gói dịch vụ -->
+        <div v-show="activeTab === 'security'" class="tab-pane-content">
+          <div class="card border-0 shadow-sm rounded-3 p-4 mb-4">
+            <h5 class="fw-bold text-primary mb-4 pb-2 border-bottom d-flex align-items-center gap-2">
+              <i class="bi bi-shield-lock-fill fs-4"></i> Bảo Mật Vận Hành
+            </h5>
+
+            <div class="toggle-list-group mb-4">
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Yêu cầu nhập mã PIN nhân viên</h6>
+                  <p class="text-muted mb-0 small">Nhân viên cần xác nhận mật mã PIN cá nhân khi thực hiện các giao dịch nhạy cảm.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.Security_YeuCauPIN" />
+                </div>
+              </div>
+
+              <div class="toggle-item-row py-3 d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Tự động đăng xuất tài khoản khi treo màn hình</h6>
+                  <p class="text-muted mb-0 small">Khóa màn hình làm việc của thu ngân khi không phát hiện tương tác sau một thời gian nhất định.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.Security_AutoLogout" />
+                </div>
+              </div>
+            </div>
+
+            <div class="row g-3" v-if="cfgBool.Security_AutoLogout">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold text-secondary small">Thời gian tự động khóa (phút)</label>
+                <input type="number" v-model.number="cfg.Security_TimeoutPhut" class="form-control bg-light border-0 text-dark fs-6" min="5" max="120" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Gói dịch vụ SaaS -->
+          <div class="card border-0 shadow-sm rounded-3 p-4 bg-gradient-brand text-white">
+            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+              <i class="bi bi-info-circle-fill fs-4"></i> Trạng Thái Thuê Bao Phần Mềm
+            </h5>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+              <div>
+                <span class="badge bg-white text-primary rounded-pill fw-bold px-3 py-2 fs-6 mb-2 d-inline-block">
+                  GÓI: {{ info.goiDichVu ? info.goiDichVu.toUpperCase() : 'DÙNG THỬ' }}
+                </span>
+                <p class="mb-0 fs-6">Hạn sử dụng dịch vụ: <strong class="text-warning">{{ formatDate(info.ngayHetHan) }}</strong></p>
+              </div>
+              <router-link to="/admin/subscription" class="btn btn-warning fw-bold px-4 rounded-pill shadow d-flex align-items-center gap-2">
+                <i class="bi bi-arrow-up-circle-fill fs-5"></i> NÂNG CẤP GÓI DỊCH VỤ
+              </router-link>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -267,33 +373,31 @@ const saving = ref(false);
 const tabs = [
   { key: 'info', label: 'Thông tin CH', icon: 'shop' },
   { key: 'pos', label: 'Tùy chọn POS', icon: 'cash-register' },
+  { key: 'permission', label: 'Phân quyền', icon: 'shield-lock' },
   { key: 'loyalty', label: 'Tích điểm', icon: 'star' },
-  { key: 'payment', label: 'Thanh toán', icon: 'qr-code' },
-  { key: 'security', label: 'Bảo mật', icon: 'shield-lock' },
+  { key: 'security', label: 'Bảo mật', icon: 'shield' },
 ];
 
-const banks = [
-  { code: 'MBBank', name: 'MB Bank' }, { code: 'VCB', name: 'Vietcombank' },
-  { code: 'TCB', name: 'Techcombank' }, { code: 'VPB', name: 'VPBank' },
-  { code: 'ACB', name: 'ACB' }, { code: 'BIDV', name: 'BIDV' },
-  { code: 'VTB', name: 'VietinBank' }, { code: 'TPB', name: 'TPBank' },
-  { code: 'SHB', name: 'SHB' }, { code: 'MSB', name: 'MSB' },
-];
-
-const info = reactive({ tenCuaHang:'', soDienThoai:'', email:'', diaChi:'', logoUrl:'', trangThai:'', ngayHetHan:null, goiDichVu:'' });
+const info = reactive({ tenCuaHang: '', soDienThoai: '', email: '', diaChi: '', logoUrl: '', trangThai: '', ngayHetHan: null, goiDichVu: '' });
 
 const cfg = reactive({
-  InHoaDon_TieuDe:'HÓA ĐƠN THANH TOÁN', InHoaDon_GhiChu:'Cảm ơn quý khách!', InHoaDon_Prefix:'HD',
-  POS_GiamGiaMax:'20', POS_CanhBaoKho:'5',
-  Loyalty_TiLeKiem:'10000', Loyalty_TiLeDoiDiem:'100',
-  Loyalty_NguongDong:'0', Loyalty_NguongBac:'500', Loyalty_NguongVang:'2000',
-  Bank_Code:'', Bank_AccountNo:'', Bank_AccountName:'',
-  Security_TimeoutPhut:'30',
+  POS_GiamGiaMax: '20', POS_CanhBaoKho: '5',
+  Loyalty_TiLeKiem: '10000', Loyalty_TiLeDoiDiem: '100',
+  Loyalty_NguongDong: '0', Loyalty_NguongBac: '500', Loyalty_NguongVang: '2000',
+  Security_TimeoutPhut: '30',
 });
 
 const cfgBool = reactive({
-  POS_ChophepGiamGia:true, POS_TuDongIn:false, POS_XacNhanGuiBep:false, POS_HienQR:true,
-  Loyalty_BatTat:false, Security_YeuCauPIN:false, Security_AutoLogout:true,
+  POS_ChophepGiamGia: true, POS_TuDongIn: false, POS_XacNhanGuiBep: false, POS_HienQR: true,
+  POS_HienQrThuNganOnly: false,
+  POS_OrderThanhToanNgay: false,
+  POS_OrderInBillNgay: false,
+  POS_ThuNganInNhieuBill: false,
+  POS_ThuNganXemLichSu: true,
+  Perm_Order_HuyMon: true,
+  Perm_Order_ChuyenTach: true,
+  Perm_ThuNgan_XoaHoaDon: true,
+  Loyalty_BatTat: false, Security_YeuCauPIN: false, Security_AutoLogout: true,
 });
 
 const boolKeys = Object.keys(cfgBool);
@@ -324,9 +428,9 @@ const saveAll = async () => {
       axios.put('/api/ThietLap/store-info', { tenCuaHang: info.tenCuaHang, email: info.email, diaChi: info.diaChi, logoUrl: info.logoUrl }),
       axios.post('/api/ThietLap/batch', batch),
     ]);
-    swal.fire({ toast:true, position:'top-end', icon:'success', title:'Đã lưu thiết lập!', timer:2000, showConfirmButton:false });
+    swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã lưu thiết lập thành công!', timer: 2000, showConfirmButton: false });
   } catch (e) {
-    swal.fire('Lỗi', 'Lưu thất bại!', 'error');
+    swal.fire('Lỗi', 'Lưu thiết lập thất bại!', 'error');
   } finally { saving.value = false; }
 };
 
@@ -334,91 +438,56 @@ onMounted(load);
 </script>
 
 <style scoped>
-.thiet-lap-wrap { max-width: 960px; }
-.tl-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
-.tl-header h5 { margin:0; font-weight:700; font-size:1rem; color:var(--text-main,#1e293b); }
-.tl-save-btn {
-  display:flex; align-items:center; gap:6px;
-  background:#f59e0b; border:none; color:#fff;
-  padding:9px 20px; border-radius:8px; font-weight:700; font-size:.85rem; cursor:pointer;
-  transition:.2s;
+.custom-settings-pills .nav-link {
+  background: transparent;
+  color: #64748b;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
-.tl-save-btn:hover { background:#d97706; }
-.tl-save-btn:disabled { opacity:.6; cursor:not-allowed; }
+.custom-settings-pills .nav-link:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+.custom-settings-pills .nav-link.active {
+  background: #e0f2fe;
+  color: #0284c7;
+}
 
-/* Tabs */
-.tl-tabs { display:flex; gap:4px; border-bottom:2px solid #e2e8f0; margin-bottom:20px; flex-wrap:wrap; }
-.tl-tab {
-  background:none; border:none; padding:9px 16px;
-  border-bottom:3px solid transparent; margin-bottom:-2px;
-  font-size:.83rem; font-weight:600; cursor:pointer;
-  color:#64748b; border-radius:6px 6px 0 0; transition:.2s;
+.toggle-item-row {
+  transition: background 0.15s ease;
 }
-.tl-tab:hover { background:#f1f5f9; color:#334155; }
-.tl-tab.active { color:#f59e0b; border-bottom-color:#f59e0b; background:#fffbeb; }
+.toggle-item-row:hover {
+  background: #faf8f5;
+  padding-left: 8px;
+  padding-right: 8px;
+  border-radius: 6px;
+}
 
-/* Card */
-.tl-card {
-  background:#fff; border:1px solid #e2e8f0;
-  border-radius:12px; padding:20px;
-  box-shadow:0 1px 3px rgba(0,0,0,.06);
+.bg-gradient-brand {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
 }
-.tl-card-title { font-size:.8rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.5px; margin-bottom:16px; }
 
-/* Input */
-.tl-input {
-  background:#f8fafc; border:1px solid #e2e8f0;
-  border-radius:8px; padding:8px 12px; font-size:.85rem;
-  color:#1e293b; transition:.2s; outline:none;
+.pointer-events-none {
+  pointer-events: none;
 }
-.tl-input:focus { border-color:#f59e0b; background:#fff; }
-.tl-input:disabled { opacity:.6; cursor:not-allowed; }
-.tl-select {
-  background:#f8fafc; border:1px solid #e2e8f0;
-  border-radius:8px; padding:8px 12px; font-size:.85rem; color:#1e293b; outline:none;
-}
-.tl-hint { font-size:.72rem; color:#94a3b8; }
 
-/* Toggle */
-.tl-toggle-group { display:flex; flex-direction:column; gap:0; }
-.tl-toggle-item {
-  display:flex; justify-content:space-between; align-items:center;
-  padding:14px 0; border-bottom:1px solid #f1f5f9;
+/* Custom switch sizing */
+.form-switch-lg .form-check-input {
+  width: 3.2rem;
+  height: 1.6rem;
+  cursor: pointer;
 }
-.tl-toggle-item:last-child { border-bottom:none; }
-.tl-toggle-label { font-weight:600; font-size:.88rem; color:#1e293b; }
-.tl-toggle-desc { font-size:.75rem; color:#94a3b8; margin-top:2px; }
 
-/* Switch */
-.tl-switch { position:relative; width:44px; height:24px; flex-shrink:0; }
-.tl-switch input { opacity:0; width:0; height:0; }
-.tl-slider {
-  position:absolute; top:0; left:0; right:0; bottom:0;
-  background:#cbd5e1; border-radius:24px; cursor:pointer; transition:.3s;
-}
-.tl-slider:before {
-  content:''; position:absolute; width:18px; height:18px;
-  left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.3s;
-}
-.tl-switch input:checked + .tl-slider { background:#f59e0b; }
-.tl-switch input:checked + .tl-slider:before { transform:translateX(20px); }
+/* Rank cards styles */
+.border-amber { border-color: #fde68a !important; }
+.bg-amber-light { background-color: #fffbeb; }
+.text-amber-dark { color: #b45309; }
 
-/* Rank cards */
-.rank-card { border-radius:10px; padding:14px; text-align:center; font-weight:700; font-size:.82rem; }
-.rank-dong { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
-.rank-bac  { background:#f1f5f9; color:#475569; border:1px solid #cbd5e1; }
-.rank-vang { background:#fffbeb; color:#b45309; border:1px solid #fcd34d; }
+.border-slate { border-color: #cbd5e1 !important; }
+.bg-slate-light { background-color: #f1f5f9; }
+.text-slate-dark { color: #475569; }
 
-/* QR */
-.qr-preview { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px; text-align:center; }
-
-/* Plan info */
-.plan-info-box { background:#fffbeb; border:1px solid #fde68a; border-radius:10px; padding:16px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
-.plan-name { font-weight:800; font-size:1.1rem; color:#92400e; }
-.plan-expire { font-size:.85rem; color:#78350f; flex:1; }
-.plan-upgrade-btn {
-  background:#f59e0b; color:#fff; border:none; padding:8px 16px;
-  border-radius:8px; font-weight:700; font-size:.82rem; text-decoration:none;
-  display:inline-flex; align-items:center;
-}
+.border-gold { border-color: #fcd34d !important; }
+.bg-gold-light { background-color: #fffdf5; }
+.text-gold-dark { color: #92400e; }
 </style>
