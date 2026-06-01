@@ -293,6 +293,25 @@
                   <i class="bi bi-megaphone me-1"></i> BÁO THU NGÂN
                 </button>
               </div>
+              
+              <!-- THANH TOÁN TRỰC TIẾP & TẠM IN HÓA ĐƠN -->
+              <div v-if="settings.POS_OrderThanhToanNgay" class="col-6">
+                <button
+                  class="btn btn-success w-100 fw-bold rounded-3"
+                  @click="handleOrderThanhToanNgay"
+                >
+                  <i class="bi bi-cash me-1"></i> THANH TOÁN TIỀN MẶT
+                </button>
+              </div>
+              <div v-if="settings.POS_OrderInBillNgay" class="col-6">
+                <button
+                  class="btn btn-warning text-dark w-100 fw-bold rounded-3"
+                  @click="handleOrderInBill"
+                >
+                  <i class="bi bi-printer me-1"></i> TẠM IN BILL
+                </button>
+              </div>
+
               <div class="col-4">
                 <button
                   class="btn btn-outline-dark w-100 rounded-3 small"
@@ -520,6 +539,7 @@ import { Modal, Offcanvas } from "bootstrap";
 import { globalState } from "../store";
 import AiCopilot from "../components/AiCopilot.vue";
 import { useSignalR } from "../composables/useSignalR";
+import { printReceipt } from "../utils/printer";
 const router = useRouter();
 const swal = inject("$swal");
 const { connection, connectionStatus, backendUrl, startConnection, stopConnection } = useSignalR();
@@ -948,6 +968,114 @@ const logout = () => {
 
 // --- BẮT ĐẦU ĐOẠN CODE MỚI ---
 
+const settings = ref({
+  POS_HienQrThuNganOnly: false,
+  POS_OrderThanhToanNgay: false,
+  POS_OrderInBillNgay: false,
+});
+
+const loadSettings = async () => {
+  try {
+    const keys = "POS_HienQrThuNganOnly,POS_OrderThanhToanNgay,POS_OrderInBillNgay";
+    const res = await axios.get("/api/ThietLap/batch", { params: { keys } });
+    if (res.data) {
+      settings.value.POS_HienQrThuNganOnly = res.data.POS_HienQrThuNganOnly === "true";
+      settings.value.POS_OrderThanhToanNgay = res.data.POS_OrderThanhToanNgay === "true";
+      settings.value.POS_OrderInBillNgay = res.data.POS_OrderInBillNgay === "true";
+    }
+  } catch (e) {
+    console.error("Lỗi load settings trong OrderView", e);
+  }
+};
+
+const handleOrderThanhToanNgay = async () => {
+  if (!selectedTable.value) return;
+  const tableId = selectedTable.value.id;
+  const tableName = selectedTable.value.tenBan;
+  const amount = currentBill.value?.tongTien || 0;
+
+  const confirm = await swal.fire({
+    title: "Thanh toán tiền mặt?",
+    text: `Xác nhận thanh toán tiền mặt trực tiếp cho bàn ${tableName} - Số tiền: ${formatPrice(amount)}?`,
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: "Thanh toán",
+    cancelButtonText: "Hủy",
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  try {
+    await axios.post(`/api/HoaDon/thanhtoan/${tableId}?phuongThuc=Tiền mặt&diemSuDung=0`);
+    swal.fire({
+      icon: "success",
+      title: "Thanh toán thành công!",
+      text: `Bàn ${tableName} đã thanh toán hoàn tất.`,
+      timer: 2000,
+      showConfirmButton: false,
+    });
+    tableModal.hide();
+    await fetchStructure(globalState.value.activeBranchId);
+  } catch (err) {
+    swal.fire("Lỗi", err.response?.data || "Có lỗi xảy ra khi thanh toán", "error");
+  }
+};
+
+const handleOrderInBill = async () => {
+  if (!selectedTable.value || !currentBill.value) return;
+
+  const billItems = (currentBill.value.danhSachMon || []).map((item) => ({
+    name: item.tenSanPham,
+    price: item.donGia,
+    qty: item.soLuong,
+  }));
+
+  if (billItems.length === 0) {
+    swal.fire("Không có món", "Bàn chưa gọi món nào để in!", "warning");
+    return;
+  }
+
+  let storeName = "POS36";
+  let storeAddr = "Đà Nẵng";
+  let storePhone = "0905";
+
+  try {
+    const resInfo = await axios.get("/api/ThietLap/store-info");
+    if (resInfo.data) {
+      storeName = resInfo.data.tenCuaHang || storeName;
+      storeAddr = resInfo.data.diaChi || storeAddr;
+      storePhone = resInfo.data.soDienThoai || storePhone;
+    }
+  } catch (e) {
+    console.warn("Lỗi lấy thông tin cửa hàng, dùng mặc định", e);
+  }
+
+  const orderToPrint = {
+    tenBan: selectedTable.value.tenBan,
+    tongTien: currentBill.value.tongTien || 0,
+    items: billItems,
+  };
+
+  try {
+    printReceipt(orderToPrint, {
+      name: storeName,
+      address: storeAddr,
+      phone: storePhone,
+    });
+
+    swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: "Đã gửi lệnh in tạm tính!",
+      timer: 1500,
+      showConfirmButton: false,
+    });
+  } catch (err) {
+    swal.fire("Lỗi", "Không thể in bill tạm tính", "error");
+  }
+};
+
 // 1. Hàm tự động tìm đúng Chi nhánh đang làm việc
 const getBranchIdAndFetch = async () => {
   // --- THÊM ĐOẠN NÀY ĐỂ ĐỒNG BỘ CẤU HÌNH NGÂN HÀNG TỪ CSDL VỀ MÁY ---
@@ -960,6 +1088,8 @@ const getBranchIdAndFetch = async () => {
     console.log("Chưa có cấu hình NH");
   }
   // -----------------------------------------------------------------
+
+  await loadSettings();
 
   let branchId =
     globalState.value.activeBranchId ||
@@ -991,6 +1121,16 @@ const getBranchIdAndFetch = async () => {
 // Lắng nghe lệnh yêu cầu mở QR từ Thu Ngân (SỬA LỖI KHÔNG HIỆN)
 // Lắng nghe lệnh yêu cầu mở QR
 connection.on("NhanYeuCauMoQR", (banId, soTien) => {
+  // Bỏ qua nếu bật chế độ chỉ hiện ở Thu Ngân
+  if (settings.value.POS_HienQrThuNganOnly) {
+    return;
+  }
+
+  // Bỏ qua nếu không chủ động xem bàn này
+  if (!selectedTable.value || selectedTable.value.id !== banId) {
+    return;
+  }
+
   const table = tables.value.find((t) => t.id === banId);
   const tenBanHienTai = table ? table.tenBan : `Bàn số ${banId}`;
   const maChungTu = `POS36B${banId}`; // <--- MÃ MỚI SIÊU CHUẨN

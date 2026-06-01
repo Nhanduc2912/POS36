@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, inject, onUnmounted } from "vue";
+import { ref, onMounted, computed, inject, onUnmounted, watch } from "vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
 import { globalState } from "../store";
@@ -199,6 +199,27 @@ onMounted(async () => {
     }
   });
 
+  // Lắng nghe Nhân viên báo Hủy QR
+  connection.on("NhanHuyMoQR", (banId, lyDo) => {
+    pendingPayments.value = pendingPayments.value.filter(
+      (p) => p.banId !== banId,
+    );
+    if (activeTable.value && activeTable.value.id === banId) {
+      swal.fire("Đã hủy QR", `Lý do: ${lyDo}`, "warning");
+    }
+  });
+
+  // Lắng nghe Webhook báo Tiền về thành công
+  connection.on("ThanhToanQRThanhCong", (banId) => {
+    swal.close();
+    // Lấy lại số điểm đã lưu khi bắt đầu chờ QR
+    const pending = pendingPayments.value.find((p) => p.banId === banId);
+    const diem = pending?.diemSuDung || 0;
+    setTimeout(() => {
+      thucHienThanhToanChinhThuc(banId, "Chuyển khoản", diem);
+    }, 300);
+  });
+
   await getBranchIdAndFetch();
 
   refreshTimer = setInterval(() => {
@@ -227,6 +248,9 @@ const getBranchIdAndFetch = async () => {
   } catch (e) {
     console.log("Lỗi tải cấu hình ngầm");
   }
+
+  await loadSettings();
+  await fetchStoreInfo();
 
   let branchId =
     globalState.value.activeBranchId ||
@@ -785,9 +809,9 @@ const handleThanhToan = async () => {
       items: currentOrder.value,
     };
     printReceipt(orderToPrint, {
-      name: "POS36",
-      address: "Đà Nẵng",
-      phone: "0905",
+      name: storeInfo.value?.tenCuaHang || "POS36",
+      address: storeInfo.value?.diaChi || "Đà Nẵng",
+      phone: storeInfo.value?.soDienThoai || "0905",
     });
     thucHienThanhToanChinhThuc(banId, "Tiền mặt", diemSuDung);
   }
@@ -810,9 +834,9 @@ const handleThanhToan = async () => {
         items: currentOrder.value,
       };
       printReceipt(orderToPrint, {
-        name: "POS36",
-        address: "Đà Nẵng",
-        phone: "0905",
+        name: storeInfo.value?.tenCuaHang || "POS36",
+        address: storeInfo.value?.diaChi || "Đà Nẵng",
+        phone: storeInfo.value?.soDienThoai || "0905",
       });
 
       swal.fire({
@@ -845,18 +869,139 @@ connection.on("NhanHuyMoQR", (banId, lyDo) => {
   }
 });
 
-// Lắng nghe Webhook báo Tiền về thành công
-connection.on("ThanhToanQRThanhCong", (banId) => {
-  swal.close();
-  // Lấy lại số điểm đã lưu khi bắt đầu chờ QR
-  const pending = pendingPayments.value.find((p) => p.banId === banId);
-  const diem = pending?.diemSuDung || 0;
-  setTimeout(() => {
-    thucHienThanhToanChinhThuc(banId, "Chuyển khoản", diem);
-  }, 300);
+// --- BỔ SUNG ĐOẠN CẤU HÌNH VẬN HÀNH CHO THU NGÂN ---
+
+const settings = ref({
+  POS_ThuNganInNhieuBill: false,
+  POS_ThuNganXemLichSu: true,
 });
 
+const storeInfo = ref({ tenCuaHang: "POS36", diaChi: "Đà Nẵng", soDienThoai: "0905" });
+const invoiceHistory = ref([]);
+const loadingHistory = ref(false);
 
+const loadSettings = async () => {
+  try {
+    const keys = "POS_ThuNganInNhieuBill,POS_ThuNganXemLichSu";
+    const res = await axios.get("/api/ThietLap/batch", { params: { keys } });
+    if (res.data) {
+      settings.value.POS_ThuNganInNhieuBill = res.data.POS_ThuNganInNhieuBill === "true";
+      settings.value.POS_ThuNganXemLichSu = res.data.POS_ThuNganXemLichSu === "true";
+    }
+  } catch (e) {
+    console.error("Lỗi load settings trong PosView", e);
+  }
+};
+
+const fetchStoreInfo = async () => {
+  try {
+    const res = await axios.get("/api/ThietLap/store-info");
+    if (res.data) {
+      storeInfo.value = res.data;
+    }
+  } catch (e) {
+    console.warn("Lỗi lấy thông tin cửa hàng", e);
+  }
+};
+
+const fetchInvoiceHistory = async () => {
+  loadingHistory.value = true;
+  try {
+    const branchId = globalState.value.activeBranchId;
+    const res = await axios.get(`/api/HoaDon/danh-sach-admin?chiNhanhId=${branchId}&status=Đã thanh toán`);
+    if (res.data) {
+      invoiceHistory.value = res.data.slice(0, 15);
+    }
+  } catch (e) {
+    console.error("Lỗi lấy lịch sử hóa đơn", e);
+  } finally {
+    loadingHistory.value = false;
+  }
+};
+
+const reprintInvoice = (invoice) => {
+  const billItems = (invoice.chiTiets || []).map((ct) => ({
+    name: ct.tenSanPham,
+    price: ct.donGia,
+    qty: ct.soLuong,
+  }));
+
+  const orderToPrint = {
+    tenBan: invoice.tenBan,
+    tongTien: invoice.tongThanhToan,
+    maChungTu: invoice.maChungTu,
+    items: billItems,
+  };
+
+  const storeName = storeInfo.value?.tenCuaHang || "POS36";
+  const storeAddr = storeInfo.value?.diaChi || "Đà Nẵng";
+  const storePhone = storeInfo.value?.soDienThoai || "0905";
+
+  try {
+    printReceipt(orderToPrint, {
+      name: storeName,
+      address: storeAddr,
+      phone: storePhone,
+    });
+
+    swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: "Đã gửi lệnh in lại hóa đơn!",
+      timer: 1500,
+      showConfirmButton: false,
+    });
+  } catch (err) {
+    swal.fire("Lỗi", "Không thể in lại hóa đơn", "error");
+  }
+};
+
+const handleManualPrint = () => {
+  if (!activeTable.value || currentOrder.value.length === 0) return;
+
+  const billItems = currentOrder.value.map((item) => ({
+    name: item.name,
+    price: item.price,
+    qty: item.qty,
+  }));
+
+  const orderToPrint = {
+    tenBan: activeTable.value.tenBan,
+    tongTien: totalAmount.value,
+    items: billItems,
+  };
+
+  const storeName = storeInfo.value?.tenCuaHang || "POS36";
+  const storeAddr = storeInfo.value?.diaChi || "Đà Nẵng";
+  const storePhone = storeInfo.value?.soDienThoai || "0905";
+
+  try {
+    printReceipt(orderToPrint, {
+      name: storeName,
+      address: storeAddr,
+      phone: storePhone,
+    });
+
+    swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: "Đã gửi lệnh in hóa đơn!",
+      timer: 1500,
+      showConfirmButton: false,
+    });
+  } catch (err) {
+    swal.fire("Lỗi", "Không thể in hóa đơn", "error");
+  }
+};
+
+// Watch activeRightTab
+watch(activeRightTab, (newTab) => {
+  if (newTab === "history") {
+    fetchInvoiceHistory();
+  }
+});
 </script>
 
 <template>
@@ -1134,10 +1279,20 @@ connection.on("ThanhToanQRThanhCong", (banId) => {
                 <i class="bi bi-subtract me-1"></i> Tách bàn
               </button>
             </div>
-            <div class="col-12 mt-1">
+            <div class="col-12 mt-1 d-flex gap-1">
+              <button
+                v-if="settings.POS_ThuNganInNhieuBill"
+                @click="handleManualPrint"
+                :disabled="!activeTable || currentOrder.length === 0"
+                class="btn btn-outline-primary fw-bold"
+                style="width: 25%;"
+                title="In hóa đơn tạm tính"
+              >
+                <i class="bi bi-printer-fill fs-5"></i>
+              </button>
               <button
                 @click="handleThanhToan"
-                class="btn btn-success w-100 rounded-0 py-2 fw-bold fs-5 text-uppercase"
+                class="btn btn-success fw-bold fs-5 text-uppercase flex-grow-1"
               >
                 <i class="bi bi-cash-coin me-2"></i>Thanh toán [F4]
               </button>
@@ -1150,7 +1305,7 @@ connection.on("ThanhToanQRThanhCong", (banId) => {
         <div class="d-flex p-1 gap-1" style="background-color: #3f51b5">
           <button
             @click="activeRightTab = 'tables'"
-            class="btn w-50 fw-bold rounded-0 py-2 text-white"
+            class="btn fw-bold rounded-0 py-2 text-white flex-grow-1"
             :class="
               activeRightTab === 'tables'
                 ? 'bg-primary border'
@@ -1161,7 +1316,7 @@ connection.on("ThanhToanQRThanhCong", (banId) => {
           </button>
           <button
             @click="activeRightTab = 'menu'"
-            class="btn w-50 fw-bold rounded-0 py-2 text-white"
+            class="btn fw-bold rounded-0 py-2 text-white flex-grow-1"
             :class="
               activeRightTab === 'menu'
                 ? 'bg-primary border'
@@ -1169,6 +1324,18 @@ connection.on("ThanhToanQRThanhCong", (banId) => {
             "
           >
             <i class="bi bi-cup-hot"></i> THỰC ĐƠN
+          </button>
+          <button
+            v-if="settings.POS_ThuNganXemLichSu"
+            @click="activeRightTab = 'history'"
+            class="btn fw-bold rounded-0 py-2 text-white flex-grow-1"
+            :class="
+              activeRightTab === 'history'
+                ? 'bg-primary border'
+                : 'bg-transparent opacity-75'
+            "
+          >
+            <i class="bi bi-clock-history"></i> LỊCH SỬ
           </button>
         </div>
 
@@ -1206,6 +1373,69 @@ connection.on("ThanhToanQRThanhCong", (banId) => {
                       ><i class="bi bi-clock me-1"></i
                       >{{ calculateTimeElapsed(ban.timeOpen) }}</small
                     >
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          v-if="activeRightTab === 'history'"
+          class="flex-grow-1 p-3 overflow-auto bg-white"
+        >
+          <div v-if="loadingHistory" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div class="mt-2 text-muted small">Đang tải lịch sử giao dịch...</div>
+          </div>
+          <div v-else>
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+              <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                <i class="bi bi-clock-history text-primary fs-5"></i> HÓA ĐƠN ĐÃ THANH TOÁN (GẦN NHẤT)
+              </h6>
+              <button @click="fetchInvoiceHistory" class="btn btn-sm btn-outline-secondary rounded-pill">
+                <i class="bi bi-arrow-clockwise"></i> Tải lại
+              </button>
+            </div>
+            
+            <div v-if="invoiceHistory.length === 0" class="text-center text-muted py-5">
+              <i class="bi bi-cash-stack display-3 opacity-25"></i>
+              <p class="mt-2 small">Chưa có giao dịch thanh toán nào trong ca làm việc.</p>
+            </div>
+
+            <div v-else class="list-group">
+              <div
+                v-for="invoice in invoiceHistory"
+                :key="invoice.id"
+                class="list-group-item list-group-item-action p-3 border-light rounded-3 mb-2 shadow-xs"
+              >
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                  <div>
+                    <span class="badge bg-success bg-opacity-10 text-success fw-bold mb-1" style="font-size:0.75rem">{{ invoice.maChungTu }}</span>
+                    <h6 class="fw-bold text-dark mb-0">{{ invoice.tenBan }}</h6>
+                  </div>
+                  <div class="text-end">
+                    <span class="fw-bold text-danger">{{ formatPrice(invoice.tongThanhToan) }}</span>
+                    <small class="d-block text-muted mt-1" style="font-size:0.75rem">
+                      <i class="bi bi-clock"></i> {{ new Date(invoice.ngayBan).toLocaleTimeString("vi-VN") }}
+                    </small>
+                  </div>
+                </div>
+
+                <div class="border-top pt-2 mt-2">
+                  <div class="text-secondary small mb-3">
+                    <div v-for="(ct, idx) in invoice.chiTiets" :key="idx" class="d-flex justify-content-between py-1 border-bottom border-light">
+                      <span>• {{ ct.tenSanPham }}</span>
+                      <span class="fw-bold text-dark">x{{ ct.soLuong }}</span>
+                    </div>
+                  </div>
+                  <div class="d-flex justify-content-end">
+                    <button
+                      @click="reprintInvoice(invoice)"
+                      class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3 shadow-sm"
+                    >
+                      <i class="bi bi-printer me-1"></i> IN LẠI BILL
+                    </button>
                   </div>
                 </div>
               </div>
