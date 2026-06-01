@@ -8,6 +8,9 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Serilog;
 using System.Text;
+using System.Net.Http;
+using System.Threading.Tasks;
+using System;
 
 namespace POS36.Api.Controllers
 {
@@ -59,68 +62,80 @@ namespace POS36.Api.Controllers
                 if (sdtExists) return Conflict("Số điện thoại này đã được đăng ký tài khoản khác!");
             }
 
-            // Tạo Cửa hàng (SaaS: 7 ngày dùng thử)
-            var newCuaHang = new CuaHang
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                TenCuaHang = request.TenCuaHang.Trim(),
-                SoDienThoai = request.SoDienThoai?.Trim(),
-                Email = request.Email?.Trim(),
-                NgayDangKy = DateTime.Now,
-                TrangThai = "DungThu",
-                NgayHetHan = DateTime.Now.AddDays(7)
-            };
-            _context.CuaHangs.Add(newCuaHang);
-            await _context.SaveChangesAsync();
+                // Tạo Cửa hàng (SaaS: 7 ngày dùng thử)
+                var newCuaHang = new CuaHang
+                {
+                    TenCuaHang = request.TenCuaHang.Trim(),
+                    SoDienThoai = request.SoDienThoai?.Trim(),
+                    Email = request.Email?.Trim(),
+                    NgayDangKy = DateTime.Now,
+                    TrangThai = "DungThu",
+                    NgayHetHan = DateTime.Now.AddDays(7)
+                };
+                _context.CuaHangs.Add(newCuaHang);
+                await _context.SaveChangesAsync();
 
-            // Tạo Chi nhánh mặc định
-            var defaultChiNhanh = new ChiNhanh
+                // Tạo Chi nhánh mặc định
+                var defaultChiNhanh = new ChiNhanh
+                {
+                    CuaHangId = newCuaHang.Id,
+                    TenChiNhanh = "Chi nhánh Trung tâm",
+                    DiaChi = "Chưa cập nhật"
+                };
+                _context.ChiNhanhs.Add(defaultChiNhanh);
+                await _context.SaveChangesAsync();
+
+                // Tạo Khu vực mặc định
+                var defaultKhuVuc = new KhuVuc
+                {
+                    CuaHangId = newCuaHang.Id,
+                    ChiNhanhId = defaultChiNhanh.Id,
+                    TenKhuVuc = "Tầng 1"
+                };
+                _context.KhuVucs.Add(defaultKhuVuc);
+                await _context.SaveChangesAsync();
+
+                // TẠO HỒ SƠ NHÂN VIÊN (Dành cho Chủ cửa hàng)
+                var newNhanVien = new NhanVien
+                {
+                    CuaHangId = newCuaHang.Id,
+                    MaNhanVien = $"ADMIN{DateTime.Now:HHmmss}",
+                    TenNhanVien = request.TenDangNhap,
+                    SoDienThoai = request.SoDienThoai,
+                    Email = request.Email // ĐÃ LƯU EMAIL VÀO ĐÂY
+                };
+                _context.NhanViens.Add(newNhanVien);
+                await _context.SaveChangesAsync();
+
+                // Tạo Tài khoản liên kết với Nhân viên (SaaS: lưu Email + SĐT trực tiếp)
+                var newTaiKhoan = new TaiKhoan
+                {
+                    CuaHangId = newCuaHang.Id,
+                    NhanVienId = newNhanVien.Id,
+                    TenDangNhap = request.TenDangNhap,
+                    MatKhauHash = BCrypt.Net.BCrypt.HashPassword(request.MatKhau),
+                    VaiTro = "ChuCuaHang",
+                    Email = request.Email,
+                    SoDienThoai = request.SoDienThoai,
+                    NgayTao = DateTime.Now
+                };
+                _context.TaiKhoans.Add(newTaiKhoan);
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                Log.Information("👤 Tài khoản {TenDangNhap} vừa ĐĂNG KÝ thành công vào hệ thống.", request.TenDangNhap);
+                return Ok(new { message = "Đăng ký cửa hàng thành công!", cuaHangId = newCuaHang.Id });
+            }
+            catch (Exception ex)
             {
-                CuaHangId = newCuaHang.Id,
-                TenChiNhanh = "Chi nhánh Trung tâm",
-                DiaChi = "Chưa cập nhật"
-            };
-            _context.ChiNhanhs.Add(defaultChiNhanh);
-            await _context.SaveChangesAsync();
-
-            // Tạo Khu vực mặc định
-            var defaultKhuVuc = new KhuVuc
-            {
-                CuaHangId = newCuaHang.Id,
-                ChiNhanhId = defaultChiNhanh.Id,
-                TenKhuVuc = "Tầng 1"
-            };
-            _context.KhuVucs.Add(defaultKhuVuc);
-            await _context.SaveChangesAsync();
-
-            // TẠO HỒ SƠ NHÂN VIÊN (Dành cho Chủ cửa hàng)
-            var newNhanVien = new NhanVien
-            {
-                CuaHangId = newCuaHang.Id,
-                MaNhanVien = $"ADMIN{DateTime.Now:HHmmss}",
-                TenNhanVien = request.TenDangNhap,
-                SoDienThoai = request.SoDienThoai,
-                Email = request.Email // ĐÃ LƯU EMAIL VÀO ĐÂY
-            };
-            _context.NhanViens.Add(newNhanVien);
-            await _context.SaveChangesAsync();
-
-            // Tạo Tài khoản liên kết với Nhân viên (SaaS: lưu Email + SĐT trực tiếp)
-            var newTaiKhoan = new TaiKhoan
-            {
-                CuaHangId = newCuaHang.Id,
-                NhanVienId = newNhanVien.Id,
-                TenDangNhap = request.TenDangNhap,
-                MatKhauHash = BCrypt.Net.BCrypt.HashPassword(request.MatKhau),
-                VaiTro = "ChuCuaHang",
-                Email = request.Email,
-                SoDienThoai = request.SoDienThoai,
-                NgayTao = DateTime.Now
-            };
-            _context.TaiKhoans.Add(newTaiKhoan);
-            await _context.SaveChangesAsync();
-
-            Log.Information("👤 Tài khoản {TenDangNhap} vừa ĐĂNG KÝ thành công vào hệ thống.", request.TenDangNhap);
-            return Ok(new { message = "Đăng ký cửa hàng thành công!", cuaHangId = newCuaHang.Id });
+                await transaction.RollbackAsync();
+                Log.Error(ex, "Lỗi khi đăng ký tài khoản cho {TenDangNhap}", request.TenDangNhap);
+                return StatusCode(500, $"Lỗi hệ thống khi đăng ký: {ex.Message}");
+            }
         }
 
         // ==========================================
@@ -247,12 +262,11 @@ namespace POS36.Api.Controllers
             });
             await _context.SaveChangesAsync();
 
-            // BUG #2 FIX: KHÔNG trả OTP về response JSON (tránh bị intercept)
-            // OTP được gửi qua email bởi frontend (EmailJS) — tạm thời vẫn trả về để tương thích frontend
-            // TODO: Khi có SMTP, xóa "otp" khỏi response và backend tự gửi email
+            // BUG-04 FIX: Tự động gửi Email từ Backend qua EmailJS REST API
+            await SendOtpEmailAsync(request.Email, user.NhanVien!.TenNhanVien, otpCode);
+
             return Ok(new
             {
-                otp = otpCode,              // ⚠️ Xóa dòng này khi backend tự gửi email qua SMTP
                 tenDangNhap = user.TenDangNhap,
                 tenNhanVien = user.NhanVien!.TenNhanVien,
                 cooldownSeconds = 60       // Thông báo frontend biết phải đợi bao lâu mới được gửi lại
@@ -357,13 +371,62 @@ namespace POS36.Api.Controllers
 
             Log.Information("🔄 Tài khoản {TenDangNhap} đã YÊu CẦU GỬi LẠI OTP.", user.TenDangNhap);
 
+            // Tự động gửi Email từ Backend qua EmailJS REST API
+            await SendOtpEmailAsync(user.NhanVien!.Email ?? "", user.NhanVien.TenNhanVien, otpCode);
+
             return Ok(new
             {
-                otp = otpCode,          // ⚠️ Xóa khi backend tự gửi email qua SMTP
                 tenDangNhap = user.TenDangNhap,
                 tenNhanVien = user.NhanVien?.TenNhanVien,
                 cooldownSeconds = COOLDOWN_SECONDS  // Frontend dùng để đết ngược countdown
             });
+        }
+
+        private async Task<bool> SendOtpEmailAsync(string email, string fullName, string otpCode)
+        {
+            try
+            {
+                var serviceId = _configuration["EmailJS:ServiceId"] ?? "service_65xya5u";
+                var templateId = _configuration["EmailJS:TemplateId"] ?? "template_a63e1vv";
+                var publicKey = _configuration["EmailJS:PublicKey"] ?? "Zjm65dyIcuEbthcT3";
+
+                using var client = new HttpClient();
+                var payload = new
+                {
+                    service_id = serviceId,
+                    template_id = templateId,
+                    user_id = publicKey,
+                    template_params = new
+                    {
+                        to_email = email,
+                        to_name = fullName,
+                        otp_code = otpCode
+                    }
+                };
+
+                var content = new StringContent(
+                    System.Text.Json.JsonSerializer.Serialize(payload),
+                    System.Text.Encoding.UTF8,
+                    "application/json");
+
+                var response = await client.PostAsync("https://api.emailjs.com/api/v1.0/email/send", content);
+                if (response.IsSuccessStatusCode)
+                {
+                    Log.Information("📧 Gửi mã OTP thành công qua EmailJS tới {Email}", email);
+                    return true;
+                }
+                else
+                {
+                    var errorMsg = await response.Content.ReadAsStringAsync();
+                    Log.Error("❌ Gửi mã OTP thất bại qua EmailJS: {Status} - {Error}", response.StatusCode, errorMsg);
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "❌ Lỗi hệ thống khi gửi mã OTP qua EmailJS");
+                return false;
+            }
         }
     }
 }
