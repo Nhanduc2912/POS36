@@ -223,7 +223,6 @@
 import { ref, computed, inject, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
-import emailjs from "@emailjs/browser";
 
 const router = useRouter();
 const swal = inject("$swal");
@@ -321,22 +320,9 @@ const requestOtp = async () => {
     });
 
     form.value.username = res.data.tenDangNhap;
-    const otpCode = res.data.otp;
-    const fullName = res.data.tenNhanVien;
     const cooldownSeconds = res.data.cooldownSeconds || 60;
 
-    // Gửi Email thật qua EmailJS
-    await emailjs.send(
-      "service_65xya5u",
-      "template_a63e1vv",
-      {
-        to_email: form.value.email,
-        to_name: fullName,
-        otp_code: otpCode,
-      },
-      "Zjm65dyIcuEbthcT3",
-    );
-
+    // Mã OTP đã được backend gửi tự động qua EmailJS bảo mật
     step.value = 2;
     
     // Bắt đầu countdown
@@ -387,22 +373,9 @@ const resendOtp = async () => {
       TenDangNhap: form.value.username,
     });
 
-    const otpCode = res.data.otp;
-    const fullName = res.data.tenNhanVien;
     const cooldownSeconds = res.data.cooldownSeconds || 60;
 
-    // Gửi Email mới qua EmailJS
-    await emailjs.send(
-      "service_65xya5u",
-      "template_a63e1vv",
-      {
-        to_email: form.value.email,
-        to_name: fullName,
-        otp_code: otpCode,
-      },
-      "Zjm65dyIcuEbthcT3",
-    );
-
+    // Mã OTP mới đã được gửi tự động từ backend
     // Reset OTP input và bắt đầu countdown mới
     form.value.otp = "";
     startResendCooldown(cooldownSeconds);
