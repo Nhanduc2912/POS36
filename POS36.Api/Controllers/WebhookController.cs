@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using POS36.Api.Data;
 using POS36.Api.Hubs;
 using Serilog;
+using System;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace POS36.Api.Controllers
 {
@@ -14,16 +17,28 @@ namespace POS36.Api.Controllers
     {
         private readonly IHubContext<KitchenHub> _hubContext;
         private readonly AppDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public WebhookController(IHubContext<KitchenHub> hubContext, AppDbContext context)
+        public WebhookController(IHubContext<KitchenHub> hubContext, AppDbContext context, IConfiguration configuration)
         {
             _hubContext = hubContext;
             _context = context;
+            _configuration = configuration;
         }
 
         [HttpPost("sepay")]
         public async Task<IActionResult> SePayWebhook([FromBody] SePayPayload payload)
         {
+            // BUG-05 FIX: Xác thực API Key từ header Authorization của SePay
+            var authHeader = Request.Headers["Authorization"].ToString();
+            var configuredKey = _configuration["SePay:ApiKey"] ?? "sepay_webhook_secret_key_2026_xyz";
+
+            if (string.IsNullOrEmpty(authHeader) || !authHeader.Equals($"Apikey {configuredKey}", StringComparison.OrdinalIgnoreCase))
+            {
+                Log.Warning("⚠️ Webhook SePay: Không có quyền truy cập hoặc sai API Key. Header: {Header}", authHeader);
+                return Unauthorized(new { success = false, message = "Không có quyền truy cập!" });
+            }
+
             // 1. Kiểm tra giao dịch hợp lệ
             if (payload == null || payload.transferType != "in" || payload.transferAmount <= 0 || string.IsNullOrEmpty(payload.content))
             {
