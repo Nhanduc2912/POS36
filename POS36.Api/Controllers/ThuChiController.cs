@@ -23,8 +23,8 @@ namespace POS36.Api.Controllers
             return int.Parse(claim.Value);
         }
 
-        // ChuCuaHang và Admin đều được xem sổ quỹ
-        [Authorize(Roles = "ChuCuaHang,Admin")]
+        // ChuCuaHang, Admin và QuanLy đều được xem sổ quỹ
+        [Authorize(Roles = "ChuCuaHang,Admin,QuanLy")]
         [HttpGet("danh-sach")]
         public async Task<IActionResult> GetDanhSach(
             [FromQuery] int chiNhanhId,
@@ -90,7 +90,7 @@ namespace POS36.Api.Controllers
             });
         }
 
-        [Authorize(Roles = "Admin,ChuCuaHang,NhanVien")]
+        [Authorize(Roles = "ChuCuaHang,Admin,QuanLy,ThuNgan")]
         [HttpPost]
         public async Task<IActionResult> TaoPhieuThuChi([FromBody] PhieuThuChiDto dto)
         {
