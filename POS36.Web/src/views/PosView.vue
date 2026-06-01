@@ -265,7 +265,7 @@ const fetchProducts = async (branchId) => {
   if (!branchId) return;
   try {
     const res = await axios.get(
-      `/api/SanPham/danh-sach?chiNhanhId=${globalState.value.activeBranchId}`,
+      `/api/SanPham/danh-sach?chiNhanhId=${branchId}`,
     );
     products.value = res.data.filter((p) => p.trangThai === true);
   } catch (e) {
