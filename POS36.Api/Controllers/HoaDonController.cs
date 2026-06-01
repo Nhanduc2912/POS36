@@ -35,9 +35,10 @@ namespace POS36.Api.Controllers
         {
             int cuaHangId = GetCuaHangId();
 
-            // Bỏ qua kiểm tra CuaHangId để bàn mới tạo vẫn gọi món được
-            var ban = await _context.Bans.Include(b => b.KhuVuc).FirstOrDefaultAsync(b => b.Id == request.BanId);
-            if (ban == null) return BadRequest("Bàn không tồn tại trong hệ thống!");
+            // BUG-07 FIX: Kiểm tra CuaHangId để chống multi-tenant leak
+            var ban = await _context.Bans.Include(b => b.KhuVuc)
+                .FirstOrDefaultAsync(b => b.Id == request.BanId && b.CuaHangId == cuaHangId);
+            if (ban == null) return BadRequest("Bàn không tồn tại trong cửa hàng của bạn!");
 
             // Chống lỗi Null khi danh sách món trống
             if (request.DanhSachMon == null || !request.DanhSachMon.Any())
@@ -79,8 +80,10 @@ namespace POS36.Api.Controllers
                     if (sanPham.TrangThai == false)
                         throw new Exception($"'{sanPham.TenSanPham}' hiện đã ngừng bán!");
 
+                    // BUG-06 FIX: Sử dụng pessimistic locking WITH (UPDLOCK, ROWLOCK) để tránh race condition
                     var tonKho = await _context.TonKhos
-                        .FirstOrDefaultAsync(t => t.SanPhamId == mon.SanPhamId && t.ChiNhanhId == hoaDon.ChiNhanhId);
+                        .FromSqlRaw("SELECT * FROM TonKhos WITH (UPDLOCK, ROWLOCK) WHERE SanPhamId = {0} AND ChiNhanhId = {1}", mon.SanPhamId, hoaDon.ChiNhanhId)
+                        .FirstOrDefaultAsync();
 
                     if (tonKho != null && tonKho.SoLuong < mon.SoLuong)
                         throw new Exception($"'{sanPham.TenSanPham}' chỉ còn {tonKho.SoLuong} trong kho, không đủ để gọi {mon.SoLuong}!");
@@ -395,15 +398,27 @@ namespace POS36.Api.Controllers
                 {
                     foreach (var chiTiet in hoaDon.ChiTietHoaDons)
                     {
-                        var tonKho = await _context.TonKhos.FirstOrDefaultAsync(t => t.SanPhamId == chiTiet.SanPhamId && t.ChiNhanhId == hoaDon.ChiNhanhId);
-                        if (tonKho != null) { tonKho.SoLuong -= chiTiet.SoLuong; }
+                        // BUG-06 FIX: Sử dụng pessimistic locking WITH (UPDLOCK, ROWLOCK)
+                        var tonKho = await _context.TonKhos
+                            .FromSqlRaw("SELECT * FROM TonKhos WITH (UPDLOCK, ROWLOCK) WHERE SanPhamId = {0} AND ChiNhanhId = {1}", chiTiet.SanPhamId, hoaDon.ChiNhanhId)
+                            .FirstOrDefaultAsync();
+
+                        if (tonKho != null)
+                        {
+                            tonKho.SoLuong -= chiTiet.SoLuong;
+                            if (tonKho.SoLuong < 0)
+                            {
+                                tonKho.SoLuong = 0; // Đảm bảo tồn kho không âm
+                            }
+                        }
                         else
                         {
+                            // BUG-14 FIX: tạo tồn kho mặc định là 0 thay vì số âm
                             _context.TonKhos.Add(new TonKho
                             {
                                 SanPhamId = chiTiet.SanPhamId,
                                 ChiNhanhId = hoaDon.ChiNhanhId,
-                                SoLuong = -chiTiet.SoLuong
+                                SoLuong = 0
                             });
                         }
                     }
@@ -540,11 +555,17 @@ namespace POS36.Api.Controllers
         [HttpPut("bep/xong/{chiTietId}")]
         public async Task<IActionResult> MonDaXong(int chiTietId)
         {
+            int cuaHangId = GetCuaHangId();
+
             var chiTiet = await _context.ChiTietHoaDons
                 .Include(c => c.SanPham)
                 .Include(c => c.HoaDon).ThenInclude(h => h.Ban)
                 .FirstOrDefaultAsync(c => c.Id == chiTietId);
             if (chiTiet == null) return NotFound();
+
+            // BUG-08 FIX: Kiểm tra CuaHangId để chống tenant leak
+            if (chiTiet.HoaDon == null || chiTiet.HoaDon.CuaHangId != cuaHangId)
+                return StatusCode(403, "Bạn không có quyền thao tác trên hóa đơn này!");
 
             chiTiet.TrangThaiMon = "Đã Xong";
             await _context.SaveChangesAsync();
@@ -636,6 +657,12 @@ namespace POS36.Api.Controllers
         [HttpPost("huymon")]
         public async Task<IActionResult> HuyMon([FromBody] HuyMonDto request)
         {
+            // BUG-13 FIX: Ràng buộc số lượng hủy phải lớn hơn 0
+            if (request.SoLuongHuy <= 0)
+                return BadRequest("Số lượng hủy phải lớn hơn 0!");
+
+            int cuaHangId = GetCuaHangId();
+
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
@@ -647,6 +674,10 @@ namespace POS36.Api.Controllers
                 if (chiTiet == null) return BadRequest("Không tìm thấy món ăn này trong hóa đơn!");
 
                 var hoaDon = chiTiet.HoaDon;
+
+                // BUG-13 FIX: Kiểm tra phân quyền CuaHangId để tránh tenant leak
+                if (hoaDon == null || hoaDon.CuaHangId != cuaHangId)
+                    return StatusCode(403, "Bạn không có quyền thao tác trên hóa đơn này!");
 
                 decimal tienBiTru = chiTiet.DonGia * request.SoLuongHuy;
                 hoaDon!.TongTien -= tienBiTru;
