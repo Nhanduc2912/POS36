@@ -107,6 +107,9 @@ namespace POS36.Api.Controllers
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
+                // Ghi nhận nhật ký hoạt động
+                await _context.LogHoatDongAsync(ban.KhuVuc?.ChiNhanhId ?? 0, "Gọi món", $"Đặt món cho {ban.TenBan}. Số món: {request.DanhSachMon.Count}, tăng tổng bill thêm {tongTienCongThem:N0}đ.");
+
                 if (_hubContext != null)
                 {
                     await _hubContext.Clients.Group($"store_{cuaHangId}").SendAsync("CoDonHangMoi", new
@@ -171,6 +174,15 @@ namespace POS36.Api.Controllers
         {
             int cuaHangId = GetCuaHangId();
 
+            // BUG-11/Perm check: Nhân viên Order chuyển bàn
+            var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? User.FindFirst("VaiTro")?.Value;
+            if (role == "Order")
+            {
+                var isPermitted = await GetThietLapBoolAsync(cuaHangId, "Perm_Order_ChuyenTach", true);
+                if (!isPermitted)
+                    return StatusCode(403, "Nhân viên Order không được cấp quyền chuyển bàn!");
+            }
+
             var tuBan = await _context.Bans.FirstOrDefaultAsync(b => b.Id == request.TuBanId && b.CuaHangId == cuaHangId);
             var denBan = await _context.Bans.FirstOrDefaultAsync(b => b.Id == request.DenBanId && b.CuaHangId == cuaHangId);
 
@@ -191,6 +203,9 @@ namespace POS36.Api.Controllers
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+
+                // Ghi nhận nhật ký hoạt động
+                await _context.LogHoatDongAsync(tuBan.KhuVuc?.ChiNhanhId ?? 0, "Chuyển bàn", $"Chuyển bàn từ {tuBan.TenBan} sang {denBan.TenBan}");
 
                 // Phát SignalR cho tất cả màn hình cùng cửa hàng cập nhật sơ đồ bàn
                 if (_hubContext != null)
@@ -219,6 +234,15 @@ namespace POS36.Api.Controllers
         public async Task<IActionResult> GhepBan(GhepBanDto request)
         {
             int cuaHangId = GetCuaHangId();
+
+            // BUG-11/Perm check: Nhân viên Order ghép bàn
+            var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? User.FindFirst("VaiTro")?.Value;
+            if (role == "Order")
+            {
+                var isPermitted = await GetThietLapBoolAsync(cuaHangId, "Perm_Order_ChuyenTach", true);
+                if (!isPermitted)
+                    return StatusCode(403, "Nhân viên Order không được cấp quyền ghép bàn!");
+            }
 
             var tuBan = await _context.Bans.FirstOrDefaultAsync(b => b.Id == request.TuBanId && b.CuaHangId == cuaHangId);
             var denBan = await _context.Bans.FirstOrDefaultAsync(b => b.Id == request.DenBanId && b.CuaHangId == cuaHangId);
@@ -259,6 +283,9 @@ namespace POS36.Api.Controllers
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
+                // Ghi nhận nhật ký hoạt động
+                await _context.LogHoatDongAsync(tuBan.KhuVuc?.ChiNhanhId ?? 0, "Ghép bàn", $"Ghép bàn từ {tuBan.TenBan} vào {denBan.TenBan}");
+
                 // Phát SignalR cho tất cả màn hình cùng cửa hàng cập nhật sơ đồ bàn
                 if (_hubContext != null)
                 {
@@ -286,6 +313,15 @@ namespace POS36.Api.Controllers
         public async Task<IActionResult> TachBan(TachBanDto request)
         {
             int cuaHangId = GetCuaHangId();
+
+            // BUG-11/Perm check: Nhân viên Order tách bàn
+            var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? User.FindFirst("VaiTro")?.Value;
+            if (role == "Order")
+            {
+                var isPermitted = await GetThietLapBoolAsync(cuaHangId, "Perm_Order_ChuyenTach", true);
+                if (!isPermitted)
+                    return StatusCode(403, "Nhân viên Order không được cấp quyền tách bàn!");
+            }
 
             var tuBan = await _context.Bans.FirstOrDefaultAsync(b => b.Id == request.TuBanId && b.CuaHangId == cuaHangId);
             var denBan = await _context.Bans.FirstOrDefaultAsync(b => b.Id == request.DenBanId && b.CuaHangId == cuaHangId);
@@ -346,6 +382,9 @@ namespace POS36.Api.Controllers
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+
+                // Ghi nhận nhật ký hoạt động
+                await _context.LogHoatDongAsync(tuBan.KhuVuc?.ChiNhanhId ?? 0, "Tách bàn", $"Tách bàn từ {tuBan.TenBan} sang {denBan.TenBan}");
 
                 // Dùng "CapNhatBan" thay vì "CoDonHangMoi" để Bếp KHÔNG hiện "có món mới"
                 if (_hubContext != null)
@@ -485,6 +524,9 @@ namespace POS36.Api.Controllers
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
+                // Ghi nhận nhật ký hoạt động
+                await _context.LogHoatDongAsync(hoaDon.ChiNhanhId, "Thanh toán", $"Thanh toán hóa đơn bàn {hoaDon.Ban?.TenBan}. Số tiền thực thu: {hoaDon.TongTien:N0}đ. Phương thức: {phuongThuc}");
+
                 // Kích hoạt fetchTables bên Vue tải lại màu sắc của Bàn
                 if (_hubContext != null)
                 {
@@ -570,9 +612,13 @@ namespace POS36.Api.Controllers
             chiTiet.TrangThaiMon = "Đã Xong";
             await _context.SaveChangesAsync();
 
+            var tenMon = chiTiet.SanPham?.TenSanPham ?? "Món ăn";
+
+            // Ghi nhận nhật ký hoạt động
+            await _context.LogHoatDongAsync(chiTiet.HoaDon?.ChiNhanhId ?? 0, "Báo xong món", $"Bếp báo xong món: {chiTiet.SoLuong}x {tenMon} cho bàn {chiTiet.HoaDon?.Ban?.TenBan}");
+
             // Lấy CuaHangId để gửi đúng group
             var storeId = chiTiet.HoaDon?.CuaHangId ?? 0;
-            var tenMon = chiTiet.SanPham?.TenSanPham ?? "Món ăn";
 
             await _hubContext.Clients.Group($"store_{storeId}").SendAsync("MonAnDaXong", new
             {
@@ -662,11 +708,21 @@ namespace POS36.Api.Controllers
                 return BadRequest("Số lượng hủy phải lớn hơn 0!");
 
             int cuaHangId = GetCuaHangId();
+            var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? User.FindFirst("VaiTro")?.Value;
+
+            // BUG-11/Perm check: Nhân viên Order hủy món
+            if (role == "Order")
+            {
+                var isPermitted = await GetThietLapBoolAsync(cuaHangId, "Perm_Order_HuyMon", true);
+                if (!isPermitted)
+                    return StatusCode(403, "Nhân viên Order không được cấp quyền hủy món!");
+            }
 
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 var chiTiet = await _context.ChiTietHoaDons
+                    .Include(c => c.SanPham) // Cần có sản phẩm để lấy tên ghi log
                     .Include(c => c.HoaDon)
                     .ThenInclude(h => h.Ban)
                     .FirstOrDefaultAsync(c => c.Id == request.ChiTietId);
@@ -691,6 +747,14 @@ namespace POS36.Api.Controllers
 
                     if (!conMonNaoKhong)
                     {
+                        // BUG-11/Perm check: Thu ngân hủy hóa đơn
+                        if (role == "ThuNgan")
+                        {
+                            var isPermitted = await GetThietLapBoolAsync(cuaHangId, "Perm_ThuNgan_XoaHoaDon", true);
+                            if (!isPermitted)
+                                return StatusCode(403, "Thu ngân không được cấp quyền hủy/xóa hóa đơn!");
+                        }
+
                         hoaDon.TrangThai = "Đã hủy";
                         if (hoaDon.Ban != null)
                         {
@@ -707,6 +771,9 @@ namespace POS36.Api.Controllers
 
                 await transaction.CommitAsync();
 
+                // Ghi nhận nhật ký hoạt động
+                await _context.LogHoatDongAsync(hoaDon.ChiNhanhId, "Hủy món", $"Hủy {request.SoLuongHuy}x {chiTiet.SanPham?.TenSanPham} của bàn {hoaDon.Ban?.TenBan}. Lý do: {request.LyDo}");
+
                 // Phát sự kiện SignalR để tất cả màn hình cập nhật realtime
                 // Lấy CuaHangId từ hóa đơn
                 int storeId = hoaDon?.CuaHangId ?? 0;
@@ -722,6 +789,14 @@ namespace POS36.Api.Controllers
                 await transaction.RollbackAsync();
                 return StatusCode(500, "Lỗi hệ thống: " + ex.Message);
             }
+        }
+
+        private async Task<bool> GetThietLapBoolAsync(int cuaHangId, string key, bool defaultValue)
+        {
+            var tl = await _context.ThietLaps
+                .FirstOrDefaultAsync(t => t.CuaHangId == cuaHangId && t.MaThietLap == key);
+            if (tl == null || string.IsNullOrEmpty(tl.DuLieu)) return defaultValue;
+            return tl.DuLieu.Equals("true", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

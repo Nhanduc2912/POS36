@@ -161,6 +161,9 @@ namespace POS36.Api.Controllers
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
+                // Ghi nhận nhật ký hoạt động
+                await _context.LogHoatDongAsync(request.ChiNhanhId, "Nhập kho", $"Tạo phiếu nhập hàng {phieu.MaChungTu} (Trạng thái: {request.TrangThai})");
+
                 return Ok(new { message = "Đã lưu Phiếu Nhập Hàng thành công!" });
             }
             catch (Exception ex)
@@ -237,6 +240,9 @@ namespace POS36.Api.Controllers
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+
+                // Ghi nhận nhật ký hoạt động
+                await _context.LogHoatDongAsync(phieu.ChiNhanhId, "Xác nhận nhập kho", $"Xác nhận hoàn thành phiếu nhập hàng {phieu.MaChungTu}, tăng tồn kho các mặt hàng.");
 
                 return Ok(new { message = $"Đã xác nhận phiếu nhập {phieu.MaChungTu}. Tồn kho đã được cập nhật!" });
             }
