@@ -134,14 +134,25 @@
                 </div>
               </div>
 
-              <!-- NEW Switch 6 -->
+              <!-- NEW Switch 6a -->
               <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
                 <div>
-                  <h6 class="fw-bold text-dark mb-1">Cho phép nhân viên Order thanh toán trực tiếp ngay trên bàn</h6>
-                  <p class="text-muted mb-0 small">Nhân viên phục vụ có thể bấm thanh toán hóa đơn tiền mặt cho khách mà không cần chờ ở quầy thu ngân.</p>
+                  <h6 class="fw-bold text-dark mb-1">Cho phép nhân viên Order thanh toán Tiền mặt ngay tại bàn</h6>
+                  <p class="text-muted mb-0 small">Nhân viên phục vụ có thể nhận tiền mặt và xác nhận hoàn tất thanh toán hóa đơn trực tiếp cho khách.</p>
                 </div>
                 <div class="form-check form-switch form-switch-lg">
-                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_OrderThanhToanNgay" />
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_OrderThanhToanTienMat" />
+                </div>
+              </div>
+
+              <!-- NEW Switch 6b -->
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center" :class="{'opacity-50': !cfgBool.POS_HienQR}">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Cho phép nhân viên Order thanh toán chuyển khoản QR tại bàn</h6>
+                  <p class="text-muted mb-0 small">Nhân viên phục vụ có thể mở mã VietQR động trực tiếp tại bàn để khách hàng quét chuyển khoản nhanh.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_OrderThanhToanQR" :disabled="!cfgBool.POS_HienQR" />
                 </div>
               </div>
 
@@ -390,7 +401,8 @@ const cfg = reactive({
 const cfgBool = reactive({
   POS_ChophepGiamGia: true, POS_TuDongIn: false, POS_XacNhanGuiBep: false, POS_HienQR: true,
   POS_HienQrThuNganOnly: false,
-  POS_OrderThanhToanNgay: false,
+  POS_OrderThanhToanTienMat: false,
+  POS_OrderThanhToanQR: false,
   POS_OrderInBillNgay: false,
   POS_ThuNganInNhieuBill: false,
   POS_ThuNganXemLichSu: true,

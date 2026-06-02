@@ -1,4 +1,20 @@
+import axios from "axios";
+
 export const printReceipt = (orderData, branchInfo) => {
+  // Ghi nhận log in hóa đơn lên backend
+  try {
+    axios.post("/api/HoaDon/log-in-bill", {
+      banId: orderData.banId || 0,
+      chiNhanhId: orderData.chiNhanhId || 0,
+      tenBan: orderData.tenBan || "",
+      maChungTu: orderData.maChungTu || "",
+      loaiIn: orderData.loaiIn || "In hóa đơn",
+      tongTien: orderData.tongTien || 0,
+    }).catch(e => console.warn("Lỗi ghi log in bill", e));
+  } catch (e) {
+    console.warn("Lỗi ghi log in bill", e);
+  }
+
   let template = localStorage.getItem("pos36_print_template");
   if (!template) {
     alert("Chưa thiết lập mẫu in. Vui lòng vào Cài đặt -> Thiết lập mẫu in.");

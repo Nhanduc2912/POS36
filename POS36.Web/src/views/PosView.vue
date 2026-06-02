@@ -807,6 +807,9 @@ const handleThanhToan = async () => {
       tenBan: activeTable.value.tenBan,
       tongTien: soTienThucTe,
       items: currentOrder.value,
+      banId: banId,
+      chiNhanhId: globalState.value.activeBranchId || 0,
+      loaiIn: "Thanh toán (Tiền mặt)"
     };
     printReceipt(orderToPrint, {
       name: storeInfo.value?.tenCuaHang || "POS36",
@@ -832,6 +835,9 @@ const handleThanhToan = async () => {
         tenBan: activeTable.value.tenBan,
         tongTien: soTienThucTe,
         items: currentOrder.value,
+        banId: banId,
+        chiNhanhId: globalState.value.activeBranchId || 0,
+        loaiIn: "Thanh toán (Quét QR)"
       };
       printReceipt(orderToPrint, {
         name: storeInfo.value?.tenCuaHang || "POS36",
@@ -931,6 +937,8 @@ const reprintInvoice = (invoice) => {
     tongTien: invoice.tongThanhToan,
     maChungTu: invoice.maChungTu,
     items: billItems,
+    chiNhanhId: globalState.value.activeBranchId || 0,
+    loaiIn: "In lại hóa đơn (Đã thanh toán)"
   };
 
   const storeName = storeInfo.value?.tenCuaHang || "POS36";
@@ -970,6 +978,9 @@ const handleManualPrint = () => {
     tenBan: activeTable.value.tenBan,
     tongTien: totalAmount.value,
     items: billItems,
+    banId: activeTable.value.id,
+    chiNhanhId: globalState.value.activeBranchId || 0,
+    loaiIn: "Tạm tính (Thu ngân)"
   };
 
   const storeName = storeInfo.value?.tenCuaHang || "POS36";
@@ -1403,38 +1414,53 @@ watch(activeRightTab, (newTab) => {
               <p class="mt-2 small">Chưa có giao dịch thanh toán nào trong ca làm việc.</p>
             </div>
 
-            <div v-else class="list-group">
+            <div v-else class="list-group gap-2 p-1">
               <div
                 v-for="invoice in invoiceHistory"
                 :key="invoice.id"
-                class="list-group-item list-group-item-action p-3 border-light rounded-3 mb-2 shadow-xs"
+                class="card border-0 shadow-sm rounded-4 overflow-hidden invoice-history-card position-relative mb-2"
+                style="background: #fafafa; border-left: 5px solid #28a745 !important;"
               >
-                <div class="d-flex justify-content-between align-items-start mb-2">
+                <!-- Card Header -->
+                <div class="card-header bg-white border-0 pt-3 pb-2 px-3 d-flex justify-content-between align-items-center">
                   <div>
-                    <span class="badge bg-success bg-opacity-10 text-success fw-bold mb-1" style="font-size:0.75rem">{{ invoice.maChungTu }}</span>
-                    <h6 class="fw-bold text-dark mb-0">{{ invoice.tenBan }}</h6>
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary font-monospace fw-bold mb-1" style="font-size:0.75rem">
+                      <i class="bi bi-receipt me-1"></i>{{ invoice.maChungTu }}
+                    </span>
+                    <h5 class="fw-bold text-dark mb-0 mt-1 d-flex align-items-center gap-2">
+                      <i class="bi bi-circle-fill text-success" style="font-size: 0.55rem"></i>
+                      {{ invoice.tenBan }}
+                    </h5>
                   </div>
                   <div class="text-end">
-                    <span class="fw-bold text-danger">{{ formatPrice(invoice.tongThanhToan) }}</span>
-                    <small class="d-block text-muted mt-1" style="font-size:0.75rem">
-                      <i class="bi bi-clock"></i> {{ new Date(invoice.ngayBan).toLocaleTimeString("vi-VN") }}
-                    </small>
+                    <span class="text-muted small d-block" style="font-size:0.75rem">
+                      <i class="bi bi-clock-history me-1"></i> {{ new Date(invoice.ngayBan).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' }) }}
+                    </span>
+                    <span class="fw-bold text-success fs-5 d-block mt-1">
+                      {{ formatPrice(invoice.tongThanhToan) }}
+                    </span>
                   </div>
                 </div>
 
-                <div class="border-top pt-2 mt-2">
-                  <div class="text-secondary small mb-3">
-                    <div v-for="(ct, idx) in invoice.chiTiets" :key="idx" class="d-flex justify-content-between py-1 border-bottom border-light">
-                      <span>• {{ ct.tenSanPham }}</span>
-                      <span class="fw-bold text-dark">x{{ ct.soLuong }}</span>
+                <!-- Items Breakdown -->
+                <div class="card-body pt-1 pb-3 px-3">
+                  <div class="p-2 rounded-3 mb-3 bg-white" style="border: 1px dashed #e2e8f0;">
+                    <div v-for="(ct, idx) in invoice.chiTiets" :key="idx" class="d-flex justify-content-between align-items-center py-1 border-bottom border-light" style="font-size: 0.85rem">
+                      <span class="text-secondary fw-semibold">{{ ct.tenSanPham }}</span>
+                      <div class="d-flex align-items-center gap-4">
+                        <span class="text-muted font-monospace">x{{ ct.soLuong }}</span>
+                        <span class="fw-bold text-dark font-monospace" style="width: 80px; text-align: right;">{{ formatPrice(ct.ThanhTien) }}</span>
+                      </div>
                     </div>
                   </div>
-                  <div class="d-flex justify-content-end">
+                  
+                  <div class="d-flex justify-content-between align-items-center">
+                    <span class="small text-muted"><i class="bi bi-person-fill text-muted me-1"></i>{{ invoice.KhachHang || 'Khách lẻ' }}</span>
                     <button
                       @click="reprintInvoice(invoice)"
-                      class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3 shadow-sm"
+                      class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3 shadow-sm d-flex align-items-center gap-1 hover-reprint-btn"
                     >
-                      <i class="bi bi-printer me-1"></i> IN LẠI BILL
+                      <i class="bi bi-printer-fill fs-7"></i> IN LẠI HÓA ĐƠN
                     </button>
                   </div>
                 </div>
