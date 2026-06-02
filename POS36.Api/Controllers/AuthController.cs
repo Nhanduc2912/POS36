@@ -389,20 +389,27 @@ namespace POS36.Api.Controllers
                 var serviceId = _configuration["EmailJS:ServiceId"] ?? "service_65xya5u";
                 var templateId = _configuration["EmailJS:TemplateId"] ?? "template_a63e1vv";
                 var publicKey = _configuration["EmailJS:PublicKey"] ?? "Zjm65dyIcuEbthcT3";
+                var privateKey = _configuration["EmailJS:PrivateKey"];
 
                 using var client = new HttpClient();
-                var payload = new
+                var payload = new Dictionary<string, object>
                 {
-                    service_id = serviceId,
-                    template_id = templateId,
-                    user_id = publicKey,
-                    template_params = new
-                    {
-                        to_email = email,
-                        to_name = fullName,
-                        otp_code = otpCode
+                    { "service_id", serviceId },
+                    { "template_id", templateId },
+                    { "user_id", publicKey },
+                    { "template_params", new
+                        {
+                            to_email = email,
+                            to_name = fullName,
+                            otp_code = otpCode
+                        }
                     }
                 };
+
+                if (!string.IsNullOrEmpty(privateKey))
+                {
+                    payload["accessToken"] = privateKey;
+                }
 
                 var content = new StringContent(
                     System.Text.Json.JsonSerializer.Serialize(payload),
