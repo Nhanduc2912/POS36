@@ -981,20 +981,95 @@ const settings = ref({
   POS_OrderThanhToanTienMat: false,
   POS_OrderThanhToanQR: false,
   POS_OrderInBillNgay: false,
+  POS_OrderInBillCheDo: 'Ask',
 });
 
 const loadSettings = async () => {
   try {
-    const keys = "POS_HienQrThuNganOnly,POS_OrderThanhToanTienMat,POS_OrderThanhToanQR,POS_OrderInBillNgay";
+    const keys = "POS_HienQrThuNganOnly,POS_OrderThanhToanTienMat,POS_OrderThanhToanQR,POS_OrderInBillNgay,POS_OrderInBillCheDo";
     const res = await axios.get("/api/ThietLap/batch", { params: { keys } });
     if (res.data) {
       settings.value.POS_HienQrThuNganOnly = res.data.POS_HienQrThuNganOnly === "true";
       settings.value.POS_OrderThanhToanTienMat = res.data.POS_OrderThanhToanTienMat === "true";
       settings.value.POS_OrderThanhToanQR = res.data.POS_OrderThanhToanQR === "true";
       settings.value.POS_OrderInBillNgay = res.data.POS_OrderInBillNgay === "true";
+      settings.value.POS_OrderInBillCheDo = res.data.POS_OrderInBillCheDo || 'Ask';
     }
   } catch (e) {
     console.error("Lỗi load settings trong OrderView", e);
+  }
+};
+
+const executeBillPrint = async (orderToPrint, branchInfo) => {
+  const mode = settings.value.POS_OrderInBillCheDo || 'Ask';
+
+  const doLocalPrint = () => {
+    try {
+      printReceipt(orderToPrint, branchInfo);
+      swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: "Đã gửi lệnh in tại điện thoại!",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (err) {
+      swal.fire("Lỗi", "Không thể in bill trên điện thoại này", "error");
+    }
+  };
+
+  const doRemotePrint = async () => {
+    if (connection && (connection.state === "Connected" || connection.state === "connecting")) {
+      try {
+        await connection.invoke(
+          "GuiYeuCauInBill",
+          orderToPrint.chiNhanhId,
+          orderToPrint.banId,
+          orderToPrint.loaiIn,
+          orderToPrint.tongTien
+        );
+        swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: "Đã gửi yêu cầu in tới Thu ngân!",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } catch (err) {
+        swal.fire("Lỗi", "Không thể gửi yêu cầu in tới Thu ngân", "error");
+      }
+    } else {
+      swal.fire("Lỗi kết nối", "Không thể kết nối máy chủ để gửi lệnh in từ xa!", "error");
+    }
+  };
+
+  if (mode === 'Direct') {
+    doLocalPrint();
+  } else if (mode === 'Remote') {
+    await doRemotePrint();
+  } else {
+    // Mode is 'Ask'
+    const result = await swal.fire({
+      title: "Chọn nơi in hóa đơn",
+      text: "Bạn muốn in hóa đơn này ở đâu?",
+      icon: "question",
+      showDenyButton: true,
+      showCancelButton: true,
+      confirmButtonText: "In tại Thu Ngân (Máy in bill)",
+      denyButtonText: "In tại điện thoại này",
+      cancelButtonText: "Hủy bỏ",
+      confirmButtonColor: "#3085d6",
+      denyButtonColor: "#f59e0b",
+      cancelButtonColor: "#aaa",
+    });
+
+    if (result.isConfirmed) {
+      await doRemotePrint();
+    } else if (result.isDenied) {
+      doLocalPrint();
+    }
   }
 };
 
@@ -1044,7 +1119,7 @@ const handleOrderThanhToanNgay = async () => {
       chiNhanhId: globalState.value.activeBranchId || 0,
       loaiIn: "Thanh toán (Order Staff)",
     };
-    printReceipt(orderToPrint, {
+    await executeBillPrint(orderToPrint, {
       name: storeName,
       address: storeAddr,
       phone: storePhone,
@@ -1109,7 +1184,7 @@ const handleOrderThanhToanQR = async () => {
         chiNhanhId: globalState.value.activeBranchId || 0,
         loaiIn: "Tạm tính (Mở QR từ Order)",
       };
-      printReceipt(orderToPrint, {
+      await executeBillPrint(orderToPrint, {
         name: storeName,
         address: storeAddr,
         phone: storePhone,
@@ -1124,7 +1199,7 @@ const handleOrderThanhToanQR = async () => {
         toast: true,
         position: "top-end",
         icon: "success",
-        title: "Đã in hóa đơn & yêu cầu quét QR!",
+        title: "Đã yêu cầu quét QR!",
         timer: 2000,
         showConfirmButton: false,
       });
@@ -1175,19 +1250,10 @@ const handleOrderInBill = async () => {
   };
 
   try {
-    printReceipt(orderToPrint, {
+    await executeBillPrint(orderToPrint, {
       name: storeName,
       address: storeAddr,
       phone: storePhone,
-    });
-
-    swal.fire({
-      toast: true,
-      position: "top-end",
-      icon: "success",
-      title: "Đã gửi lệnh in tạm tính!",
-      timer: 1500,
-      showConfirmButton: false,
     });
   } catch (err) {
     swal.fire("Lỗi", "Không thể in bill tạm tính", "error");

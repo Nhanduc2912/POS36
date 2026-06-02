@@ -17,8 +17,44 @@ export const printReceipt = (orderData, branchInfo) => {
 
   let template = localStorage.getItem("pos36_print_template");
   if (!template) {
-    alert("Chưa thiết lập mẫu in. Vui lòng vào Cài đặt -> Thiết lập mẫu in.");
-    return;
+    template = `
+<div style="width: 100%; font-family: 'Arial', sans-serif; font-size: 14px; color: #000;">
+    <div style="text-align: center; margin-bottom: 10px;">
+        <h2 style="margin: 0; font-size: 20px; font-weight: bold;">{TEN_CUA_HANG}</h2>
+        <div style="font-size: 12px; margin-top: 5px;">Đ/c: {DIA_CHI}</div>
+        <div style="font-size: 12px;">ĐT: {DIEN_THOAI}</div>
+    </div>
+    <div style="text-align: center; margin: 15px 0; border-top: 1px dashed #000; border-bottom: 1px dashed #000; padding: 10px 0;">
+        <h3 style="margin: 0; font-size: 18px; font-weight: bold;">HÓA ĐƠN THANH TOÁN</h3>
+        <div style="font-size: 12px; margin-top: 5px;">Số: {MA_CHUNG_TU}</div>
+        <div style="font-size: 12px;">Ngày: {NGAY_IN} {GIO_IN}</div>
+    </div>
+    <div style="font-size: 12px; margin-bottom: 10px; display: flex; justify-content: space-between;">
+        <div><b>Bàn:</b> {TEN_BAN}</div>
+        <div><b>Thu ngân:</b> {THU_NGAN}</div>
+    </div>
+    <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 15px;">
+        <thead style="border-bottom: 1px solid #000;">
+            <tr>
+                <th style="text-align: left; padding-bottom: 5px;">Tên món</th>
+                <th style="text-align: center; padding-bottom: 5px;">SL</th>
+                <th style="text-align: right; padding-bottom: 5px;">T.Tiền</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td colspan="3" style="text-align: center; color: #f37021; padding: 10px 0;">{DANH_SACH_MON_AN}</td></tr>
+        </tbody>
+    </table>
+    <div style="border-top: 1px dashed #000; padding-top: 10px;">
+        <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px;">
+            <span>TỔNG THANH TOÁN:</span>
+            <span>{KHACH_CAN_TRA}</span>
+        </div>
+    </div>
+    <div style="text-align: center; margin-top: 20px; font-size: 12px; font-style: italic;">
+        Xin cảm ơn và hẹn gặp lại quý khách!
+    </div>
+</div>`;
   }
 
   const formatPrice = (price) => new Intl.NumberFormat("vi-VN").format(price);
