@@ -381,6 +381,11 @@ const bannerInfo = computed(() => {
                       ><i class="bi bi-gear me-2 text-muted"></i> Thiết lập hệ thống</router-link
                     >
                   </li>
+                  <li>
+                    <router-link class="dropdown-item fw-bold text-info" to="/admin/audit-log"
+                      ><i class="bi bi-journal-text me-2"></i> Nhật ký hoạt động</router-link
+                    >
+                  </li>
 
                   <li><hr class="dropdown-divider my-2" /></li>
                   <li>

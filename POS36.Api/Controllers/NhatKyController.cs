@@ -34,7 +34,11 @@ namespace POS36.Api.Controllers
             [FromQuery] int chiNhanhId,
             [FromQuery] string? startDate = null,
             [FromQuery] string? endDate = null,
-            [FromQuery] string? search = null)
+            [FromQuery] string? search = null,
+            [FromQuery] string? actions = null,
+            [FromQuery] string? quickFilter = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
         {
             try
             {
@@ -47,38 +51,93 @@ namespace POS36.Api.Controllers
                     dbQuery = dbQuery.Where(n => n.ChiNhanhId == chiNhanhId);
                 }
 
-                // Lấy toàn bộ bản ghi theo bộ lọc chi nhánh để xử lý khoảng thời gian local/UTC
-                var list = await dbQuery.OrderByDescending(n => n.ThoiGian).ToListAsync();
-
-                // Lọc theo khoảng ngày giao dịch giao diện gửi lên
-                if (!string.IsNullOrEmpty(startDate) && DateTime.TryParse(startDate, out var sd))
+                // Lọc theo khoảng ngày / lọc nhanh
+                if (!string.IsNullOrEmpty(quickFilter) && quickFilter != "custom")
                 {
-                    var start = sd.Date;
-                    list = list.Where(n => n.ThoiGian.Date >= start).ToList();
+                    var today = DateTime.Today;
+                    if (quickFilter == "today")
+                    {
+                        dbQuery = dbQuery.Where(n => n.ThoiGian >= today);
+                    }
+                    else if (quickFilter == "yesterday")
+                    {
+                        var yesterday = today.AddDays(-1);
+                        dbQuery = dbQuery.Where(n => n.ThoiGian >= yesterday && n.ThoiGian < today);
+                    }
+                    else if (quickFilter == "3days")
+                    {
+                        var threeDaysAgo = today.AddDays(-2);
+                        dbQuery = dbQuery.Where(n => n.ThoiGian >= threeDaysAgo);
+                    }
+                    else if (quickFilter == "7days")
+                    {
+                        var sevenDaysAgo = today.AddDays(-6);
+                        dbQuery = dbQuery.Where(n => n.ThoiGian >= sevenDaysAgo);
+                    }
+                    else if (quickFilter == "30days")
+                    {
+                        var thirtyDaysAgo = today.AddDays(-29);
+                        dbQuery = dbQuery.Where(n => n.ThoiGian >= thirtyDaysAgo);
+                    }
+                    else if (quickFilter == "90days")
+                    {
+                        var ninetyDaysAgo = today.AddDays(-89);
+                        dbQuery = dbQuery.Where(n => n.ThoiGian >= ninetyDaysAgo);
+                    }
+                }
+                else
+                {
+                    // Lọc tùy chỉnh theo khoảng ngày
+                    if (!string.IsNullOrEmpty(startDate) && DateTime.TryParse(startDate, out var sd))
+                    {
+                        var start = sd.Date;
+                        dbQuery = dbQuery.Where(n => n.ThoiGian >= start);
+                    }
+
+                    if (!string.IsNullOrEmpty(endDate) && DateTime.TryParse(endDate, out var ed))
+                    {
+                        var end = ed.Date.AddDays(1).AddTicks(-1);
+                        dbQuery = dbQuery.Where(n => n.ThoiGian <= end);
+                    }
                 }
 
-                if (!string.IsNullOrEmpty(endDate) && DateTime.TryParse(endDate, out var ed))
+                // Lọc theo nhóm hành động (actions)
+                if (!string.IsNullOrEmpty(actions))
                 {
-                    var end = ed.Date;
-                    list = list.Where(n => n.ThoiGian.Date <= end).ToList();
+                    var actionList = actions.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                                           .Select(a => a.Trim().ToLower())
+                                           .ToList();
+                    dbQuery = dbQuery.Where(n => actionList.Contains(n.HanhDong.ToLower()));
                 }
 
                 // Lọc tìm kiếm theo từ khóa
                 if (!string.IsNullOrEmpty(search))
                 {
                     var kw = search.ToLower().Trim();
-                    list = list.Where(n => 
+                    dbQuery = dbQuery.Where(n => 
                         n.NguoiThucHien.ToLower().Contains(kw) || 
                         n.HanhDong.ToLower().Contains(kw) || 
                         n.MoTa.ToLower().Contains(kw) ||
                         (n.VaiTro != null && n.VaiTro.ToLower().Contains(kw))
-                    ).ToList();
+                    );
                 }
 
-                // Trả về tối đa 500 dòng mới nhất để tối ưu hiệu năng
-                var result = list.Take(500).ToList();
+                var totalCount = await dbQuery.CountAsync();
 
-                return Ok(result);
+                // Phân trang
+                var list = await dbQuery
+                    .OrderByDescending(n => n.ThoiGian)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync();
+
+                return Ok(new
+                {
+                    totalCount = totalCount,
+                    items = list,
+                    page = page,
+                    pageSize = pageSize
+                });
             }
             catch (Exception ex)
             {
