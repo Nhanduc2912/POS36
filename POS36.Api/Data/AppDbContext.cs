@@ -69,6 +69,7 @@ namespace POS36.Api.Data
         // ===== Phase 6: Config & Audit Log (Global) =====
         public DbSet<CauHinhHeThong> CauHinhHeThangs { get; set; }
         public DbSet<NhatKyHeThong> NhatKyHeThangs { get; set; }
+        public DbSet<NhatKyHoatDong> NhatKyHoatDongs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -121,12 +122,82 @@ namespace POS36.Api.Data
             modelBuilder.Entity<ThietLap>().HasQueryFilter(e =>
                 GetCurrentCuaHangId() == null || e.CuaHangId == GetCurrentCuaHangId());
 
+            modelBuilder.Entity<NhatKyHoatDong>().HasQueryFilter(e =>
+                GetCurrentCuaHangId() == null || e.CuaHangId == GetCurrentCuaHangId());
+
             // ====================================================
             // CHỐNG LỖI CASCADE DELETE (Giữ nguyên)
             // ====================================================
             foreach (var relationship in modelBuilder.Model.GetEntityTypes().SelectMany(e => e.GetForeignKeys()))
             {
                 relationship.DeleteBehavior = DeleteBehavior.Restrict;
+            }
+        }
+
+        public async Task LogHoatDongAsync(int chiNhanhId, string hanhDong, string moTa, string? nguoiThucHienMacDinh = null, string? vaiTroMacDinh = null, int cuaHangIdMacDinh = 0)
+        {
+            try
+            {
+                var httpContext = _httpContextAccessor?.HttpContext;
+                int cuaHangId = cuaHangIdMacDinh;
+                string nguoiThucHien = nguoiThucHienMacDinh ?? "Hệ thống";
+                string vaiTro = vaiTroMacDinh ?? "Hệ thống";
+                string? ipAddress = null;
+                string? userAgent = null;
+
+                if (httpContext != null)
+                {
+                    ipAddress = httpContext.Connection.RemoteIpAddress?.ToString();
+                    userAgent = httpContext.Request.Headers["User-Agent"].ToString();
+
+                    var user = httpContext.User;
+                    if (user != null && user.Identity != null && user.Identity.IsAuthenticated)
+                    {
+                        var cuaHangIdClaim = user.FindFirst("CuaHangId")?.Value;
+                        if (!string.IsNullOrEmpty(cuaHangIdClaim))
+                        {
+                            cuaHangId = int.Parse(cuaHangIdClaim);
+                        }
+
+                        nguoiThucHien = user.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")?.Value 
+                                           ?? user.Identity.Name 
+                                           ?? user.FindFirst("TenDangNhap")?.Value 
+                                           ?? nguoiThucHien;
+                        
+                        vaiTro = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value 
+                                     ?? user.FindFirst("VaiTro")?.Value 
+                                     ?? vaiTro;
+                    }
+                }
+
+                // Nếu cuaHangId chưa xác định và chiNhanhId > 0, xác định cuaHangId từ chi nhánh
+                if (cuaHangId == 0 && chiNhanhId > 0)
+                {
+                    var cn = await this.Set<ChiNhanh>().FindAsync(chiNhanhId);
+                    cuaHangId = cn?.CuaHangId ?? 0;
+                }
+
+                if (cuaHangId == 0) return; // Không xác định được store thì bỏ qua
+
+                var nhatKy = new NhatKyHoatDong
+                {
+                    CuaHangId = cuaHangId,
+                    ChiNhanhId = chiNhanhId,
+                    NguoiThucHien = nguoiThucHien,
+                    VaiTro = vaiTro,
+                    HanhDong = hanhDong,
+                    MoTa = moTa,
+                    ThoiGian = DateTime.Now,
+                    IpAddress = ipAddress,
+                    ThietBi = string.IsNullOrEmpty(userAgent) ? "Hệ thống/SignalR" : (userAgent.Length > 200 ? userAgent.Substring(0, 200) : userAgent)
+                };
+
+                this.Set<NhatKyHoatDong>().Add(nhatKy);
+                await this.SaveChangesAsync();
+            }
+            catch (System.Exception ex)
+            {
+                // Bỏ qua lỗi ghi log để không làm đứt mạch nghiệp vụ chính
             }
         }
     }
