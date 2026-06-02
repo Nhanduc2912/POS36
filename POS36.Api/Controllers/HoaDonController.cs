@@ -205,7 +205,7 @@ namespace POS36.Api.Controllers
                 await transaction.CommitAsync();
 
                 // Ghi nhận nhật ký hoạt động
-                await _context.LogHoatDongAsync(tuBan.KhuVuc?.ChiNhanhId ?? 0, "Chuyển bàn", $"Chuyển bàn từ {tuBan.TenBan} sang {denBan.TenBan}");
+                await _context.LogHoatDongAsync(tuBan.KhuVuc?.ChiNhanhId ?? 0, "Chuyển bàn", $"Chuyển bàn từ {tuBan.TenBan} sang {denBan.TenBan}. Hóa đơn chuyển: {hoaDon.TongTien:N0}đ");
 
                 // Phát SignalR cho tất cả màn hình cùng cửa hàng cập nhật sơ đồ bàn
                 if (_hubContext != null)
@@ -336,7 +336,8 @@ namespace POS36.Api.Controllers
             try
             {
                 var hoaDonGoc = await _context.HoaDons
-                    .Include(h => h.ChiTietHoaDons)
+                    .Include(h => h.ChiTietHoaDons!)
+                    .ThenInclude(ct => ct.SanPham)
                     .FirstOrDefaultAsync(h => h.BanId == request.TuBanId && h.TrangThai == "Đang phục vụ" && h.CuaHangId == cuaHangId);
 
                 if (hoaDonGoc == null) return BadRequest("Không tìm thấy hóa đơn bàn nguồn.");
@@ -383,8 +384,9 @@ namespace POS36.Api.Controllers
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                // Ghi nhận nhật ký hoạt động
-                await _context.LogHoatDongAsync(tuBan.KhuVuc?.ChiNhanhId ?? 0, "Tách bàn", $"Tách bàn từ {tuBan.TenBan} sang {denBan.TenBan}");
+                // Ghi nhận nhật ký hoạt động chi tiết
+                string chiTietCacMon = string.Join(", ", monTach.Select(ct => $"{ct.SoLuong}x {ct.SanPham?.TenSanPham ?? "Món"}"));
+                await _context.LogHoatDongAsync(tuBan.KhuVuc?.ChiNhanhId ?? 0, "Tách bàn", $"Tách bàn từ {tuBan.TenBan} sang {denBan.TenBan}. Món tách: {chiTietCacMon}. Tổng tiền tách: {tongTienTach:N0}đ");
 
                 // Dùng "CapNhatBan" thay vì "CoDonHangMoi" để Bếp KHÔNG hiện "có món mới"
                 if (_hubContext != null)
@@ -791,6 +793,26 @@ namespace POS36.Api.Controllers
             }
         }
 
+        [HttpPost("log-in-bill")]
+        [Authorize(Roles = "ChuCuaHang,Admin,QuanLy,ThuNgan,Order")]
+        public async Task<IActionResult> LogInBill([FromBody] LogInBillRequest request)
+        {
+            if (request == null) return BadRequest("Dữ liệu không hợp lệ.");
+            
+            int chiNhanhId = request.ChiNhanhId;
+            if (chiNhanhId == 0 && request.BanId > 0)
+            {
+                var ban = await _context.Bans.Include(b => b.KhuVuc).FirstOrDefaultAsync(b => b.Id == request.BanId);
+                chiNhanhId = ban?.KhuVuc?.ChiNhanhId ?? 0;
+            }
+
+            string loaiIn = request.LoaiIn ?? "In hóa đơn";
+            string target = !string.IsNullOrEmpty(request.TenBan) ? request.TenBan : (!string.IsNullOrEmpty(request.MaChungTu) ? $"mã HD {request.MaChungTu}" : "bàn chưa rõ");
+
+            await _context.LogHoatDongAsync(chiNhanhId, "In hóa đơn", $"In {loaiIn} cho {target}. Tổng tiền: {request.TongTien:N0}đ");
+            return Ok(new { success = true });
+        }
+
         private async Task<bool> GetThietLapBoolAsync(int cuaHangId, string key, bool defaultValue)
         {
             var tl = await _context.ThietLaps
@@ -798,5 +820,15 @@ namespace POS36.Api.Controllers
             if (tl == null || string.IsNullOrEmpty(tl.DuLieu)) return defaultValue;
             return tl.DuLieu.Equals("true", StringComparison.OrdinalIgnoreCase);
         }
+    }
+
+    public class LogInBillRequest
+    {
+        public int BanId { get; set; }
+        public int ChiNhanhId { get; set; }
+        public string? TenBan { get; set; }
+        public string? MaChungTu { get; set; }
+        public string? LoaiIn { get; set; }
+        public decimal TongTien { get; set; }
     }
 }

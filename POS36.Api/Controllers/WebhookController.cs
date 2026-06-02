@@ -54,10 +54,17 @@ namespace POS36.Api.Controllers
                 int banId = int.Parse(matchBill.Groups[1].Value);
 
                 // Tìm cửa hàng sở hữu bàn này để gửi đúng group
-                var ban = await _context.Bans.FirstOrDefaultAsync(b => b.Id == banId);
+                var ban = await _context.Bans.Include(b => b.KhuVuc).FirstOrDefaultAsync(b => b.Id == banId);
                 var cuaHangId = ban?.CuaHangId ?? 0;
+                int chiNhanhId = ban?.KhuVuc?.ChiNhanhId ?? 0;
 
                 await _hubContext.Clients.Group($"store_{cuaHangId}").SendAsync("ThanhToanQRThanhCong", banId);
+                
+                // Ghi nhận nhật ký chuyển khoản thành công
+                await _context.LogHoatDongAsync(chiNhanhId, "Chuyển khoản thành công",
+                    $"Chuyển khoản tự động thành công cho {ban?.TenBan ?? "Bàn số " + banId}. Số tiền nhận: {payload.transferAmount:N0}đ. Nội dung chuyển: {payload.content}",
+                    "Ngân hàng (SePay Webhook)", "Hệ thống");
+
                 Log.Information("💰 SePay: Nhận {Amount} cho Bàn {BanId} (CuaHang {CuaHangId})", payload.transferAmount, banId, cuaHangId);
                 return Ok(new { success = true, message = $"Đã nhận {payload.transferAmount} cho Bàn {banId}" });
             }
@@ -103,6 +110,11 @@ namespace POS36.Api.Controllers
                 }
 
                 await _context.SaveChangesAsync();
+
+                // Ghi nhận nhật ký SaaS
+                await _context.LogHoatDongAsync(0, "Kích hoạt SaaS", 
+                    $"Cửa hàng {store?.TenCuaHang} kích hoạt thành công gói dịch vụ {lichSu.GoiDichVu?.TenGoi}. Số tiền: {payload.transferAmount:N0}đ",
+                    "Ngân hàng (SePay Webhook)", "Hệ thống", lichSu.CuaHangId);
 
                 Log.Information("🎉 SePay AUTO: Duyệt đơn POS36G{OrderId} — {Amount}đ cho cửa hàng [{CuaHangId}]",
                     orderId, payload.transferAmount, lichSu.CuaHangId);

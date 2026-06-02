@@ -1,9 +1,20 @@
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using POS36.Api.Data;
+using System;
+using System.Threading.Tasks;
 
 namespace POS36.Api.Hubs
 {
     public class KitchenHub : Hub
     {
+        private readonly AppDbContext _context;
+
+        public KitchenHub(AppDbContext context)
+        {
+            _context = context;
+        }
+
         // ===================================================================
         // QUẢN LÝ GROUPS: Mỗi cửa hàng = 1 Group riêng biệt
         // Tránh cross-tenant broadcast (cửa hàng A nhận event của cửa hàng B)
@@ -37,6 +48,9 @@ namespace POS36.Api.Hubs
             var cuaHangId = Context.User?.FindFirst("CuaHangId")?.Value ?? "0";
             await Clients.Group($"store_{cuaHangId}")
                 .SendAsync("CoYeuCauThanhToan", chiNhanhId, tenBan);
+
+            // Ghi nhật ký báo thu ngân
+            await _context.LogHoatDongAsync(chiNhanhId, "Báo thu ngân", $"Yêu cầu thu ngân tính tiền cho {tenBan}");
         }
 
         // ===================================================================
@@ -57,6 +71,12 @@ namespace POS36.Api.Hubs
             var cuaHangId = Context.User?.FindFirst("CuaHangId")?.Value ?? "0";
             await Clients.Group($"store_{cuaHangId}")
                 .SendAsync("NhanYeuCauMoQR", banId, soTien, maChungTu);
+
+            // Tìm chi nhánh của bàn
+            var ban = await _context.Bans.Include(b => b.KhuVuc).FirstOrDefaultAsync(b => b.Id == banId);
+            int chiNhanhId = ban?.KhuVuc?.ChiNhanhId ?? 0;
+            string tenBan = ban?.TenBan ?? $"Bàn {banId}";
+            await _context.LogHoatDongAsync(chiNhanhId, "Tạo mã QR", $"Mở cổng thanh toán chuyển khoản QR cho {tenBan}. Số tiền: {soTien:N0}đ");
         }
 
         // ===================================================================
@@ -67,6 +87,11 @@ namespace POS36.Api.Hubs
             var cuaHangId = Context.User?.FindFirst("CuaHangId")?.Value ?? "0";
             await Clients.Group($"store_{cuaHangId}")
                 .SendAsync("NhanHuyMoQR", banId, lyDo);
+
+            var ban = await _context.Bans.Include(b => b.KhuVuc).FirstOrDefaultAsync(b => b.Id == banId);
+            int chiNhanhId = ban?.KhuVuc?.ChiNhanhId ?? 0;
+            string tenBan = ban?.TenBan ?? $"Bàn {banId}";
+            await _context.LogHoatDongAsync(chiNhanhId, "Hủy QR", $"Hủy hiển thị mã QR thanh toán của {tenBan}. Lý do: {lyDo}");
         }
 
         // ===================================================================
