@@ -103,5 +103,19 @@ namespace POS36.Api.Hubs
             await Clients.Group($"store_{cuaHangId}")
                 .SendAsync("ThanhToanQRThanhCong", banId);
         }
+
+        // ===================================================================
+        // 6. Nhân viên Order gửi yêu cầu in hóa đơn từ xa xuống máy Thu ngân
+        // ===================================================================
+        public async Task GuiYeuCauInBill(int chiNhanhId, int banId, string loaiIn, decimal tongTien)
+        {
+            var cuaHangId = Context.User?.FindFirst("CuaHangId")?.Value ?? "0";
+            await Clients.Group($"store_{cuaHangId}")
+                .SendAsync("CoYeuCauInBillTuXa", chiNhanhId, banId, loaiIn, tongTien);
+
+            var ban = await _context.Bans.FirstOrDefaultAsync(b => b.Id == banId);
+            string tenBan = ban?.TenBan ?? $"Bàn {banId}";
+            await _context.LogHoatDongAsync(chiNhanhId, "Yêu cầu in từ xa", $"Gửi yêu cầu in {loaiIn} cho {tenBan} xuống máy Thu Ngân. Số tiền: {tongTien:N0}đ");
+        }
     }
 }

@@ -157,13 +157,25 @@
               </div>
 
               <!-- NEW Switch 7 -->
-              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="fw-bold text-dark mb-1">Cho phép nhân viên Order tạm in hóa đơn/in thử</h6>
-                  <p class="text-muted mb-0 small">Thêm chức năng in thử hóa đơn tạm tính ngay từ giao diện điện thoại của nhân viên Order.</p>
+              <div class="toggle-item-row py-3 border-bottom d-flex flex-column align-items-stretch">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="fw-bold text-dark mb-1">Cho phép nhân viên Order tạm in hóa đơn/in thử</h6>
+                    <p class="text-muted mb-0 small">Thêm chức năng in thử hóa đơn tạm tính ngay từ giao diện điện thoại của nhân viên Order.</p>
+                  </div>
+                  <div class="form-check form-switch form-switch-lg">
+                    <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_OrderInBillNgay" />
+                  </div>
                 </div>
-                <div class="form-check form-switch form-switch-lg">
-                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_OrderInBillNgay" />
+                <div v-if="cfgBool.POS_OrderInBillNgay" class="mt-3 p-3 rounded bg-white border border-light-subtle row g-2">
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold text-secondary small">Chế độ in hóa đơn của Order:</label>
+                    <select v-model="cfg.POS_OrderInBillCheDo" class="form-select bg-light border-0 text-dark">
+                      <option value="Direct">In trực tiếp từ điện thoại nhân viên</option>
+                      <option value="Remote">Gửi lệnh in về máy Thu Ngân ở quầy</option>
+                      <option value="Ask">Hỏi ý kiến nhân viên mỗi khi in</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -396,6 +408,7 @@ const cfg = reactive({
   Loyalty_TiLeKiem: '10000', Loyalty_TiLeDoiDiem: '100',
   Loyalty_NguongDong: '0', Loyalty_NguongBac: '500', Loyalty_NguongVang: '2000',
   Security_TimeoutPhut: '30',
+  POS_OrderInBillCheDo: 'Ask',
 });
 
 const cfgBool = reactive({
