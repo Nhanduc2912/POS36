@@ -8,7 +8,6 @@
  ██║     ╚██████╔╝██████╔╝ ██████╔╝ ╚██████╔╝
  ╚═╝      ╚═════╝ ╚═════╝  ╚═════╝   ╚═════╝ 
 ```
-# demo commit
 
 # 🍽️ POS36 — Hệ Thống Quản Lý Bán Hàng F&B & Nền Tảng SaaS Đa Chi Nhánh
 
