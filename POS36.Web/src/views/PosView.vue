@@ -220,6 +220,49 @@ onMounted(async () => {
     }, 300);
   });
 
+  // Lắng nghe yêu cầu in hóa đơn từ xa từ điện thoại nhân viên
+  connection.on("CoYeuCauInBillTuXa", async (chiNhanhId, banId, loaiIn, tongTien) => {
+    if (chiNhanhId === globalState.value.activeBranchId && isThuNgan) {
+      try {
+        const res = await axios.get(`/api/HoaDon/ban/${banId}`);
+        if (res.data) {
+          const billData = res.data;
+          const billItems = billData.danhSachMon.map((mon) => ({
+            name: mon.tenSanPham,
+            price: mon.donGia,
+            qty: mon.soLuong,
+          }));
+          
+          const orderToPrint = {
+            tenBan: billData.tenBan,
+            tongTien: billData.tongTien,
+            items: billItems,
+            banId: banId,
+            chiNhanhId: chiNhanhId,
+            loaiIn: `${loaiIn} (In hộ từ Order)`,
+          };
+          
+          printReceipt(orderToPrint, {
+            name: storeInfo.value?.tenCuaHang || "POS36",
+            address: storeInfo.value?.diaChi || "Đà Nẵng",
+            phone: storeInfo.value?.soDienThoai || "0905",
+          });
+
+          swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "info",
+            title: `🔔 Đã in hộ ${loaiIn} cho Bàn ${billData.tenBan}`,
+            showConfirmButton: false,
+            timer: 3000,
+          });
+        }
+      } catch (e) {
+        console.error("Lỗi in hộ từ xa:", e);
+      }
+    }
+  });
+
   await getBranchIdAndFetch();
 
   refreshTimer = setInterval(() => {
