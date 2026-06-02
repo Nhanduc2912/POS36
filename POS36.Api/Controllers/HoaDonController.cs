@@ -143,7 +143,21 @@ namespace POS36.Api.Controllers
                 .ThenInclude(ct => ct.SanPham)
                 .FirstOrDefaultAsync(h => h.BanId == banId && h.TrangThai == "Đang phục vụ" && h.CuaHangId == cuaHangId);
 
-            if (hoaDon == null) return NotFound("Bàn này chưa có hóa đơn mở!");
+            if (hoaDon == null)
+            {
+                // Fallback: Tìm hóa đơn đã thanh toán gần nhất trong vòng 30 phút của bàn này
+                hoaDon = await _context.HoaDons
+                    .Include(h => h.ChiTietHoaDons!)
+                    .ThenInclude(ct => ct.SanPham)
+                    .Where(h => h.BanId == banId && h.TrangThai == "Đã thanh toán" && h.CuaHangId == cuaHangId)
+                    .OrderByDescending(h => h.NgayThanhToan)
+                    .FirstOrDefaultAsync();
+
+                if (hoaDon == null || (DateTime.Now - hoaDon.NgayThanhToan.GetValueOrDefault()).TotalMinutes > 30)
+                {
+                    return NotFound("Bàn này chưa có hóa đơn mở!");
+                }
+            }
 
             var result = new
             {
