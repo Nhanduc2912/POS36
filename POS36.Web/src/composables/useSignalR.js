@@ -9,7 +9,18 @@
 import * as signalR from "@microsoft/signalr";
 import { ref } from "vue";
 
-const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5098";
+let rawBackendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5098";
+
+// Tự động chuyển đổi localhost thành IP LAN thực tế của máy chủ nếu đang kết nối từ xa
+if (rawBackendUrl.includes("localhost") || rawBackendUrl.includes("127.0.0.1")) {
+  const currentHostname = window.location.hostname;
+  if (currentHostname !== "localhost" && currentHostname !== "127.0.0.1") {
+    rawBackendUrl = rawBackendUrl
+      .replace("localhost", currentHostname)
+      .replace("127.0.0.1", currentHostname);
+  }
+}
+const backendUrl = rawBackendUrl;
 
 const connectionStatus = ref("disconnected"); // 'connected' | 'connecting' | 'disconnected'
 

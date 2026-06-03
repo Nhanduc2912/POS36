@@ -6,7 +6,9 @@ import { globalState } from "../store";
 const swal = inject("$swal");
 
 // CHÚ Ý: Đảm bảo port 5098 đúng với port C# đang chạy của em
-const backendUrl = "http://localhost:5098";
+const backendUrl = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+  ? "http://localhost:5098"
+  : `http://${window.location.hostname}:5098`;
 const getImageUrl = (path) => (path ? backendUrl + path : null);
 
 const categories = ref([]);

@@ -231,7 +231,9 @@ const saving = ref(false);
 const showSecret = ref(false);
 const showEmailKey = ref(false);
 const showSmtpPw = ref(false);
-const backendUrl = "http://localhost:5098";
+const backendUrl = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+  ? "http://localhost:5098"
+  : `http://${window.location.hostname}:5098`;
 
 // ===== ACTIVE TAB - driven by route query =====
 const activeTab = ref(route.query.tab || "general");
