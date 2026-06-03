@@ -1405,28 +1405,32 @@ watch(activeRightTab, (newTab) => {
             >
               <div
                 @dblclick="openTable(ban)"
-                class="card border-0 text-white cursor-pointer h-100 shadow-sm"
+                class="card border-0 text-white cursor-pointer shadow-sm pos-table-card"
                 :class="
                   ban.trangThai === 'Trống' ? 'bg-secondary' : 'bg-primary'
                 "
               >
                 <div
-                  class="card-body p-2 d-flex flex-column justify-content-center align-items-center"
+                  class="card-body p-2 d-flex flex-column justify-content-between align-items-center h-100 w-100"
                 >
-                  <h6 class="fw-bold mb-1">{{ ban.tenBan }}</h6>
-                  <div
-                    v-if="ban.trangThai !== 'Trống'"
-                    class="text-center w-100 mt-1 border-top pt-1 border-light border-opacity-25"
-                  >
-                    <small class="d-block fw-bold text-warning"
-                      >{{
-                        ban.tamTinh ? ban.tamTinh.toLocaleString("vi-VN") : "0"
-                      }}đ</small
+                  <div class="d-flex align-items-center justify-content-center flex-grow-1">
+                    <h6 class="fw-bold mb-0 text-center">{{ ban.tenBan }}</h6>
+                  </div>
+                  <div class="w-100 text-center" style="min-height: 38px;">
+                    <div
+                      v-if="ban.trangThai !== 'Trống'"
+                      class="border-top pt-1 border-light border-opacity-25"
                     >
-                    <small class="d-block" style="font-size: 0.75rem"
-                      ><i class="bi bi-clock me-1"></i
-                      >{{ calculateTimeElapsed(ban.timeOpen) }}</small
-                    >
+                      <small class="d-block fw-bold text-warning"
+                        >{{
+                          ban.tamTinh ? ban.tamTinh.toLocaleString("vi-VN") : "0"
+                        }}đ</small
+                      >
+                      <small class="d-block" style="font-size: 0.75rem"
+                        ><i class="bi bi-clock me-1"></i
+                        >{{ calculateTimeElapsed(ban.timeOpen) }}</small
+                      >
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1664,5 +1668,21 @@ watch(activeRightTab, (newTab) => {
 }
 .category-pills::-webkit-scrollbar-track {
   background: transparent;
+}
+.pos-table-card {
+  height: 95px !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
+}
+.pos-table-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+}
+.pos-table-card:active {
+  transform: scale(0.96);
 }
 </style>
