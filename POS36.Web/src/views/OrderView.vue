@@ -56,7 +56,7 @@
             <div
               v-for="ban in tables"
               :key="ban.id"
-              class="table-card position-relative shadow-sm rounded-4 text-center d-flex flex-column justify-content-center p-2 mb-2"
+              class="table-card position-relative shadow-sm rounded-4 text-center d-flex flex-column justify-content-between p-2 mb-0"
               :class="[
                 ban.trangThai === 'Trống'
                   ? 'border border-light bg-white text-dark'
@@ -65,27 +65,31 @@
               ]"
               @click="onTableClick(ban)"
             >
-              <i
-                class="bi"
-                :class="
-                  ban.trangThai === 'Trống'
-                    ? 'bi-circle text-muted fs-4 mb-1'
-                    : 'bi-person-fill text-dark fs-4 mb-1'
-                "
-              ></i>
-              <span class="d-block fw-bold fs-6">{{ ban.tenBan }}</span>
+              <div class="d-flex flex-column justify-content-center align-items-center flex-grow-1">
+                <i
+                  class="bi"
+                  :class="
+                    ban.trangThai === 'Trống'
+                      ? 'bi-circle text-muted fs-4 mb-1'
+                      : 'bi-person-fill text-dark fs-4 mb-1'
+                  "
+                ></i>
+                <span class="d-block fw-bold fs-6">{{ ban.tenBan }}</span>
+              </div>
 
-              <div v-if="ban.trangThai !== 'Trống'" class="mt-1">
-                <span class="d-block text-danger small fw-bold">{{
-                  formatPrice(ban.tamTinh)
-                }}</span>
-                <span
-                  class="d-block text-dark mt-1 fw-bold"
-                  style="font-size: 0.75rem"
-                >
-                  <i class="bi bi-clock"></i>
-                  {{ calculateTimeElapsed(ban.timeOpen) }}
-                </span>
+              <div class="w-100" style="min-height: 38px;">
+                <div v-if="ban.trangThai !== 'Trống'" class="mt-1">
+                  <span class="d-block text-danger small fw-bold">{{
+                    formatPrice(ban.tamTinh)
+                  }}</span>
+                  <span
+                    class="d-block text-dark mt-0 fw-bold"
+                    style="font-size: 0.75rem"
+                  >
+                    <i class="bi bi-clock"></i>
+                    {{ calculateTimeElapsed(ban.timeOpen) }}
+                  </span>
+                </div>
               </div>
 
               <span
@@ -273,56 +277,56 @@
           </div>
 
           <div
-            class="modal-footer border-0 bg-white d-block"
+            class="modal-footer border-0 bg-white d-block px-2 py-2"
             v-if="selectedTable?.trangThai !== 'Trống'"
           >
-            <div class="row w-100 g-2 mx-0">
+            <div class="row w-100 g-1 mx-0">
               <div class="col-6">
                 <button
-                  class="btn btn-outline-info w-100 fw-bold rounded-3"
+                  class="btn btn-outline-info w-100 fw-bold rounded-3 order-action-btn"
                   @click="openMenu"
                 >
-                  <i class="bi bi-cart-plus me-1"></i> GỌI THÊM
+                  <i class="bi bi-cart-plus"></i> Gọi thêm
                 </button>
               </div>
               <div class="col-6">
                 <button
-                  class="btn btn-danger w-100 fw-bold rounded-3"
+                  class="btn btn-danger w-100 fw-bold rounded-3 order-action-btn"
                   @click="requestPayment"
                 >
-                  <i class="bi bi-megaphone me-1"></i> BÁO THU NGÂN
+                  <i class="bi bi-megaphone"></i> Báo thu ngân
                 </button>
               </div>
               
               <!-- THANH TOÁN TRỰC TIẾP & TẠM IN HÓA ĐƠN -->
               <div v-if="settings.POS_OrderThanhToanTienMat" class="col-6">
                 <button
-                  class="btn btn-success w-100 fw-bold rounded-3"
+                  class="btn btn-success w-100 fw-bold rounded-3 order-action-btn"
                   @click="handleOrderThanhToanNgay"
                 >
-                  <i class="bi bi-cash me-1"></i> TIỀN MẶT
+                  <i class="bi bi-cash"></i> Tiền mặt
                 </button>
               </div>
               <div v-if="settings.POS_OrderThanhToanQR" class="col-6">
                 <button
-                  class="btn btn-primary w-100 fw-bold rounded-3"
+                  class="btn btn-primary w-100 fw-bold rounded-3 order-action-btn"
                   @click="handleOrderThanhToanQR"
                 >
-                  <i class="bi bi-qr-code me-1"></i> CHUYỂN KHOẢN QR
+                  <i class="bi bi-qr-code"></i> Chuyển khoản QR
                 </button>
               </div>
               <div v-if="settings.POS_OrderInBillNgay" class="col-12">
                 <button
-                  class="btn btn-warning text-dark w-100 fw-bold rounded-3"
+                  class="btn btn-warning text-dark w-100 fw-bold rounded-3 order-action-btn"
                   @click="handleOrderInBill"
                 >
-                  <i class="bi bi-printer me-1"></i> TẠM IN BILL
+                  <i class="bi bi-printer"></i> Tạm in bill
                 </button>
               </div>
 
               <div class="col-4">
                 <button
-                  class="btn btn-outline-dark w-100 rounded-3 small"
+                  class="btn btn-outline-dark w-100 rounded-3 order-action-btn"
                   @click="handleOrderChuyenBan"
                 >
                   <i class="bi bi-arrow-left-right"></i> Chuyển bàn
@@ -330,7 +334,7 @@
               </div>
               <div class="col-4">
                 <button
-                  class="btn btn-outline-dark w-100 rounded-3 small"
+                  class="btn btn-outline-dark w-100 rounded-3 order-action-btn"
                   @click="handleOrderTachBan"
                 >
                   <i class="bi bi-subtract"></i> Tách bàn
@@ -338,7 +342,7 @@
               </div>
               <div class="col-4">
                 <button
-                  class="btn btn-outline-warning w-100 rounded-3 small fw-bold"
+                  class="btn btn-outline-warning w-100 rounded-3 fw-bold order-action-btn"
                   @click="handleOrderBaoCheBien"
                 >
                   <i class="bi bi-bell-fill"></i> Báo bếp
@@ -1377,9 +1381,10 @@ connection.on("ThanhToanQRThanhCong", (banId) => {
   gap: 15px;
 }
 .table-card {
-  aspect-ratio: 1/1;
+  min-height: 110px;
   cursor: pointer;
   transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  overflow: hidden;
 }
 .table-card:active {
   transform: scale(0.95);
@@ -1409,6 +1414,18 @@ connection.on("ThanhToanQRThanhCong", (banId) => {
     opacity: 1;
     transform: translateY(0);
   }
+}
+.order-action-btn {
+  font-size: 0.8rem !important;
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
 }
 .pulse-animation {
   animation: pulse 2s infinite;
