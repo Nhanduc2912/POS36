@@ -196,7 +196,7 @@ const isLoadingPwd = ref(false);
 const fetchProfile = async () => {
   try {
     const token = localStorage.getItem("pos36_token");
-    const res = await axios.get("http://localhost:5098/api/Profile", {
+    const res = await axios.get("/api/Profile", {
       headers: { Authorization: `Bearer ${token}` },
     });
     profile.value = res.data;
@@ -216,7 +216,7 @@ const updateProfile = async () => {
   try {
     const token = localStorage.getItem("pos36_token");
     await axios.put(
-      "http://localhost:5098/api/Profile/update-info",
+      "/api/Profile/update-info",
       {
         fullName: profile.value.fullName,
         email: profile.value.email,
@@ -254,7 +254,7 @@ const changePassword = async () => {
   try {
     const token = localStorage.getItem("pos36_token");
     const res = await axios.post(
-      "http://localhost:5098/api/Profile/change-password",
+      "/api/Profile/change-password",
       {
         oldPassword: pwdForm.value.oldPassword,
         newPassword: pwdForm.value.newPassword,

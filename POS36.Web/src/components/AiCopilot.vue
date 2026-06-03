@@ -129,7 +129,7 @@ const isTyping = ref(false); // Khóa nút bấm khi AI đang gõ
 const chatBody = ref(null);
 const bubbleRef = ref(null);
 
-const backendUrl = "http://localhost:5098";
+const backendUrl = "";
 
 // ==========================================
 // THUẬT TOÁN GÕ CHỮ (TYPEWRITER EFFECT)
