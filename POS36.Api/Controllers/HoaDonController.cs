@@ -90,8 +90,7 @@ namespace POS36.Api.Controllers
 
                     decimal currentGiaVon = await _context.ChiTietPhieuNhaps
                         .Where(ct => ct.SanPhamId == mon.SanPhamId && ct.PhieuNhap != null && ct.PhieuNhap.ChiNhanhId == hoaDon.ChiNhanhId && ct.PhieuNhap.TrangThai == "Hoàn thành")
-                        .Select(ct => ct.DonGiaNhap)
-                        .Cast<decimal?>()
+                        .Select(ct => (decimal?)ct.DonGiaNhap)
                         .AverageAsync() ?? 0;
 
                     var chiTiet = new ChiTietHoaDon
