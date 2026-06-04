@@ -756,8 +756,7 @@ const thucHienThanhToanChinhThuc = async (banId, phuongThuc, diemSuDung = 0) => 
 
     if (activeTable.value && activeTable.value.id === banId) {
       ordersByTable.value[banId] = [];
-      activeTable.value.trangThai = "Trống";
-      activeTable.value.timeOpen = null;
+      activeTable.value = null;
       activeRightTab.value = "tables";
       clearCustomer();
     }
