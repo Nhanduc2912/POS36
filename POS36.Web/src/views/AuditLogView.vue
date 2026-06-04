@@ -147,7 +147,7 @@
 
               <!-- Hành động -->
               <td>
-                <span class="fw-bold text-uppercase px-3 py-1 rounded-3 d-inline-block text-center shadow-xs" :class="getActionBadgeClass(log.hanhDong)" style="font-size:0.75rem; min-width: 120px;">
+                <span class="fw-bold text-uppercase px-3 py-1 rounded-3 d-inline-block text-center shadow-xs" :style="getActionBadgeStyle(log.hanhDong)" style="font-size:0.75rem; min-width: 120px;">
                   {{ log.hanhDong }}
                 </span>
               </td>
@@ -307,26 +307,54 @@ const getSelectedActionsString = () => {
   return list.join(",");
 };
 
-const getActionBadgeClass = (action) => {
+const getActionBadgeStyle = (action) => {
   if (action === 'Thanh toán' || action === 'Chuyển khoản thành công') {
-    return 'bg-success bg-opacity-10 text-success border border-success border-opacity-25';
+    return {
+      backgroundColor: 'rgba(25, 135, 84, 0.1)',
+      color: '#198754',
+      border: '1px solid rgba(25, 135, 84, 0.25)'
+    };
   }
   if (action === 'Gọi món') {
-    return 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25';
+    return {
+      backgroundColor: 'rgba(13, 110, 253, 0.1)',
+      color: '#0d6efd',
+      border: '1px solid rgba(13, 110, 253, 0.25)'
+    };
   }
   if (action === 'In hóa đơn') {
-    return 'bg-info bg-opacity-10 text-info border border-info border-opacity-25';
+    return {
+      backgroundColor: 'rgba(13, 202, 240, 0.1)',
+      color: '#0aa2c0',
+      border: '1px solid rgba(13, 202, 240, 0.25)'
+    };
   }
   if (action === 'Chuyển bàn' || action === 'Tách bàn' || action === 'Ghép bàn') {
-    return 'bg-dark bg-opacity-10 text-dark border border-dark border-opacity-25';
+    return {
+      backgroundColor: 'rgba(33, 37, 41, 0.1)',
+      color: '#212529',
+      border: '1px solid rgba(33, 37, 41, 0.25)'
+    };
   }
   if (action === 'Hủy món' || action === 'Hủy QR') {
-    return 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25';
+    return {
+      backgroundColor: 'rgba(220, 53, 69, 0.1)',
+      color: '#dc3545',
+      border: '1px solid rgba(220, 53, 69, 0.25)'
+    };
   }
   if (action === 'Báo bếp' || action === 'Báo xong món' || action === 'Báo thu ngân' || action === 'Tạo mã QR') {
-    return 'bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25';
+    return {
+      backgroundColor: 'rgba(255, 193, 7, 0.1)',
+      color: '#b58100',
+      border: '1px solid rgba(255, 193, 7, 0.25)'
+    };
   }
-  return 'bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25';
+  return {
+    backgroundColor: 'rgba(108, 117, 125, 0.1)',
+    color: '#6c757d',
+    border: '1px solid rgba(108, 117, 125, 0.25)'
+  };
 };
 
 const formatDateTime = (dateStr) => {
