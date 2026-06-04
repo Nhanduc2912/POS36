@@ -169,10 +169,18 @@
 
                       <button
                         @click="exportExcel(voucherDetails)"
-                        class="btn btn-primary btn-sm mb-2 fw-bold rounded-0"
+                        class="btn btn-primary btn-sm mb-2 me-2 fw-bold rounded-0"
                       >
                         <i class="bi bi-file-earmark-excel"></i> EXPORT TO EXCEL
                       </button>
+
+                      <router-link
+                        v-if="voucherDetails.trangThai === 'Đang xử lý'"
+                        :to="`/admin/inventory-create?id=${voucherDetails.id}`"
+                        class="btn btn-warning text-white btn-sm mb-2 fw-bold rounded-0"
+                      >
+                        <i class="bi bi-play-circle"></i> XỬ LÝ TIẾP
+                      </router-link>
 
                       <table
                         class="table table-sm table-bordered bg-white mb-0"

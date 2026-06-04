@@ -4,7 +4,7 @@
       class="bg-white p-3 border-bottom d-flex align-items-center justify-content-between shadow-sm z-1"
     >
       <h5 class="mb-0 text-danger fw-bold text-uppercase">
-        Thêm mới phiếu kiểm kê
+        {{ isEditMode ? "Cập nhật phiếu kiểm kê" : "Thêm mới phiếu kiểm kê" }}
       </h5>
       <span class="badge bg-warning text-dark fs-6 px-3"
         ><i class="bi bi-geo-alt-fill"></i> Nhánh hiện tại</span
@@ -177,7 +177,7 @@
           </div>
           <div class="d-flex justify-content-between border-bottom pb-2 mb-2">
             <span class="fw-bold">Trạng thái</span>
-            <span class="badge bg-primary">Đang xử lý</span>
+            <span class="badge" :class="statusPhieu === 'Hoàn thành' ? 'bg-success' : 'bg-warning text-dark'">{{ statusPhieu }}</span>
           </div>
           <div class="d-flex justify-content-between">
             <span class="fw-bold">Tổng số lượng kiểm</span>
@@ -186,21 +186,26 @@
         </div>
 
         <div
-          class="p-3 bg-white border-top d-flex flex-wrap gap-2 justify-content-end"
+          class="p-3 bg-white border-top d-flex flex-column gap-2"
         >
           <button
-            class="btn btn-success fw-bold flex-grow-1"
-            @click="submitPhieu"
+            class="btn btn-success fw-bold w-100 py-2"
+            @click="savePhieu('Hoàn thành')"
           >
-            <i class="bi bi-check2-circle"></i> Hoàn thành
+            <i class="bi bi-check2-circle"></i> HOÀN THÀNH
           </button>
-          <div class="w-100 d-flex mt-1">
-            <router-link
-              to="/admin/inventory"
-              class="btn btn-warning text-white fw-bold w-100"
-              ><i class="bi bi-chevron-double-left"></i> Thoát</router-link
-            >
-          </div>
+          <button
+            v-if="statusPhieu !== 'Hoàn thành'"
+            class="btn btn-warning text-white fw-bold w-100 py-2"
+            @click="savePhieu('Đang xử lý')"
+          >
+            <i class="bi bi-save"></i> LƯU NHÁP
+          </button>
+          <router-link
+            to="/admin/inventory"
+            class="btn btn-secondary fw-bold w-100 py-2 mt-1"
+            ><i class="bi bi-x-lg"></i> HỦY / THOÁT</router-link
+          >
         </div>
       </div>
     </div>
@@ -209,11 +214,12 @@
 
 <script setup>
 import { ref, onMounted, computed, inject } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import axios from "axios";
 import { globalState } from "../store";
 
 const router = useRouter();
+const route = useRoute();
 const swal = inject("$swal");
 
 const products = ref([]);
@@ -222,6 +228,9 @@ const showDropdown = ref(false);
 
 const checkList = ref([]);
 const ghiChuPhieu = ref("");
+const isEditMode = ref(false);
+const voucherId = ref(null);
+const statusPhieu = ref("Đang xử lý");
 
 // Tính độ lệch: Lệch = SL Kiểm kê - Tồn hệ thống
 const getLech = (item) => item.soLuongKiemKe - item.tonKhoHienTai;
@@ -252,7 +261,35 @@ const fetchProducts = async () => {
   }
 };
 
-onMounted(fetchProducts);
+const loadEditData = async (id) => {
+  try {
+    const res = await axios.get(`/api/KiemKe/${id}`);
+    const data = res.data;
+    voucherId.value = data.id;
+    isEditMode.value = true;
+    ghiChuPhieu.value = data.ghiChu || "";
+    statusPhieu.value = data.trangThai || "Đang xử lý";
+    
+    checkList.value = data.chiTiets.map(c => ({
+      sanPhamId: c.sanPhamId,
+      maSanPham: c.maSanPham,
+      tenSanPham: c.tenSanPham,
+      tonKhoHienTai: c.tonKhoHienTai,
+      soLuongKiemKe: c.soLuongKiemKe
+    }));
+  } catch (e) {
+    console.error("Lỗi khi tải phiếu kiểm kê", e);
+    swal.fire("Lỗi", "Không thể tải thông tin phiếu kiểm kê này", "error");
+  }
+};
+
+onMounted(async () => {
+  await fetchProducts();
+  const id = route.query.id;
+  if (id) {
+    await loadEditData(id);
+  }
+});
 
 const hideDropdownDelay = () => {
   setTimeout(() => {
@@ -276,8 +313,8 @@ const addToCheckList = (prod) => {
   showDropdown.value = false;
 };
 
-// Hàm submit Phiếu (Lưu tạm hoặc Hoàn thành)
-const submitPhieu = async () => {
+// Hàm lưu Phiếu (Lưu nháp hoặc Hoàn thành)
+const savePhieu = async (trangThai) => {
   if (checkList.value.length === 0)
     return swal.fire(
       "Cảnh báo",
@@ -285,21 +322,33 @@ const submitPhieu = async () => {
       "warning",
     );
 
-  const result = await swal.fire({
-    title: "Chốt cân bằng kho?",
-    text: "Hệ thống sẽ cập nhật lại Tồn kho thực tế theo số lượng bạn vừa kiểm. Hành động này không thể hoàn tác!",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonText: "Đồng ý cân bằng",
-  });
-  const isConfirm = result.isConfirmed;
+  let title = "Lưu nháp?";
+  let text = "Hệ thống sẽ lưu tạm kết quả kiểm kê này để bạn tiếp tục xử lý sau.";
+  let icon = "question";
+  let confirmBtnText = "Đồng ý lưu nháp";
 
-  if (isConfirm) {
+  if (trangThai === "Hoàn thành") {
+    title = "Chốt cân bằng kho?";
+    text = "Hệ thống sẽ cập nhật lại Tồn kho thực tế theo số lượng bạn vừa kiểm. Hành động này không thể hoàn tác!";
+    icon = "warning";
+    confirmBtnText = "Đồng ý cân bằng";
+  }
+
+  const result = await swal.fire({
+    title,
+    text,
+    icon,
+    showCancelButton: true,
+    confirmButtonText: confirmBtnText,
+    confirmButtonColor: trangThai === "Hoàn thành" ? "#28a745" : "#ffc107",
+  });
+
+  if (result.isConfirmed) {
     try {
       const payload = {
         chiNhanhId: globalState.value.activeBranchId || 0,
         ghiChu: ghiChuPhieu.value,
-        trangThai: "Hoàn thành",
+        trangThai: trangThai,
         chiTiets: checkList.value.map((c) => ({
           sanPhamId: c.sanPhamId,
           tonKhoHienTai: c.tonKhoHienTai,
@@ -307,19 +356,23 @@ const submitPhieu = async () => {
         })),
       };
 
-      await axios.post("/api/KiemKe", payload);
+      if (isEditMode.value && voucherId.value) {
+        await axios.put(`/api/KiemKe/${voucherId.value}`, payload);
+      } else {
+        await axios.post("/api/KiemKe", payload);
+      }
 
       swal.fire({
         toast: true,
         position: "top-end",
         icon: "success",
-        title: "Đã Cân Bằng Kho!",
+        title: trangThai === "Hoàn thành" ? "Đã Cân Bằng Kho!" : "Đã lưu phiếu nháp thành công!",
         timer: 1500,
         showConfirmButton: false,
       });
       router.push("/admin/inventory"); // Quay lại trang danh sách
     } catch (e) {
-      swal.fire("Lỗi", e.response?.data || "Không thể lưu phiếu", "error");
+      swal.fire("Lỗi", e.response?.data?.message || e.response?.data || "Không thể lưu phiếu", "error");
     }
   }
 };

@@ -201,5 +201,77 @@ namespace POS36.Api.Controllers
             if (phieu == null) return NotFound("Không tìm thấy phiếu!");
             return Ok(phieu);
         }
+
+        // ==========================================
+        // 5. CẬP NHẬT PHIẾU KIỂM KÊ (PUT api/KiemKe/{id})
+        // ==========================================
+        [HttpPut("{id}")]
+        public async Task<IActionResult> CapNhatPhieuKiemKe(int id, [FromBody] TaoPhieuKiemKeDto request)
+        {
+            int cuaHangId = GetCuaHangId();
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                var phieu = await _context.PhieuKiemKes
+                    .Include(p => p.ChiTiets)
+                    .FirstOrDefaultAsync(p => p.Id == id && p.CuaHangId == cuaHangId);
+
+                if (phieu == null) return NotFound("Không tìm thấy phiếu kiểm kê!");
+
+                if (phieu.TrangThai == "Hoàn thành")
+                    return BadRequest("Phiếu kiểm kê này đã hoàn thành, không thể sửa đổi!");
+
+                // Cập nhật thông tin chung
+                phieu.GhiChu = request.GhiChu;
+                phieu.TrangThai = request.TrangThai;
+
+                // Xóa chi tiết cũ
+                _context.ChiTietKiemKes.RemoveRange(phieu.ChiTiets);
+
+                // Thêm chi tiết mới và cân bằng kho nếu Hoàn thành
+                foreach (var item in request.ChiTiets)
+                {
+                    _context.ChiTietKiemKes.Add(new ChiTietKiemKe
+                    {
+                        PhieuKiemKeId = phieu.Id,
+                        SanPhamId = item.SanPhamId,
+                        TonKhoHienTai = item.TonKhoHienTai,
+                        SoLuongKiemKe = item.SoLuongKiemKe
+                    });
+
+                    if (request.TrangThai == "Hoàn thành")
+                    {
+                        var tonKho = await _context.TonKhos
+                            .FirstOrDefaultAsync(t => t.SanPhamId == item.SanPhamId && t.ChiNhanhId == phieu.ChiNhanhId);
+
+                        if (tonKho == null)
+                        {
+                            _context.TonKhos.Add(new TonKho
+                            {
+                                SanPhamId = item.SanPhamId,
+                                ChiNhanhId = phieu.ChiNhanhId,
+                                SoLuong = item.SoLuongKiemKe
+                            });
+                        }
+                        else
+                        {
+                            tonKho.SoLuong = item.SoLuongKiemKe;
+                        }
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Ok(new { message = "Cập nhật phiếu kiểm kê thành công!" });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, "Lỗi khi cập nhật phiếu: " + ex.Message);
+            }
+        }
     }
 }
