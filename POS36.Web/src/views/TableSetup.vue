@@ -214,16 +214,34 @@ onMounted(() => fetchAreas());
 
 // --- THÊM CHI NHÁNH & KHU VỰC ---
 const handleAddBranch = async () => {
-  const { value: name } = await swal.fire({
+  const result = await swal.fire({
     title: "Thêm Chi Nhánh Mới",
-    input: "text",
-    inputPlaceholder: "VD: Cơ sở 1...",
+    html: `
+      <div class="alert alert-warning text-start mb-3" style="font-size: 0.85rem; border-left: 4px solid #ffc107; background-color: #fff3cd; color: #664d03; padding: 10px; border-radius: 6px;">
+        <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+        <strong>LƯU Ý:</strong> Chi nhánh sau khi tạo <strong>không thể xóa</strong> để đảm bảo tính chính xác cho các báo cáo doanh thu và lịch sử hóa đơn. Vui lòng kiểm tra kỹ thông tin!
+      </div>
+      <input id="swal-branch-name" class="form-control" placeholder="Tên chi nhánh (VD: Cơ sở 1...)">
+    `,
     showCancelButton: true,
+    confirmButtonText: "Xác nhận tạo",
+    cancelButtonText: "Hủy",
+    confirmButtonColor: "#dc3545",
+    preConfirm: () => {
+      const name = document.getElementById("swal-branch-name").value.trim();
+      if (!name) {
+        swal.showValidationMessage("Tên chi nhánh không được để trống!");
+        return false;
+      }
+      return name;
+    }
   });
-  if (name) {
+
+  if (result.isConfirmed && result.value) {
+    const name = result.value;
     try {
       await axios.post("/api/ChiNhanh", { tenChiNhanh: name });
-      swal.fire("Thành công", "Đã thêm chi nhánh", "success");
+      swal.fire("Thành công", "Đã thêm chi nhánh mới!", "success");
       window.location.reload();
     } catch (e) {
       swal.fire("Lỗi", "Không thể lưu!", "error");
@@ -234,13 +252,32 @@ const handleAddBranch = async () => {
 const handleAddArea = async () => {
   if (!globalState.value.activeBranchId)
     return swal.fire("Lỗi", "Vui lòng thêm Chi nhánh trước!", "warning");
-  const { value: name } = await swal.fire({
-    title: "Thêm Khu Vực",
-    input: "text",
-    inputPlaceholder: "VD: Tầng 1...",
+
+  const result = await swal.fire({
+    title: "Thêm Khu Vực Mới",
+    html: `
+      <div class="alert alert-warning text-start mb-3" style="font-size: 0.85rem; border-left: 4px solid #ffc107; background-color: #fff3cd; color: #664d03; padding: 10px; border-radius: 6px;">
+        <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+        <strong>CẢNH BÁO:</strong> Khu vực sau khi tạo <strong>không thể xóa</strong> để bảo vệ tính toàn vẹn dữ liệu bàn ăn và đơn hàng. Vui lòng xác nhận trước khi lưu!
+      </div>
+      <input id="swal-area-name" class="form-control" placeholder="Tên khu vực (VD: Tầng 1, Sân vườn...)">
+    `,
     showCancelButton: true,
+    confirmButtonText: "Xác nhận tạo",
+    cancelButtonText: "Hủy",
+    confirmButtonColor: "#dc3545",
+    preConfirm: () => {
+      const name = document.getElementById("swal-area-name").value.trim();
+      if (!name) {
+        swal.showValidationMessage("Tên khu vực không được để trống!");
+        return false;
+      }
+      return name;
+    }
   });
-  if (name) {
+
+  if (result.isConfirmed && result.value) {
+    const name = result.value;
     try {
       await axios.post("/api/KhuVuc", {
         chiNhanhId: globalState.value.activeBranchId,
