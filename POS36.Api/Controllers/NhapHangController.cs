@@ -142,6 +142,7 @@ namespace POS36.Api.Controllers
                 // Lập phiếu chi nếu có thanh toán tiền (Đã bỏ NguoiNopNhan = NCC)
                 if (request.TrangThai == "Hoàn thành" && request.TienThanhToan > 0)
                 {
+                    var (supplier, _) = ParseGhiChu(request.GhiChu);
                     _context.PhieuThuChis.Add(new PhieuThuChi
                     {
                         CuaHangId = cuaHangId,
@@ -149,7 +150,7 @@ namespace POS36.Api.Controllers
                         MaChungTu = $"PC{DateTime.Now:ddMM}-{new Random().Next(1000, 9999)}",
                         LoaiPhieu = "Chi",
                         PhuongThuc = "Tiền mặt",
-                        NguoiNopNhan = "Nhà cung cấp lẻ", // Ghi chung chung
+                        NguoiNopNhan = supplier, // SỬ DỤNG NHÀ CUNG CẤP TỪ GHI CHÚ
                         HangMuc = "Chi trả tiền nhập hàng",
                         LyDo = $"Thanh toán cho phiếu nhập {phieu.MaChungTu}",
                         GiaTri = (double)request.TienThanhToan,
@@ -222,6 +223,7 @@ namespace POS36.Api.Controllers
                 decimal tongTienPhieu = phieu.ChiTiets.Sum(c => c.SoLuong * c.DonGiaNhap);
                 if (tongTienPhieu > 0)
                 {
+                    var (supplier, _) = ParseGhiChu(phieu.GhiChu);
                     _context.PhieuThuChis.Add(new PhieuThuChi
                     {
                         CuaHangId = cuaHangId,
@@ -229,7 +231,7 @@ namespace POS36.Api.Controllers
                         MaChungTu = $"PC{DateTime.Now:ddMM}-{new Random().Next(1000, 9999)}",
                         LoaiPhieu = "Chi",
                         PhuongThuc = "Tiền mặt",
-                        NguoiNopNhan = "Nhà cung cấp lẻ",
+                        NguoiNopNhan = supplier, // SỬ DỤNG NHÀ CUNG CẤP TỪ GHI CHÚ
                         HangMuc = "Chi trả tiền nhập hàng",
                         LyDo = $"Xác nhận và thanh toán phiếu nhập {phieu.MaChungTu}",
                         GiaTri = (double)tongTienPhieu,
@@ -251,6 +253,29 @@ namespace POS36.Api.Controllers
                 await transaction.RollbackAsync();
                 return StatusCode(500, "Lỗi khi xác nhận phiếu: " + ex.Message);
             }
+        }
+
+        private (string Supplier, string Notes) ParseGhiChu(string ghiChu)
+        {
+            if (string.IsNullOrEmpty(ghiChu))
+            {
+                return ("Nhà cung cấp lẻ", string.Empty);
+            }
+
+            if (ghiChu.StartsWith("Nhà CC:") && ghiChu.Contains("| Ghi chú:"))
+            {
+                int startCc = "Nhà CC:".Length;
+                int endCc = ghiChu.IndexOf("| Ghi chú:");
+                if (endCc > startCc)
+                {
+                    string supplier = ghiChu.Substring(startCc, endCc - startCc).Trim();
+                    string notes = ghiChu.Substring(endCc + "| Ghi chú:".Length).Trim();
+                    if (string.IsNullOrEmpty(supplier)) supplier = "Nhà cung cấp lẻ";
+                    return (supplier, notes);
+                }
+            }
+            
+            return ("Nhà cung cấp lẻ", ghiChu);
         }
     }
 }

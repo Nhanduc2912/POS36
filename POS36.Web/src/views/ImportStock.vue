@@ -35,16 +35,29 @@
             <label class="form-label small fw-bold text-secondary"
               >Thời gian</label
             >
-            <input
-              type="date"
-              class="form-control form-control-sm mb-2"
-              v-model="filter.startDate"
-            />
-            <input
-              type="date"
-              class="form-control form-control-sm"
-              v-model="filter.endDate"
-            />
+            <select class="form-select form-select-sm mb-2" v-model="datePreset">
+              <option value="today">Hôm nay</option>
+              <option value="1day">1 ngày trước (Hôm qua)</option>
+              <option value="3days">3 ngày trước</option>
+              <option value="1month">1 tháng trước</option>
+              <option value="custom">Tùy chỉnh</option>
+            </select>
+            <div v-if="datePreset === 'custom'" class="d-flex gap-2 align-items-center">
+              <input
+                type="date"
+                class="form-control form-control-sm"
+                v-model="filter.startDate"
+              />
+              <span class="small text-muted">đến</span>
+              <input
+                type="date"
+                class="form-control form-control-sm"
+                v-model="filter.endDate"
+              />
+            </div>
+            <div v-else class="text-muted small ps-1" style="font-size: 0.75rem;">
+              Khoảng lọc: {{ formatDate(filter.startDate) }} - {{ formatDate(filter.endDate) }}
+            </div>
           </div>
 
           <div class="mb-3">
@@ -120,6 +133,16 @@
               <tr v-if="expandedRowId === p.id" class="bg-light detail-row">
                 <td colspan="6" class="p-0 border-start border-4 border-danger">
                   <div class="p-3">
+                    <div class="mb-3 d-flex flex-wrap gap-4 bg-white p-2.5 rounded border">
+                      <div>
+                        <span class="text-secondary fw-bold small">Nhà cung cấp:</span>
+                        <span class="ms-2 fw-bold text-dark">{{ parseNhaCungCap(p.ghiChu) }}</span>
+                      </div>
+                      <div>
+                        <span class="text-secondary fw-bold small">Ghi chú:</span>
+                        <span class="ms-2 text-dark">{{ parseGhiChuOnly(p.ghiChu) || '---' }}</span>
+                      </div>
+                    </div>
                     <h6 class="fw-bold mb-3">CHI TIẾT MẶT HÀNG</h6>
                     <table
                       class="table table-sm table-white table-bordered bg-white mb-0"
@@ -165,11 +188,12 @@ import { globalState } from "../store";
 const imports = ref([]);
 const loading = ref(false);
 const expandedRowId = ref(null);
+const datePreset = ref("1month");
 
 // Bộ lọc
 const filter = ref({
   search: "",
-  startDate: new Date(new Date().setDate(1)).toISOString().split("T")[0], // Mùng 1 đầu tháng
+  startDate: new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString().split("T")[0], // Mặc định 1 tháng trước
   endDate: new Date().toISOString().split("T")[0], // Hôm nay
   status: "",
 });
@@ -181,8 +205,19 @@ const formatDate = (dateString) =>
 
 // Backend lưu NCC vào ghi chú, ta tách ra để hiển thị
 const parseNhaCungCap = (ghiChu) => {
-  if (!ghiChu || !ghiChu.includes("|")) return "---";
-  return ghiChu.split(" | ")[0].replace("Nhà CC: ", "");
+  if (!ghiChu) return "Nhà cung cấp lẻ";
+  if (ghiChu.startsWith("Nhà CC:") && ghiChu.includes(" | Ghi chú:")) {
+    return ghiChu.split(" | Ghi chú:")[0].replace("Nhà CC: ", "") || "Nhà cung cấp lẻ";
+  }
+  return "Nhà cung cấp lẻ";
+};
+
+const parseGhiChuOnly = (ghiChu) => {
+  if (!ghiChu) return "";
+  if (ghiChu.startsWith("Nhà CC:") && ghiChu.includes(" | Ghi chú:")) {
+    return ghiChu.split(" | Ghi chú:")[1] || "";
+  }
+  return ghiChu;
 };
 
 // GỌI API LẤY DANH SÁCH (Ráp vào API thật của em)
@@ -206,6 +241,36 @@ const fetchImports = async () => {
 const toggleDetail = (id) => {
   expandedRowId.value = expandedRowId.value === id ? null : id;
 };
+
+// Watch preset thay đổi
+watch(datePreset, (newVal) => {
+  if (newVal === "custom") return;
+  
+  const today = new Date();
+  const endDateStr = today.toISOString().split("T")[0];
+  let startDateStr = endDateStr;
+  
+  if (newVal === "today") {
+    startDateStr = endDateStr;
+  } else if (newVal === "1day") {
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    startDateStr = yesterday.toISOString().split("T")[0];
+  } else if (newVal === "3days") {
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(today.getDate() - 3);
+    startDateStr = threeDaysAgo.toISOString().split("T")[0];
+  } else if (newVal === "1month") {
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(today.getMonth() - 1);
+    startDateStr = oneMonthAgo.toISOString().split("T")[0];
+  }
+  
+  filter.value.startDate = startDateStr;
+  filter.value.endDate = endDateStr;
+  
+  fetchImports();
+});
 
 // Tự động load lại khi đổi chi nhánh hoặc đổi status trên bộ lọc
 watch(() => globalState.value.activeBranchId, fetchImports);

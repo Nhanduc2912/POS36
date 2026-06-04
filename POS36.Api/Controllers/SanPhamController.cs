@@ -53,9 +53,14 @@ namespace POS36.Api.Controllers
                 s.GiaBan,
                 s.TrangThai,
                 s.DanhMucId,
-                TenDanhMuc = s.DanhMuc.TenDanhMuc,
+                TenDanhMuc = s.DanhMuc != null ? s.DanhMuc.TenDanhMuc : "Khác",
 
                 HinhAnh = s.HinhAnh, // <--- THÊM ĐÚNG DÒNG NÀY VÀO ĐÂY LÀ XONG
+                GiaVon = _context.ChiTietPhieuNhaps
+                            .Where(ct => ct.SanPhamId == s.Id && ct.PhieuNhap != null && ct.PhieuNhap.ChiNhanhId == chiNhanhId && ct.PhieuNhap.TrangThai == "Hoàn thành")
+                            .Select(ct => ct.DonGiaNhap)
+                            .Cast<decimal?>()
+                            .Average() ?? 0,
                 // Tìm tồn kho của sản phẩm này tại chi nhánh đang chọn, nếu không có thì trả về 0
                 TonKho = _context.TonKhos
                             .Where(t => t.SanPhamId == s.Id && t.ChiNhanhId == chiNhanhId)

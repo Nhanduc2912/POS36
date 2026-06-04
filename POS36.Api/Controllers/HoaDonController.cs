@@ -88,12 +88,19 @@ namespace POS36.Api.Controllers
                     if (tonKho != null && tonKho.SoLuong < mon.SoLuong)
                         throw new Exception($"'{sanPham.TenSanPham}' chỉ còn {tonKho.SoLuong} trong kho, không đủ để gọi {mon.SoLuong}!");
 
+                    decimal currentGiaVon = await _context.ChiTietPhieuNhaps
+                        .Where(ct => ct.SanPhamId == mon.SanPhamId && ct.PhieuNhap != null && ct.PhieuNhap.ChiNhanhId == hoaDon.ChiNhanhId && ct.PhieuNhap.TrangThai == "Hoàn thành")
+                        .Select(ct => ct.DonGiaNhap)
+                        .Cast<decimal?>()
+                        .AverageAsync() ?? 0;
+
                     var chiTiet = new ChiTietHoaDon
                     {
                         HoaDonId = hoaDon.Id,
                         SanPhamId = mon.SanPhamId,
                         SoLuong = mon.SoLuong,
                         DonGia = sanPham.GiaBan,
+                        GiaVon = currentGiaVon,
                         GhiChu = mon.GhiChu ?? "",
                         TrangThaiMon = "Chờ chế biến"
                     };

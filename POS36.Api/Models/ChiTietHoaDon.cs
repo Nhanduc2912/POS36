@@ -11,6 +11,7 @@ namespace POS36.Api.Models
 
         public int SoLuong { get; set; }
         public decimal DonGia { get; set; }
+        public decimal GiaVon { get; set; } // Giá vốn lưu lại tại thời điểm bán
         public string GhiChu { get; set; } = string.Empty; // Ít đá, không hành...
         public string TrangThaiMon { get; set; } = "Chờ chế biến"; // Chờ chế biến, Đang làm, Đã xong, Đã giao
 

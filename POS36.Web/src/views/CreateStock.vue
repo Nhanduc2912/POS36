@@ -149,6 +149,18 @@
 
           <div class="mb-3 mt-3">
             <label class="form-label small text-secondary fw-bold"
+              >Nhà cung cấp</label
+            >
+            <input
+              type="text"
+              class="form-control form-control-sm shadow-none"
+              placeholder="VD: Công ty nước giải khát..."
+              v-model="form.nhaCungCap"
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small text-secondary fw-bold"
               >Ghi chú phiếu nhập</label
             >
             <textarea
@@ -227,7 +239,7 @@ const searchQuery = ref("");
 const showDropdown = ref(false);
 
 const importList = ref([]);
-const form = ref({ ghiChu: "", tienThanhToan: 0 });
+const form = ref({ nhaCungCap: "", ghiChu: "", tienThanhToan: 0 });
 
 const currentDate = new Date().toLocaleString("vi-VN");
 const formatPrice = (price) =>
@@ -354,10 +366,10 @@ const savePhieu = async (trangThai) => {
 
   if (isConfirmed) {
     try {
+      const packedGhiChu = `Nhà CC: ${form.value.nhaCungCap || ""} | Ghi chú: ${form.value.ghiChu || ""}`;
       const payload = {
         chiNhanhId: globalState.value.activeBranchId || 0,
-        nhaCungCap: "",
-        ghiChu: form.value.ghiChu,
+        ghiChu: packedGhiChu,
         trangThai: trangThai,
         tienThanhToan: form.value.tienThanhToan,
         // Gửi danh sách đã lọc (loại bỏ các món = 0)

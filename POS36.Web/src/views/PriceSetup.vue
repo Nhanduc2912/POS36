@@ -91,7 +91,7 @@ const exportToExcel = () => {
   filteredProducts.value.forEach((prod) => {
     const maHangHoa = `HH-00${prod.id}`;
     const tenSanPham = `"${prod.tenSanPham}"`; // Wrap in quotes to handle commas
-    const giaVon = "0";
+    const giaVon = prod.giaVon || 0;
     const giaBan = prod.giaBan;
     
     csvContent += `${maHangHoa},${tenSanPham},${giaVon},${giaBan}\n`;
@@ -191,7 +191,7 @@ const exportToExcel = () => {
                   <td class="ps-4 fw-bold text-muted">HH-00{{ prod.id }}</td>
                   <td class="fw-bold text-dark">{{ prod.tenSanPham }}</td>
 
-                  <td class="text-end text-muted">0</td>
+                  <td class="text-end text-muted">{{ prod.giaVon ? prod.giaVon.toLocaleString("vi-VN") : "0" }}</td>
 
                   <td class="text-end pe-4">
                     <div
