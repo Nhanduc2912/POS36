@@ -717,6 +717,7 @@ namespace POS36.Api.Controllers
             public int ChiTietId { get; set; }
             public int SoLuongHuy { get; set; }
             public string LyDo { get; set; } = string.Empty;
+            public string? Passcode { get; set; }
         }
 
         // ==========================================
@@ -769,12 +770,40 @@ namespace POS36.Api.Controllers
 
                     if (!conMonNaoKhong)
                     {
-                        // BUG-11/Perm check: Thu ngân hủy hóa đơn
+                        // BUG-11/Perm check: Thu ngân hủy hóa đơn (cho phép bypass nếu nhập đúng Passcode/PIN của chủ)
                         if (role == "ThuNgan")
                         {
                             var isPermitted = await GetThietLapBoolAsync(cuaHangId, "Perm_ThuNgan_XoaHoaDon", true);
                             if (!isPermitted)
-                                return StatusCode(403, "Thu ngân không được cấp quyền hủy/xóa hóa đơn!");
+                            {
+                                if (string.IsNullOrEmpty(request.Passcode))
+                                {
+                                    return StatusCode(403, "Thu ngân không được cấp quyền hủy/xóa hóa đơn! Vui lòng nhập mã PIN hoặc mật khẩu của Chủ cửa hàng.");
+                                }
+
+                                // 1. Kiểm tra mã PIN nhanh (Security_AdminPIN)
+                                var adminPin = await _context.ThietLaps
+                                    .FirstOrDefaultAsync(t => t.CuaHangId == cuaHangId && t.MaThietLap == "Security_AdminPIN");
+                                string pinCheck = adminPin?.DuLieu ?? "1234";
+
+                                bool verified = (request.Passcode == pinCheck);
+
+                                // 2. Nếu không khớp PIN nhanh, kiểm tra mật khẩu tài khoản chủ
+                                if (!verified)
+                                {
+                                    var chuQuan = await _context.TaiKhoans
+                                        .FirstOrDefaultAsync(t => t.CuaHangId == cuaHangId && t.VaiTro == "ChuCuaHang" && t.IsActive);
+                                    if (chuQuan != null && BCrypt.Net.BCrypt.Verify(request.Passcode, chuQuan.MatKhauHash))
+                                    {
+                                        verified = true;
+                                    }
+                                }
+
+                                if (!verified)
+                                {
+                                    return StatusCode(403, "Mật khẩu hoặc mã PIN xác thực của Chủ cửa hàng không chính xác!");
+                                }
+                            }
                         }
 
                         hoaDon.TrangThai = "Đã hủy";
