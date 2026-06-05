@@ -294,6 +294,60 @@
               </div>
             </div>
 
+            <!-- 3. Thiết lập vận hành nâng cao -->
+            <div class="mb-4">
+              <button class="btn btn-sm btn-outline-secondary w-100 fw-bold d-flex align-items-center justify-content-between px-3 py-2 rounded-3 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#advancedSettingsCollapse" aria-expanded="false" aria-controls="advancedSettingsCollapse">
+                <span><i class="bi bi-gear-fill me-1"></i> Tùy chỉnh Cấu hình & Bảo mật Nâng cao</span>
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              
+              <div class="collapse mt-3" id="advancedSettingsCollapse">
+                <div class="p-3 bg-light rounded-3 border" style="font-size: 0.8rem;">
+                  <!-- In ấn & QR -->
+                  <div class="fw-bold text-secondary mb-2 border-bottom pb-1">🖨️ IN ẤN & QR CODE</div>
+                  <div class="form-check form-switch mb-2 text-start">
+                    <input class="form-check-input" type="checkbox" id="onbTuDongIn" v-model="form.posTuDongIn" />
+                    <label class="form-check-label fw-semibold text-dark cursor-pointer" for="onbTuDongIn">Tự động in bill ngay khi thanh toán xong</label>
+                  </div>
+                  <div class="form-check form-switch mb-3 text-start">
+                    <input class="form-check-input" type="checkbox" id="onbQrOnly" v-model="form.posHienQrThuNganOnly" />
+                    <label class="form-check-label fw-semibold text-dark cursor-pointer" for="onbQrOnly">Chỉ hiện mã QR tại màn hình Thu Ngân ở quầy</label>
+                  </div>
+
+                  <!-- Bảo mật & Chống gian lận -->
+                  <div class="fw-bold text-secondary mb-2 border-bottom pb-1">🛡️ BẢO MẬT & PHÂN QUYỀN</div>
+                  <div class="form-check form-switch mb-2 text-start">
+                    <input class="form-check-input" type="checkbox" id="onbXoaBill" v-model="form.permThuNganXoaHoaDon" />
+                    <label class="form-check-label fw-semibold text-dark cursor-pointer" for="onbXoaBill">Cho phép Thu ngân tự xóa bàn/hủy hóa đơn trống</label>
+                  </div>
+                  <div class="form-check form-switch mb-2 text-start">
+                    <input class="form-check-input" type="checkbox" id="onbPinHuy" v-model="form.posYeuCauMatKhauHuyMon" />
+                    <label class="form-check-label fw-semibold text-dark cursor-pointer" for="onbPinHuy">Yêu cầu mã PIN khi xóa/hủy bàn (Chống gian lận)</label>
+                  </div>
+                  <div class="form-check form-switch mb-3 text-start">
+                    <input class="form-check-input" type="checkbox" id="onbHuyMonGui" v-model="form.permThuNganHuyMonDaGui" />
+                    <label class="form-check-label fw-semibold text-dark cursor-pointer" for="onbHuyMonGui">Cho phép Thu ngân hủy món đã báo làm (chưa ra đồ)</label>
+                  </div>
+
+                  <!-- Vận hành nâng cao -->
+                  <div class="fw-bold text-secondary mb-2 border-bottom pb-1">⚡ VẬN HÀNH THÔNG MINH</div>
+                  <div class="form-check form-switch mb-2 text-start">
+                    <input class="form-check-input" type="checkbox" id="onbKhoaSo" v-model="form.posTuDongKhoaSo" />
+                    <label class="form-check-label fw-semibold text-dark cursor-pointer" for="onbKhoaSo">Tự động khóa sổ lúc 23:59 để khóa sổ kế toán</label>
+                  </div>
+                  <div class="form-check form-switch mb-2 text-start">
+                    <input class="form-check-input" type="checkbox" id="onbChonMon" v-model="form.posThanhToanBatBuocChonMon" />
+                    <label class="form-check-label fw-semibold text-dark cursor-pointer" for="onbChonMon">Bắt buộc phải chọn món mới cho phép tính tiền</label>
+                  </div>
+                  
+                  <div class="mt-2 pt-2 border-top text-start">
+                    <label class="form-label fw-bold text-secondary mb-1 d-block">Mã PIN xác thực nhanh của Admin/Chủ quán (4 số):</label>
+                    <input type="text" class="form-control form-control-sm text-center fw-bold w-50" maxlength="4" v-model="form.adminPin" placeholder="1234" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="d-flex justify-content-between mt-4">
               <button class="btn btn-link text-secondary text-decoration-none fw-bold" @click="submitOnboarding(false)">Bỏ qua & Sử dụng sạch</button>
               <button class="btn btn-danger fw-bold px-4 rounded-3" @click="onboardingStep = 2">
@@ -428,6 +482,18 @@ const form = ref({
   importTables: true,
   importTransactions: true,
   transactionCount: 10,
+  
+  // Thiết lập nâng cao bổ sung
+  posTuDongIn: true,
+  posHienQrThuNganOnly: false,
+  permThuNganXoaHoaDon: false,
+  posYeuCauMatKhauHuyMon: true,
+  posTuDongKhoaSo: true,
+  permThuNganHuyMonDaGui: false,
+  posThanhToanBatBuocChonMon: true,
+  posChoPhepHoanTraMon: true,
+  securityYeuCauPIN: true,
+  adminPin: "1234",
 });
 
 const isSampleDataValid = computed(() => {
@@ -438,9 +504,15 @@ watch(() => form.value.modelType, (newModel) => {
   if (newModel === "fastfood") {
     form.value.hasTables = false;
     form.value.tableCount = 3;
+    form.value.posTuDongIn = false;
+    form.value.posHienQrThuNganOnly = true;
+    form.value.permThuNganXoaHoaDon = true;
   } else {
     form.value.hasTables = true;
     form.value.tableCount = 6;
+    form.value.posTuDongIn = true;
+    form.value.posHienQrThuNganOnly = false;
+    form.value.permThuNganXoaHoaDon = false;
   }
 });
 
@@ -473,6 +545,19 @@ const submitOnboarding = async (useSampleData) => {
         importTables: form.value.importTables,
         importTransactions: form.value.importTransactions,
         transactionCount: form.value.transactionCount,
+        customSettings: {
+          "POS_TuDongIn": String(form.value.posTuDongIn),
+          "POS_HienQrThuNganOnly": String(form.value.posHienQrThuNganOnly),
+          "Perm_ThuNgan_XoaHoaDon": String(form.value.permThuNganXoaHoaDon),
+          "POS_YeuCauMatKhauHuyBill": String(form.value.posYeuCauMatKhauHuyMon),
+          "POS_TuDongKhoaSo": String(form.value.posTuDongKhoaSo),
+          "Perm_ThuNgan_HuyMonDaGui": String(form.value.permThuNganHuyMonDaGui),
+          "POS_ThanhToanBatBuocChonMon": String(form.value.posThanhToanBatBuocChonMon),
+          "POS_ChoPhepHoanTraMon": String(form.value.posChoPhepHoanTraMon),
+          "Security_YeuCauPIN": String(form.value.securityYeuCauPIN),
+          "Security_AdminPIN": String(form.value.adminPin || "1234"),
+          "POS_HienQR": "true",
+        }
       };
       
       await axios.post("/api/SampleData/generate", payload);

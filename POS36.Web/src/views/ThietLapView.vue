@@ -248,13 +248,35 @@
               </div>
 
               <!-- Quyền 3 -->
-              <div class="toggle-item-row py-3 d-flex justify-content-between align-items-center">
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
                 <div>
                   <h6 class="fw-bold text-dark mb-1">Cho phép Thu ngân HỦY / XÓA hóa đơn chưa thanh toán</h6>
                   <p class="text-muted mb-0 small">Cho phép Thu ngân tự hủy hóa đơn khách gọi sai. Nếu tắt, chỉ có Chủ cửa hàng hoặc Quản lý được thao tác.</p>
                 </div>
                 <div class="form-check form-switch form-switch-lg">
                   <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.Perm_ThuNgan_XoaHoaDon" />
+                </div>
+              </div>
+
+              <!-- Quyền 4 -->
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Cho phép Thu ngân tự hủy món đã gửi bếp</h6>
+                  <p class="text-muted mb-0 small">Thu ngân có thể hủy món ăn đã gửi xuống Bếp/Bar mà không cần Quản lý duyệt.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.Perm_ThuNgan_HuyMonDaGui" />
+                </div>
+              </div>
+
+              <!-- Quyền 5 -->
+              <div class="toggle-item-row py-3 d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Yêu cầu xác thực PIN Quản lý khi hủy món cuối / xóa bàn</h6>
+                  <p class="text-muted mb-0 small">Yêu cầu nhập mã bảo mật khi Thu ngân muốn xóa bàn hoặc hủy toàn bộ món ăn trong đơn hàng.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_YeuCauMatKhauHuyBill" />
                 </div>
               </div>
             </div>
@@ -343,7 +365,7 @@
                 </div>
               </div>
 
-              <div class="toggle-item-row py-3 d-flex justify-content-between align-items-center">
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
                 <div>
                   <h6 class="fw-bold text-dark mb-1">Tự động đăng xuất tài khoản khi treo màn hình</h6>
                   <p class="text-muted mb-0 small">Khóa màn hình làm việc của thu ngân khi không phát hiện tương tác sau một thời gian nhất định.</p>
@@ -352,12 +374,47 @@
                   <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.Security_AutoLogout" />
                 </div>
               </div>
+
+              <!-- Thêm thiết lập vận hành thông minh & bảo mật khác -->
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Tự động khóa sổ doanh thu lúc 23:59 hàng ngày</h6>
+                  <p class="text-muted mb-0 small">Khóa tất cả hóa đơn đã bán của ngày cũ, nhân viên sẽ không thể sửa đổi hay xóa hóa đơn cũ.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_TuDongKhoaSo" />
+                </div>
+              </div>
+
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Bắt buộc phải chọn món trước khi thanh toán</h6>
+                  <p class="text-muted mb-0 small">Ngăn chặn tạo hóa đơn rỗng (0 món) khi tính tiền tại quầy thu ngân.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_ThanhToanBatBuocChonMon" />
+                </div>
+              </div>
+
+              <div class="toggle-item-row py-3 d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Cho phép khách hàng hoàn trả món sau khi thanh toán</h6>
+                  <p class="text-muted mb-0 small">Cho phép thu ngân nhập phiếu trả đồ và hoàn tiền đối với các hóa đơn đã hoàn tất thanh toán.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_ChoPhepHoanTraMon" />
+                </div>
+              </div>
             </div>
 
-            <div class="row g-3" v-if="cfgBool.Security_AutoLogout">
-              <div class="col-md-6">
+            <div class="row g-3 mt-2">
+              <div class="col-md-6" v-if="cfgBool.Security_AutoLogout">
                 <label class="form-label fw-semibold text-secondary small">Thời gian tự động khóa (phút)</label>
                 <input type="number" v-model.number="cfg.Security_TimeoutPhut" class="form-control bg-light border-0 text-dark fs-6" min="5" max="120" />
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold text-secondary small">Mã PIN xác thực nhanh của Chủ quán/Quản lý</label>
+                <input type="text" maxlength="4" v-model="cfg.Security_AdminPIN" class="form-control bg-light border-0 text-dark fs-6 font-monospace text-center fw-bold" style="width: 150px;" placeholder="1234" />
               </div>
             </div>
           </div>
@@ -409,6 +466,7 @@ const cfg = reactive({
   Loyalty_NguongDong: '0', Loyalty_NguongBac: '500', Loyalty_NguongVang: '2000',
   Security_TimeoutPhut: '30',
   POS_OrderInBillCheDo: 'Ask',
+  Security_AdminPIN: '1234',
 });
 
 const cfgBool = reactive({
@@ -423,6 +481,11 @@ const cfgBool = reactive({
   Perm_Order_ChuyenTach: true,
   Perm_ThuNgan_XoaHoaDon: true,
   Loyalty_BatTat: false, Security_YeuCauPIN: false, Security_AutoLogout: true,
+  POS_TuDongKhoaSo: true,
+  Perm_ThuNgan_HuyMonDaGui: false,
+  POS_ThanhToanBatBuocChonMon: true,
+  POS_ChoPhepHoanTraMon: true,
+  POS_YeuCauMatKhauHuyBill: true,
 });
 
 const boolKeys = Object.keys(cfgBool);
