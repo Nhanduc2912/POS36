@@ -673,11 +673,39 @@ const handleCancelItem = async (item, index) => {
 
   if (formValues) {
     try {
+      let passcode = null;
+      const isLastItem = (formValues.qty >= item.qty && ordersByTable.value[activeTable.value.id].length === 1);
+      
+      // Nếu hủy món cuối và vai trò là ThuNgan và quyền xóa hóa đơn bị tắt, hoặc cấu hình yêu cầu PIN khi hủy bill đang bật
+      const isThuNgan = userRole === "ThuNgan";
+      const needsPasscode = isLastItem && isThuNgan && (!settings.value.Perm_ThuNgan_XoaHoaDon || settings.value.POS_YeuCauMatKhauHuyBill);
+
+      if (needsPasscode) {
+        const { value: typedPasscode } = await swal.fire({
+          title: "Yêu cầu Xác thực của Quản lý",
+          text: "Hành động này sẽ hủy toàn bộ hóa đơn/xóa bàn trống. Vui lòng nhập mã PIN hoặc mật khẩu của Chủ cửa hàng:",
+          input: "password",
+          inputPlaceholder: "Nhập mã PIN hoặc mật khẩu",
+          showCancelButton: true,
+          confirmButtonText: "Xác thực",
+          confirmButtonColor: "#dc3545",
+          inputValidator: (value) => {
+            if (!value) {
+              return "Mật khẩu xác thực không được để trống!";
+            }
+          }
+        });
+
+        if (!typedPasscode) return; // Người dùng nhấn Hủy/đóng pop-up
+        passcode = typedPasscode;
+      }
+
       if (item.isSent && item.chiTietId) {
         await axios.post("/api/HoaDon/huymon", {
           chiTietId: item.chiTietId,
           soLuongHuy: formValues.qty,
           lyDo: formValues.reason,
+          passcode: passcode,
         });
       }
 
@@ -853,11 +881,13 @@ const handleThanhToan = async () => {
       chiNhanhId: globalState.value.activeBranchId || 0,
       loaiIn: "Thanh toán (Tiền mặt)"
     };
-    printReceipt(orderToPrint, {
-      name: storeInfo.value?.tenCuaHang || "POS36",
-      address: storeInfo.value?.diaChi || "Đà Nẵng",
-      phone: storeInfo.value?.soDienThoai || "0905",
-    });
+    if (settings.value.POS_TuDongIn) {
+      printReceipt(orderToPrint, {
+        name: storeInfo.value?.tenCuaHang || "POS36",
+        address: storeInfo.value?.diaChi || "Đà Nẵng",
+        phone: storeInfo.value?.soDienThoai || "0905",
+      });
+    }
     thucHienThanhToanChinhThuc(banId, "Tiền mặt", diemSuDung);
   }
 
@@ -865,38 +895,58 @@ const handleThanhToan = async () => {
   else if (result.isDenied) {
     if (connection.state === "Connected") {
       await connection.invoke("YeuCauMoQR", banId, soTienThucTe, "");
+    }
 
-      pendingPayments.value.push({
-        banId: banId,
-        tenBan: activeTable.value.tenBan,
-        soTien: soTienThucTe,
-        diemSuDung: diemSuDung, // Lưu để dùng khi QR thanh toán thành công
-      });
+    const pendingItem = {
+      banId: banId,
+      tenBan: activeTable.value.tenBan,
+      soTien: soTienThucTe,
+      diemSuDung: diemSuDung,
+    };
 
-      const orderToPrint = {
-        tenBan: activeTable.value.tenBan,
-        tongTien: soTienThucTe,
-        items: currentOrder.value,
-        banId: banId,
-        chiNhanhId: globalState.value.activeBranchId || 0,
-        loaiIn: "Thanh toán (Quét QR)"
-      };
+    if (!pendingPayments.value.some((p) => p.banId === banId)) {
+      pendingPayments.value.push(pendingItem);
+    }
+
+    const orderToPrint = {
+      tenBan: activeTable.value.tenBan,
+      tongTien: soTienThucTe,
+      items: currentOrder.value,
+      banId: banId,
+      chiNhanhId: globalState.value.activeBranchId || 0,
+      loaiIn: "Thanh toán (Quét QR)"
+    };
+    
+    if (settings.value.POS_TuDongIn) {
       printReceipt(orderToPrint, {
         name: storeInfo.value?.tenCuaHang || "POS36",
         address: storeInfo.value?.diaChi || "Đà Nẵng",
         phone: storeInfo.value?.soDienThoai || "0905",
       });
-
-      swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "info",
-        title: `Đã in hóa đơn tạm tính & chuyển Bàn ${activeTable.value.tenBan} sang chờ QR`,
-        timer: 2000,
-        showConfirmButton: false,
-      });
-      activeRightTab.value = "tables";
     }
+
+    // Mở QR Modal trực tiếp trên màn hình Cashier
+    const bankConfig = JSON.parse(
+      localStorage.getItem("pos36_bank_config") || "{}"
+    );
+    if (bankConfig.bankId) {
+      const accountName = encodeURIComponent(bankConfig.accountName);
+      const maChungTu = `POS36B${banId}`;
+      const url = `https://img.vietqr.io/image/${bankConfig.bankId}-${bankConfig.accountNo}-${bankConfig.template}.png?amount=${soTienThucTe}&addInfo=${maChungTu}&accountName=${accountName}`;
+      
+      qrModalData.value = {
+        banId: banId,
+        tenBan: activeTable.value.tenBan,
+        soTien: soTienThucTe,
+        diemSuDung: diemSuDung,
+        qrUrl: url,
+      };
+      showQrModal.value = true;
+    } else {
+      swal.fire("Lỗi", "Chưa thiết lập tài khoản ngân hàng trong phần cài đặt!", "error");
+    }
+
+    activeRightTab.value = "tables";
   }
 };
 
@@ -922,7 +972,50 @@ connection.on("NhanHuyMoQR", (banId, lyDo) => {
 const settings = ref({
   POS_ThuNganInNhieuBill: false,
   POS_ThuNganXemLichSu: true,
+  POS_TuDongIn: true,
+  Perm_ThuNgan_XoaHoaDon: true,
+  POS_YeuCauMatKhauHuyBill: true,
 });
+
+const showQrModal = ref(false);
+const qrModalData = ref({
+  banId: 0,
+  tenBan: "",
+  soTien: 0,
+  diemSuDung: 0,
+  qrUrl: "",
+});
+
+const moLaiQRModal = (p) => {
+  const bankConfig = JSON.parse(
+    localStorage.getItem("pos36_bank_config") || "{}"
+  );
+  if (bankConfig.bankId) {
+    const accountName = encodeURIComponent(bankConfig.accountName);
+    const maChungTu = `POS36B${p.banId}`;
+    const url = `https://img.vietqr.io/image/${bankConfig.bankId}-${bankConfig.accountNo}-${bankConfig.template}.png?amount=${p.soTien}&addInfo=${maChungTu}&accountName=${accountName}`;
+    
+    qrModalData.value = {
+      banId: p.banId,
+      tenBan: p.tenBan,
+      soTien: p.soTien,
+      diemSuDung: p.diemSuDung || 0,
+      qrUrl: url,
+    };
+    showQrModal.value = true;
+  }
+};
+
+const hoanThanhThanhToanNgay = async (banId, phuongThuc, diem) => {
+  showQrModal.value = false;
+  pendingPayments.value = pendingPayments.value.filter((p) => p.banId !== banId);
+  await thucHienThanhToanChinhThuc(banId, phuongThuc, diem);
+};
+
+const huyYeuCauQRModal = (banId) => {
+  showQrModal.value = false;
+  huyYeuCauQRGocManHinh(banId);
+};
 
 const storeInfo = ref({ tenCuaHang: "POS36", diaChi: "Đà Nẵng", soDienThoai: "0905" });
 const invoiceHistory = ref([]);
@@ -930,11 +1023,14 @@ const loadingHistory = ref(false);
 
 const loadSettings = async () => {
   try {
-    const keys = "POS_ThuNganInNhieuBill,POS_ThuNganXemLichSu";
+    const keys = "POS_ThuNganInNhieuBill,POS_ThuNganXemLichSu,POS_TuDongIn,Perm_ThuNgan_XoaHoaDon,POS_YeuCauMatKhauHuyBill";
     const res = await axios.get("/api/ThietLap/batch", { params: { keys } });
     if (res.data) {
       settings.value.POS_ThuNganInNhieuBill = res.data.POS_ThuNganInNhieuBill === "true";
       settings.value.POS_ThuNganXemLichSu = res.data.POS_ThuNganXemLichSu === "true";
+      settings.value.POS_TuDongIn = res.data.POS_TuDongIn !== "false";
+      settings.value.Perm_ThuNgan_XoaHoaDon = res.data.Perm_ThuNgan_XoaHoaDon !== "false";
+      settings.value.POS_YeuCauMatKhauHuyBill = res.data.POS_YeuCauMatKhauHuyBill !== "false";
     }
   } catch (e) {
     console.error("Lỗi load settings trong PosView", e);
@@ -1626,7 +1722,7 @@ watch(activeRightTab, (newTab) => {
           @click="huyYeuCauQRGocManHinh(p.banId)"
         ></button>
       </div>
-      <div class="toast-body bg-white rounded-bottom px-3 py-2 text-center">
+      <div class="toast-body bg-white rounded-bottom px-3 py-2 text-center cursor-pointer" @click="moLaiQRModal(p)" title="Click để xem lại mã QR">
         <h6 class="fw-bold text-dark mb-1">{{ p.tenBan }}</h6>
         <h4 class="fw-bold text-danger mb-0">{{ formatPrice(p.soTien) }}</h4>
         <div class="text-muted font-monospace mt-1" style="font-size: 0.8rem">
@@ -1637,9 +1733,54 @@ watch(activeRightTab, (newTab) => {
   </div>
 
   <AiCopilot />
+
+  <!-- QR Cashier Modal -->
+  <div v-if="showQrModal" class="onboarding-overlay d-flex justify-content-center align-items-center" style="z-index: 1060">
+    <div class="card border-0 shadow-lg rounded-4 p-4 text-dark position-relative overflow-hidden text-center bg-white" style="width: 100%; max-width: 420px; border: 1px solid rgba(255, 255, 255, 0.3);">
+      <div class="mb-3">
+        <span class="badge bg-warning bg-opacity-10 text-warning px-3 py-2 rounded-pill fw-bold mb-2">
+          <i class="spinner-border spinner-border-sm text-warning me-1" style="width: 1rem; height: 1rem; border-width: 0.15rem;"></i> ĐANG CHỜ THANH TOÁN QR
+        </span>
+        <h5 class="fw-bold text-dark mb-1">{{ qrModalData.tenBan }}</h5>
+        <p class="text-muted small mb-0">Quét mã dưới đây để chuyển khoản thanh toán</p>
+      </div>
+
+      <div class="p-3 bg-light rounded-3 mb-4 d-inline-block border w-100">
+        <img :src="qrModalData.qrUrl" class="img-fluid rounded shadow-sm mb-3" style="max-height: 240px; object-fit: contain;" alt="VietQR" />
+        <h3 class="fw-bold text-danger mb-0">{{ formatPrice(qrModalData.soTien) }}</h3>
+        <div class="text-muted font-monospace mt-1 small">Mã hóa đơn: POS36B{{ qrModalData.banId }}</div>
+      </div>
+
+      <div class="d-flex flex-column gap-2">
+        <button class="btn btn-warning fw-bold text-dark py-2 rounded-3 w-100 shadow-sm" @click="hoanThanhThanhToanNgay(qrModalData.banId, 'Chuyển khoản', qrModalData.diemSuDung)">
+          <i class="bi bi-check-circle-fill me-1"></i> Xác nhận đã nhận chuyển khoản
+        </button>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-danger fw-bold py-2 rounded-3 w-50" @click="huyYeuCauQRModal(qrModalData.banId)">
+            Hủy yêu cầu
+          </button>
+          <button class="btn btn-outline-secondary fw-bold py-2 rounded-3 w-50" @click="showQrModal = false">
+            Thu nhỏ
+          </button>
+        </div>
+        <button class="btn btn-link text-secondary text-decoration-none fw-bold small mt-1 mb-0" @click="hoanThanhThanhToanNgay(qrModalData.banId, 'Tiền mặt', qrModalData.diemSuDung)">
+          Chuyển sang thanh toán Tiền mặt
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <style scoped>
+.onboarding-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+}
 .pos-container {
   font-size: 14px;
 }
