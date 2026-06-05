@@ -109,6 +109,7 @@ namespace POS36.Api
                 // Phase 7B: Gemini AI Service
                 builder.Services.AddHttpClient<GeminiAIService>();
                 builder.Services.AddScoped<GeminiAIService>();
+                builder.Services.AddScoped<ISampleDataService, SampleDataService>();
 
                 builder.Services.AddEndpointsApiExplorer();
                 builder.Services.AddSwaggerGen(c =>
