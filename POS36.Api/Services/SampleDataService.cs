@@ -63,23 +63,56 @@ namespace POS36.Api.Services
                     await _context.SaveChangesAsync();
                 }
 
-                // 1. CẤU HÌNH THỜI GIAN VÀ BÀN BẰNG CỦA HÀNG
+                // 1. CẤU HÌNH THAM SỐ VẬN HÀNH (THIẾT LẬP CỬA HÀNG)
+                var settingsToSave = new System.Collections.Generic.Dictionary<string, string>();
+
+                // Mặc định dựa trên mô hình nếu người dùng không truyền CustomSettings
                 if (request.ModelType == "fastfood")
                 {
-                    // Tự động cấu hình in QR tại quầy thu ngân và bật phương thức QR
-                    var printConfig = await _context.ThietLaps.IgnoreQueryFilters()
-                        .FirstOrDefaultAsync(t => t.CuaHangId == cuaHangId && t.MaThietLap == "POS_HienQrThuNganOnly");
-                    if (printConfig == null)
-                        _context.ThietLaps.Add(new ThietLap { CuaHangId = cuaHangId, MaThietLap = "POS_HienQrThuNganOnly", DuLieu = "true" });
-                    else
-                        printConfig.DuLieu = "true";
+                    settingsToSave["POS_HienQrThuNganOnly"] = "true";
+                    settingsToSave["POS_HienQR"] = "true";
+                    settingsToSave["POS_TuDongIn"] = "false"; // Mặc định tắt tự in cho fastfood để tiện lợi
+                    settingsToSave["Perm_ThuNgan_XoaHoaDon"] = "true"; // Quầy fastfood cho phép xóa để xử lý nhanh
+                    settingsToSave["POS_YeuCauMatKhauHuyBill"] = "true";
+                }
+                else
+                {
+                    settingsToSave["POS_HienQrThuNganOnly"] = "false";
+                    settingsToSave["POS_HienQR"] = "true";
+                    settingsToSave["POS_TuDongIn"] = "true";
+                    settingsToSave["Perm_ThuNgan_XoaHoaDon"] = "false"; // Tránh gian lận
+                    settingsToSave["POS_YeuCauMatKhauHuyBill"] = "true";
+                }
 
-                    var qrConfig = await _context.ThietLaps.IgnoreQueryFilters()
-                        .FirstOrDefaultAsync(t => t.CuaHangId == cuaHangId && t.MaThietLap == "POS_HienQR");
-                    if (qrConfig == null)
-                        _context.ThietLaps.Add(new ThietLap { CuaHangId = cuaHangId, MaThietLap = "POS_HienQR", DuLieu = "true" });
+                // Thiết lập bảo mật & phân quyền chung mặc định
+                settingsToSave["POS_TuDongKhoaSo"] = "true";
+                settingsToSave["Perm_ThuNgan_HuyMonDaGui"] = "false";
+                settingsToSave["POS_ThanhToanBatBuocChonMon"] = "true";
+                settingsToSave["POS_ChoPhepHoanTraMon"] = "true";
+                settingsToSave["Security_YeuCauPIN"] = "true";
+
+                // Nếu frontend gửi CustomSettings lên thì ghi đè các thiết lập mặc định
+                if (request.CustomSettings != null)
+                {
+                    foreach (var kvp in request.CustomSettings)
+                    {
+                        settingsToSave[kvp.Key] = kvp.Value;
+                    }
+                }
+
+                // Lưu các thiết lập vào database
+                foreach (var kvp in settingsToSave)
+                {
+                    var tl = await _context.ThietLaps.IgnoreQueryFilters()
+                        .FirstOrDefaultAsync(t => t.CuaHangId == cuaHangId && t.MaThietLap == kvp.Key);
+                    if (tl == null)
+                    {
+                        _context.ThietLaps.Add(new ThietLap { CuaHangId = cuaHangId, MaThietLap = kvp.Key, DuLieu = kvp.Value });
+                    }
                     else
-                        qrConfig.DuLieu = "true";
+                    {
+                        tl.DuLieu = kvp.Value;
+                    }
                 }
 
                 // 2. KHỞI TẠO BÀN GHẾ & KHU VỰC

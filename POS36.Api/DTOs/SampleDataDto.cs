@@ -13,5 +13,7 @@ namespace POS36.Api.DTOs
         
         public bool ImportTransactions { get; set; } = true;
         public int TransactionCount { get; set; } = 10;
+
+        public System.Collections.Generic.Dictionary<string, string>? CustomSettings { get; set; }
     }
 }
