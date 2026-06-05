@@ -238,7 +238,7 @@
           <!-- Step 1: Khảo sát Mô hình -->
           <div v-if="onboardingStep === 1">
             <div class="text-center mb-4">
-              <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill fw-bold mb-2">👋 CHÀO MỪNG ĐẾN VỚI POS36</span>
+              <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill fw-bold mb-2"><i class="bi bi-stars me-1"></i> CHÀO MỪNG ĐẾN VỚI POS36</span>
               <h4 class="fw-bold text-dark mb-1">Cấu hình Cửa hàng của bạn</h4>
               <p class="text-muted small">Vui lòng chọn mô hình kinh doanh để bắt đầu thiết lập nhanh.</p>
             </div>
@@ -247,25 +247,25 @@
               <label class="form-label fw-bold text-secondary small">1. Mô hình kinh doanh của quán?</label>
               <div class="row g-2">
                 <div class="col-6">
-                  <div class="model-option p-3 border rounded-3 text-center cursor-pointer" :class="{ 'active border-danger bg-danger bg-opacity-5': form.modelType === 'cafe' }" @click="form.modelType = 'cafe'">
+                  <div class="model-option p-3 border rounded-3 text-center cursor-pointer" :class="{ 'active': form.modelType === 'cafe' }" @click="form.modelType = 'cafe'">
                     <i class="bi bi-cup-hot fs-3 d-block mb-1 text-danger"></i>
                     <span class="fw-bold small">Cafe & Trà sữa</span>
                   </div>
                 </div>
                 <div class="col-6">
-                  <div class="model-option p-3 border rounded-3 text-center cursor-pointer" :class="{ 'active border-danger bg-danger bg-opacity-5': form.modelType === 'restaurant' }" @click="form.modelType = 'restaurant'">
+                  <div class="model-option p-3 border rounded-3 text-center cursor-pointer" :class="{ 'active': form.modelType === 'restaurant' }" @click="form.modelType = 'restaurant'">
                     <i class="bi bi-egg-fried fs-3 d-block mb-1 text-danger"></i>
                     <span class="fw-bold small">Nhà hàng / Quán ăn</span>
                   </div>
                 </div>
                 <div class="col-6">
-                  <div class="model-option p-3 border rounded-3 text-center cursor-pointer" :class="{ 'active border-danger bg-danger bg-opacity-5': form.modelType === 'pub' }" @click="form.modelType = 'pub'">
-                    <i class="bi bi-beer fs-3 d-block mb-1 text-danger"></i>
+                  <div class="model-option p-3 border rounded-3 text-center cursor-pointer" :class="{ 'active': form.modelType === 'pub' }" @click="form.modelType = 'pub'">
+                    <i class="bi bi-cup fs-3 d-block mb-1 text-danger"></i>
                     <span class="fw-bold small">Quán nhậu & Bar</span>
                   </div>
                 </div>
                 <div class="col-6">
-                  <div class="model-option p-3 border rounded-3 text-center cursor-pointer" :class="{ 'active border-danger bg-danger bg-opacity-5': form.modelType === 'fastfood' }" @click="form.modelType = 'fastfood'">
+                  <div class="model-option p-3 border rounded-3 text-center cursor-pointer" :class="{ 'active': form.modelType === 'fastfood' }" @click="form.modelType = 'fastfood'">
                     <i class="bi bi-bag-heart fs-3 d-block mb-1 text-danger"></i>
                     <span class="fw-bold small">Thức ăn nhanh (Fast food)</span>
                   </div>
@@ -639,13 +639,22 @@ watch(
 }
 .model-option {
   transition: all 0.2s ease-in-out;
+  background-color: #ffffff;
 }
 .model-option:hover {
   transform: translateY(-2px);
   border-color: #dc3545 !important;
 }
 .model-option.active {
+  background-color: rgba(220, 53, 69, 0.08) !important;
+  border-color: #dc3545 !important;
   box-shadow: 0 4px 12px rgba(220, 53, 69, 0.15);
+}
+.model-option.active i {
+  color: #dc3545 !important;
+}
+.model-option.active span {
+  color: #dc3545 !important;
 }
 .cursor-pointer {
   cursor: pointer;
