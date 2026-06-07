@@ -385,17 +385,21 @@ graph TB
    ```
 
 3. **Nạp Cấu Trúc Cơ Sở Dữ Liệu & Dữ Liệu Mẫu:**
-   Đợi khoảng 30 giây để SQL Server Docker khởi động hoàn toàn. Sau đó, chạy lệnh sau để thiết lập cơ sở dữ liệu ban đầu:
+   Đợi khoảng 30 giây để SQL Server Docker khởi động hoàn toàn. Sau đó, sao chép tệp SQL dữ liệu mẫu vào container và chạy lệnh thiết lập cơ sở dữ liệu:
    
-   * **Dành cho Windows PowerShell:**
-     ```powershell
-     docker exec -it pos36-db /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "Pos36_Secret_Password_123!" -i /Pos36DB.sql
-     ```
-   
-   * **Dành cho Linux / macOS Terminal:**
+   * **Bước A: Sao chép tệp SQL vào container database:**
      ```bash
-     docker exec -it pos36-db /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'Pos36_Secret_Password_123!' -i /Pos36DB.sql
+     docker cp POS36_DATA.sql pos36-db:/POS36_DATA.sql
      ```
+   * **Bước B: Khởi chạy lệnh nạp dữ liệu:**
+     * **Dành cho Windows PowerShell:**
+       ```powershell
+       docker exec -it pos36-db /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P "Pos36_Secret_Password_123!" -i /POS36_DATA.sql
+       ```
+     * **Dành cho Linux / macOS Terminal:**
+       ```bash
+       docker exec -it pos36-db /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'Pos36_Secret_Password_123!' -i /POS36_DATA.sql
+       ```
 
 4. **Truy Cập Ứng Dụng:**
    * **Giao diện Web (Frontend):** [http://localhost:3000](http://localhost:3000)
@@ -404,78 +408,127 @@ graph TB
 
 ---
 
-### 7.2. Cài Đặt Thủ Công
+### 7.2. Cài Đặt Thủ Công Trên Windows
 
-#### Yêu Cầu Cài Đặt Trước:
-* **Môi Trường Backend:** [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) và [Microsoft SQL Server 2019+](https://www.microsoft.com/sql-server).
-* **Môi Trường Frontend:** [Node.js LTS (v18 trở lên)](https://nodejs.org/).
+Nếu bạn muốn chạy trực tiếp trên hệ điều hành Windows mà không sử dụng Docker, vui lòng thực hiện tuần tự theo các bước chi tiết sau:
 
-#### Bước 1: Khởi Tạo Cơ Sở Dữ Liệu SQL Server
-1. Kết nối tới SQL Server của bạn bằng SSMS hoặc Azure Data Studio.
-2. Tạo mới một cơ sở dữ liệu trống có tên: `POS36_Db`.
-3. Mở tệp SQL `Pos36DB.sql` nằm ở thư mục gốc của dự án, dán vào cửa sổ truy vấn và bấm **Execute** để khởi tạo cấu trúc bảng và nạp dữ liệu mẫu ban đầu.
+#### Bước 1: Yêu Cầu Cài Đặt Trước (Prerequisites)
+1. **.NET 9.0 SDK:** Tải và cài đặt tại [.NET 9.0 SDK](https://dotnet.microsoft.com/download/dotnet/9.0).
+2. **Node.js:** Tải phiên bản LTS (v18 trở lên) tại [Node.js](https://nodejs.org/).
+3. **Microsoft SQL Server (2019 trở lên):** Tải bản Express hoặc Developer tại [SQL Server Downloads](https://www.microsoft.com/sql-server/sql-server-downloads).
+4. **Công cụ Quản trị Database (SSMS):** Khuyến nghị cài đặt [SQL Server Management Studio (SSMS)](https://learn.microsoft.com/sql/ssms/download-sql-server-management-studio-ssms) để dễ dàng thao tác trực quan.
 
-#### Bước 2: Thiết Lập & Chạy Backend Web API
-1. Điều hướng vào thư mục Backend:
-   ```bash
-   cd POS36.Api/POS36.Api
-   ```
-2. Cấu hình tệp `appsettings.json` để liên kết chuỗi kết nối và mã khóa API Google Gemini:
-   ```json
-   {
+#### Bước 2: Thiết Lập Connection String
+1. Mở tệp [`appsettings.json`](file:///home/ducnguyener/POS36/POS36.Api/POS36.Api/appsettings.json) trong thư mục `POS36.Api/POS36.Api/`.
+2. Thay đổi giá trị chuỗi kết nối `DefaultConnection` tùy theo kiểu cấu hình SQL Server trên máy bạn:
+   * **SQL Express (Sử dụng Windows Authentication - Khuyên dùng):**
+     ```json
      "ConnectionStrings": {
-       "DefaultConnection": "Server=YOUR_SQL_SERVER;Database=POS36_Db;Trusted_Connection=True;TrustServerCertificate=True;"
-     },
-     "GeminiAI": {
-       "ApiKey": "API_KEY_GOOGLE_AI_STUDIO_CỦA_BẠN"
+       "DefaultConnection": "Server=localhost\\SQLEXPRESS;Database=POS36_Db;Trusted_Connection=True;TrustServerCertificate=True;"
      }
-   }
-   ```
-3. Khôi phục các thư viện NuGet và chạy ứng dụng:
-   ```bash
-   dotnet restore
-   │
-   dotnet run
-   ```
-   *Cổng API cục bộ của Backend sẽ khởi chạy tại:* `http://localhost:5098`
+     ```
+   * **SQL Server (Sử dụng tài khoản SA / SQL Server Authentication):**
+     ```json
+     "ConnectionStrings": {
+       "DefaultConnection": "Server=localhost;Database=POS36_Db;User Id=sa;Password=MatKhauCuaBan;TrustServerCertificate=True;"
+     }
+     ```
+   * **LocalDB (Mặc định khi cài đặt Visual Studio):**
+     ```json
+     "ConnectionStrings": {
+       "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=POS36_Db;Trusted_Connection=True;TrustServerCertificate=True;"
+     }
+     ```
 
-#### Bước 3: Thiết Lập & Chạy Frontend Vue 3
-1. Mở cửa sổ Terminal mới và chuyển đến thư mục Frontend:
+#### Bước 3: Hướng Dẫn Entity Framework Core Migrations
+Hệ thống sử dụng EF Core Code-First để quản lý cơ sở dữ liệu. Làm theo hướng dẫn sau để cài đặt công cụ, tạo migration mới và cập nhật cấu trúc database:
+
+1. **Cài đặt công cụ EF Core CLI:**
+   Mở Command Prompt hoặc PowerShell và chạy lệnh cài đặt toàn cục (nếu máy bạn chưa có sẵn):
    ```bash
-   cd POS36.Web
+   dotnet tool install --global dotnet-ef
    ```
-2. Cài đặt các thư viện Node.js cần thiết:
+   *(Để nâng cấp phiên bản cũ lên phiên bản mới nhất, sử dụng lệnh: `dotnet tool update --global dotnet-ef`)*
+
+2. **Cách tạo một Migration mới (Khi bạn thay đổi code Model/Entities):**
+   Mở Terminal tại thư mục gốc của dự án và chạy:
    ```bash
-   npm install
+   dotnet ef migrations add <TenMigrationCuaBan> --project POS36.Api --startup-project POS36.Api
    ```
-3. Tạo tệp `.env` cấu hình đường dẫn API cục bộ:
-   ```env
-   VITE_API_URL=/api
-   VITE_SIGNALR_URL=http://localhost:5098/kitchenHub
-   ```
-4. Khởi chạy máy chủ thử nghiệm Frontend:
+   *(Ví dụ: `dotnet ef migrations add AddNewTable`)*
+
+3. **Áp dụng các Migration hiện tại để sinh cấu trúc bảng (Database Update):**
+   Chạy lệnh sau để EF Core tự động tạo CSDL `POS36_Db` (nếu chưa tồn tại) và tự động thiết lập toàn bộ cấu trúc bảng (tables, keys, indexes):
    ```bash
-   npm run dev
+   dotnet ef database update --project POS36.Api --startup-project POS36.Api
    ```
-   *Giao diện người dùng sẽ hoạt động tại:* `http://localhost:5173`
+
+#### Bước 4: Khởi Tạo Dữ Liệu Mẫu (Database Seeding)
+Sau khi đã sinh cấu trúc database thành công từ Bước 3, bạn cần import dữ liệu mẫu ban đầu từ tệp [`POS36_DATA.sql`](file:///home/ducnguyener/POS36/POS36_DATA.sql) nằm ở thư mục gốc của dự án.
+
+* **Cách 1: Sử dụng SQL Server Management Studio (SSMS)**
+  1. Mở SSMS và kết nối đến SQL Server.
+  2. Chọn **File -> Open -> File...** và tìm mở tệp `POS36_DATA.sql` ở thư mục gốc của dự án.
+  3. Đảm bảo dòng đầu tiên của file SQL ghi đúng tên database của bạn: `USE [POS36_Db]`.
+  4. Nhấp nút **Execute** (hoặc nhấn phím **F5**) để chạy toàn bộ script.
+
+* **Cách 2: Sử dụng dòng lệnh (sqlcmd)**
+  Mở Command Prompt/PowerShell và thực hiện lệnh import trực tiếp:
+  * *Nếu sử dụng Windows Authentication:*
+    ```cmd
+    sqlcmd -S localhost\SQLEXPRESS -d POS36_Db -i POS36_DATA.sql
+    ```
+  * *Nếu sử dụng tài khoản SA:*
+    ```cmd
+    sqlcmd -S localhost\SQLEXPRESS -U sa -P "MatKhauCuaBan" -d POS36_Db -i POS36_DATA.sql
+    ```
+
+#### Bước 5: Chạy Ứng Dụng Bằng Dòng Lệnh
+* **Chạy Backend Web API:**
+  1. Mở Terminal mới, điều hướng vào thư mục API:
+     ```bash
+     cd POS36.Api/POS36.Api
+     ```
+  2. Cấu hình khóa Google Gemini API Key trong `appsettings.json` (tùy chọn để kích hoạt AI Copilot).
+  3. Khởi chạy Backend:
+     ```bash
+     dotnet run
+     ```
+     *(Backend hoạt động tại: `http://localhost:5098`)*
+
+* **Chạy Frontend Vue 3:**
+  1. Mở một Terminal khác, chuyển tới thư mục Frontend:
+     ```bash
+     cd POS36.Web
+     ```
+  2. Cài đặt các thư viện bổ sung:
+     ```bash
+     npm install
+     ```
+  3. Khởi chạy máy chủ phát triển (Dev server):
+     ```bash
+     npm run dev
+     ```
+     *(Frontend hoạt động tại: `http://localhost:5173`)*
 
 ---
 
 ### 7.3. Các Tập Tin Hỗ Trợ Khởi Động Nhanh (Windows Batch Scripts)
 
-Để đơn giản hóa tối đa quy trình làm việc trên Windows, dự án cung cấp bộ công cụ batch scripts được tổ chức gọn gàng tại thư mục `scripts/`:
+Để tối ưu hóa quy trình khởi động và cài đặt trên Windows, dự án cung cấp bộ công cụ batch scripts tự động trong thư mục `scripts/`:
 
-* **`scripts\setup.bat` (Thiết lập ban đầu):** 
-  Tự động kiểm tra cài đặt môi trường .NET SDK, Node.js trên máy tính; cài đặt toàn bộ dependencies cho cả Frontend và Backend; hỗ trợ tự động cấu hình database ban đầu.
+* **`scripts\setup.bat` (Thiết lập tự động lần đầu):** 
+  Tự động kiểm tra môi trường .NET SDK và Node.js; tự động khôi phục dependencies (`dotnet restore` & `npm install`) và cấu hình sẵn tệp môi trường `.env` cho Frontend.
   * *Cách chạy:* Click chuột phải vào tệp và chọn **"Run as Administrator"**.
 * **`scripts\run.bat` (Khởi chạy đồng thời):**
-  Tự động kiểm tra và quét sạch các tiến trình cũ đang chiếm dụng cổng kết nối, sau đó tự động bật đồng thời cả Backend API và Frontend Dev Server chỉ bằng một click đúp.
-  * *Cách chạy:* Click đúp chuột trái vào tệp tin.
+  Tự động quét dọn các tiến trình chạy ngầm cũ đang chiếm dụng cổng, sau đó tự khởi động cả Backend và Frontend cùng một lúc.
+  * *Cách chạy:* Click đúp chuột trái vào tệp.
 * **`scripts\stop.bat` (Dừng hệ thống):**
-  Giải phóng lập tức tất cả các tiến trình chạy ngầm của dự án `.NET` và `Node` để giải phóng bộ nhớ RAM và cổng kết nối.
-  * *Cách chạy:* Click đúp chuột trái vào tệp tin.
+  Dừng ngay lập tức toàn bộ các tiến trình dotnet và node đang chạy ngầm để giải phóng tài nguyên hệ thống.
+  * *Cách chạy:* Click đúp chuột trái vào tệp.
 * **`scripts\build.bat` (Đóng gói Production):**
-  Tự động tối ưu hóa mã nguồn, nén tài nguyên Frontend và Backend thành các gói sản phẩm phân phối phiên bản Production sẵn sàng triển khai thực tế.
+  Hỗ trợ build và đóng gói toàn bộ mã nguồn Backend/Frontend sẵn sàng đem đi triển khai thực tế.
+
 
 ---
 
