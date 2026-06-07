@@ -31,6 +31,7 @@ namespace POS36.Api.Controllers
         }
 
         [HttpPost("goimon")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan,Order")]
         public async Task<IActionResult> GoiMon(TaoDonHangDto request)
         {
             int cuaHangId = GetCuaHangId();
@@ -140,6 +141,7 @@ namespace POS36.Api.Controllers
         // 2. LẤY CHI TIẾT HÓA ĐƠN CỦA 1 BÀN (DÀNH CHO ORDER & THU NGÂN)
         // ==========================================
         [HttpGet("ban/{banId}")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan,Order")]
         public async Task<IActionResult> GetHoaDonBan(int banId)
         {
             int cuaHangId = GetCuaHangId();
@@ -190,6 +192,7 @@ namespace POS36.Api.Controllers
         // 3. CHUYỂN BÀN
         // ==========================================
         [HttpPost("chuyenban")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan,Order")]
         public async Task<IActionResult> ChuyenBan(ChuyenBanDto request)
         {
             int cuaHangId = GetCuaHangId();
@@ -251,6 +254,7 @@ namespace POS36.Api.Controllers
         // 4. GHÉP BÀN
         // ==========================================
         [HttpPost("ghepban")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan,Order")]
         public async Task<IActionResult> GhepBan(GhepBanDto request)
         {
             int cuaHangId = GetCuaHangId();
@@ -330,6 +334,7 @@ namespace POS36.Api.Controllers
         // 4b. TÁCH BÀN — Tách một số món sang bàn trống khác
         // ==========================================
         [HttpPost("tachban")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan,Order")]
         public async Task<IActionResult> TachBan(TachBanDto request)
         {
             int cuaHangId = GetCuaHangId();
@@ -431,6 +436,7 @@ namespace POS36.Api.Controllers
         // 5. THANH TOÁN KẾT HỢP TRỪ KHO & TẠO PHIẾU THU SỔ QUỸ
         // ==========================================
         [HttpPost("thanhtoan/{banId}")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan")]
         public async Task<IActionResult> ThanhToan(int banId, [FromQuery] string phuongThuc = "Tiền mặt", [FromQuery] int? khachHangId = null, [FromQuery] int diemSuDung = 0)
         {
             int cuaHangId = GetCuaHangId();
@@ -568,6 +574,7 @@ namespace POS36.Api.Controllers
         // 6. LẤY MÓN CHỜ CHẾ BIẾN (CHO MÀN HÌNH BẾP)
         // ==========================================
         [HttpGet("bep/danh-sach")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,Bep")]
         public async Task<IActionResult> GetMonChoBep([FromQuery] int chiNhanhId)
         {
             try
@@ -617,6 +624,7 @@ namespace POS36.Api.Controllers
         // 7. BẾP XÁC NHẬN ĐÃ LÀM XONG
         // ==========================================
         [HttpPut("bep/xong/{chiTietId}")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,Bep")]
         public async Task<IActionResult> MonDaXong(int chiTietId)
         {
             int cuaHangId = GetCuaHangId();
@@ -656,6 +664,7 @@ namespace POS36.Api.Controllers
         // 8. LẤY DANH SÁCH ĐƠN HÀNG (CHO ADMIN) - ĐÃ NÂNG CẤP
         // ==========================================
         [HttpGet("danh-sach-admin")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy")]
         public async Task<IActionResult> GetDanhSachAdmin([FromQuery] int chiNhanhId, [FromQuery] string? search, [FromQuery] string? status, [FromQuery] string? startDate, [FromQuery] string? endDate)
         {
             try
@@ -724,6 +733,7 @@ namespace POS36.Api.Controllers
         // 9. HỦY MÓN / TRẢ ĐỒ
         // ==========================================
         [HttpPost("huymon")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan,Order")]
         public async Task<IActionResult> HuyMon([FromBody] HuyMonDto request)
         {
             // BUG-13 FIX: Ràng buộc số lượng hủy phải lớn hơn 0

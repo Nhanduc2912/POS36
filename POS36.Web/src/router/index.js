@@ -222,19 +222,19 @@ const routes = [
     path: "/pos",
     name: "PosSystem",
     component: () => import("../views/PosView.vue"),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, roles: ["ChuCuaHang", "Admin", "QuanLy", "ThuNgan", "SuperAdmin"] },
   },
   {
     path: "/order",
     name: "StaffOrder",
     component: () => import("../views/OrderView.vue"),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, roles: ["ChuCuaHang", "Admin", "QuanLy", "ThuNgan", "Order", "SuperAdmin"] },
   },
   {
     path: "/kitchen",
     name: "KitchenDisplay",
     component: () => import("../views/KitchenView.vue"),
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, roles: ["ChuCuaHang", "Admin", "QuanLy", "Bep", "SuperAdmin"] },
   },
 ];
 
@@ -271,6 +271,22 @@ router.beforeEach((to, from) => {
       if (role === "Bep") return "/kitchen";
       return "/login";
     }
+  }
+
+  // Guard: Chặn phân quyền chéo giữa POS, Order, Kitchen
+  if (to.meta.roles && !to.meta.roles.includes(role)) {
+    if (role === "ThuNgan") return "/pos";
+    if (role === "Order") return "/order";
+    if (role === "Bep") return "/kitchen";
+    if (
+      role === "Admin" ||
+      role === "ChuCuaHang" ||
+      role === "QuanLy" ||
+      role === "SuperAdmin"
+    ) {
+      return "/admin";
+    }
+    return "/login";
   }
 
   return true;

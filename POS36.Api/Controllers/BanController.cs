@@ -28,6 +28,7 @@ namespace POS36.Api.Controllers
         }
 
         [HttpGet("khu-vuc/{khuVucId}")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan,Order,Bep")]
         public async Task<IActionResult> GetByKhuVuc(int khuVucId, [FromQuery] bool includeHidden = false)
         {
             int cuaHangId = GetCuaHangId();
@@ -176,6 +177,7 @@ namespace POS36.Api.Controllers
         }
 
         [HttpGet("danh-sach-pos")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan,Order,Bep")]
         public async Task<IActionResult> GetDanhSachPos([FromQuery] int chiNhanhId)
         {
             int cuaHangId = GetCuaHangId();
