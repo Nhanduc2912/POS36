@@ -228,7 +228,7 @@ const routes = [
     path: "/order",
     name: "StaffOrder",
     component: () => import("../views/OrderView.vue"),
-    meta: { requiresAuth: true, roles: ["ChuCuaHang", "Admin", "QuanLy", "ThuNgan", "Order", "SuperAdmin"] },
+    meta: { requiresAuth: true, roles: ["ChuCuaHang", "Admin", "QuanLy", "Order", "SuperAdmin"] },
   },
   {
     path: "/kitchen",
