@@ -66,9 +66,34 @@ namespace POS36.Api.Middleware
                 return;
             }
 
-            // Check trạng thái từ DB
+            // FIX-4: Lấy cả trạng thái cửa hàng VÀ IsActive của tài khoản trong 1 query
             using var scope = serviceProvider.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            // Lấy userId từ claim để check IsActive
+            var userIdClaim = user.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier")?.Value
+                           ?? user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+            if (int.TryParse(userIdClaim, out int taiKhoanId))
+            {
+                var isActive = await db.TaiKhoans
+                    .Where(t => t.Id == taiKhoanId)
+                    .Select(t => t.IsActive)
+                    .FirstOrDefaultAsync();
+
+                if (!isActive)
+                {
+                    context.Response.StatusCode = 401;
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        code = "ACCOUNT_DISABLED",
+                        message = "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản lý!"
+                    }));
+                    return;
+                }
+            }
+
             var trangThai = await db.CuaHangs
                 .Where(c => c.Id == cuaHangId)
                 .Select(c => c.TrangThai)
