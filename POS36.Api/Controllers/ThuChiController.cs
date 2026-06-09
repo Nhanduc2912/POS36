@@ -109,6 +109,20 @@ namespace POS36.Api.Controllers
                 string prefix = dto.LoaiPhieu == "Thu" ? "PT" : "PC";
                 string hangMucDefault = dto.LoaiPhieu == "Thu" ? "Thu khác" : "Chi khác";
 
+                // Xác thực chi nhánh hợp lệ để chống IDOR
+                int targetChiNhanhId = dto.ChiNhanhId;
+                if (targetChiNhanhId <= 0)
+                {
+                    var firstBranch = await _context.ChiNhanhs.FirstOrDefaultAsync(cn => cn.CuaHangId == cuaHangId);
+                    if (firstBranch == null) return BadRequest("Cửa hàng chưa cấu hình chi nhánh nào!");
+                    targetChiNhanhId = firstBranch.Id;
+                }
+                else
+                {
+                    var checkChiNhanh = await _context.ChiNhanhs.AnyAsync(cn => cn.Id == targetChiNhanhId && cn.CuaHangId == cuaHangId);
+                    if (!checkChiNhanh) return BadRequest("Chi nhánh không hợp lệ hoặc không thuộc cửa hàng của bạn!");
+                }
+
                 // Luôn dùng DateTime.Now (local time) để nhất quán với HoaDon
                 DateTime ngayGD = DateTime.Now;
                 if (!string.IsNullOrEmpty(dto.NgayGiaoDich) && DateTime.TryParse(dto.NgayGiaoDich, out var parsed))
@@ -117,7 +131,7 @@ namespace POS36.Api.Controllers
                 var phieu = new PhieuThuChi
                 {
                     CuaHangId    = cuaHangId,
-                    ChiNhanhId   = dto.ChiNhanhId > 0 ? dto.ChiNhanhId : 1,
+                    ChiNhanhId   = targetChiNhanhId,
                     LoaiPhieu    = dto.LoaiPhieu,
                     PhuongThuc   = dto.PhuongThuc.Trim(),
                     NguoiNopNhan = dto.NguoiNopNhan.Trim(),
