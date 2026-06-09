@@ -437,7 +437,11 @@ namespace POS36.Api.Controllers
         // ==========================================
         [HttpPost("thanhtoan/{banId}")]
         [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan")]
-        public async Task<IActionResult> ThanhToan(int banId, [FromQuery] string phuongThuc = "Tiền mặt", [FromQuery] int? khachHangId = null, [FromQuery] int diemSuDung = 0)
+        public async Task<IActionResult> ThanhToan(int banId,
+            [FromQuery] string phuongThuc = "Tiền mặt",
+            [FromQuery] int? khachHangId = null,
+            [FromQuery] int diemSuDung = 0,
+            [FromQuery] decimal discountPercent = 0) // FEAT-4: chiết khấu %
         {
             int cuaHangId = GetCuaHangId();
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -450,6 +454,22 @@ namespace POS36.Api.Controllers
                     .FirstOrDefaultAsync(h => h.BanId == banId && h.TrangThai == "Đang phục vụ" && h.CuaHangId == cuaHangId);
 
                 if (hoaDon == null) return BadRequest("Không tìm thấy hóa đơn đang phục vụ của bàn này!");
+
+                // FEAT-4: Áp chiết khấu % trước khi tính toán
+                if (discountPercent > 0)
+                {
+                    // QuanLy trở lên mới được chiết khấu > 30%
+                    var roleCheck = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+                                 ?? User.FindFirst("VaiTro")?.Value;
+                    if (discountPercent > 30 && roleCheck == "ThuNgan")
+                        return StatusCode(403, "Thu ngân chỉ được chiết khấu tối đa 30%. Liên hệ Quản lý!");
+                    if (discountPercent > 100)
+                        return BadRequest("Chiết khấu không được vượt quá 100%!");
+
+                    decimal tienGiamDiscount = hoaDon.TongTien * discountPercent / 100;
+                    hoaDon.TongTien -= tienGiamDiscount;
+                    if (hoaDon.TongTien < 0) hoaDon.TongTien = 0;
+                }
 
                 // CẬP NHẬT TRẠNG THÁI & PHƯƠNG THỨC TRƯỚC KHI GỌI SAVECHANGES
                 hoaDon.TrangThai = "Đã thanh toán";
@@ -492,6 +512,20 @@ namespace POS36.Api.Controllers
                 }
 
                 // Mặc định tên khách trên phiếu thu
+                // FEAT-1: Đọc tỷ lệ tích điểm từ ThietLap thay vì hardcode
+                // Loyalty_TiLeDoiDiem: 1 điểm = bao nhiêu tiền (default 1000 = 1.000₫)
+                // Loyalty_TiLeKiem    : cần bao nhiêu tiền để tích 1 điểm (default 20000)
+                decimal tyLeQuyDoi = 1000m;   // Mặc định 1 điểm = 1.000₫
+                decimal tyLeTichDiem = 20000m; // Mặc định 20.000₫ = 1 điểm
+                var tlQuyDoi = await _context.ThietLaps
+                    .FirstOrDefaultAsync(t => t.CuaHangId == cuaHangId && t.MaThietLap == "Loyalty_TiLeDoiDiem");
+                var tlTichDiem = await _context.ThietLaps
+                    .FirstOrDefaultAsync(t => t.CuaHangId == cuaHangId && t.MaThietLap == "Loyalty_TiLeKiem");
+                if (tlQuyDoi != null && decimal.TryParse(tlQuyDoi.DuLieu, out decimal parsedQuyDoi) && parsedQuyDoi > 0)
+                    tyLeQuyDoi = parsedQuyDoi;
+                if (tlTichDiem != null && decimal.TryParse(tlTichDiem.DuLieu, out decimal parsedTichDiem) && parsedTichDiem > 0)
+                    tyLeTichDiem = parsedTichDiem;
+
                 string tenKhachHang = "Khách hàng lẻ";
                 int diemCong = 0;
                 decimal tienGiam = 0;
@@ -513,20 +547,19 @@ namespace POS36.Api.Controllers
                             if (diemSuDung > khachHang.DiemHienTai)
                                 return BadRequest(new { message = $"Khách chỉ có {khachHang.DiemHienTai} điểm, không đủ để sử dụng {diemSuDung} điểm!" });
 
-                            tienGiam = diemSuDung * 1000m; // 1 điểm = 1.000₫
+                            tienGiam = diemSuDung * tyLeQuyDoi; // FEAT-1: Dùng tỷ lệ từ ThietLap
                             if (tienGiam > hoaDon.TongTien) tienGiam = hoaDon.TongTien;
 
-                            khachHang.DiemHienTai -= diemSuDung; // Trừ điểm hiện tại
-                            // TongDiemTichLuy không giảm (lịch sử tích lũy giữ nguyên)
+                            khachHang.DiemHienTai -= diemSuDung;
                             hoaDon.TongTien -= tienGiam;
                             if (hoaDon.TongTien < 0) hoaDon.TongTien = 0;
                         }
 
-                        // BƯỚC 2: TÍCH ĐIỂM từ số tiền thực tế thanh toán (sau khi đã giảm)
-                        // Tỷ lệ: 1 điểm = 20.000₫
-                        diemCong = (int)(hoaDon.TongTien / 20000);
-                        khachHang.TongDiemTichLuy += diemCong; // Chỉ tăng, không bao giờ giảm
-                        khachHang.DiemHienTai += diemCong;     // Tăng bởi giao dịch mới
+                        // BƯỚC 2: TÍCH ĐIỂM từ số tiền thực tế thanh toán
+                        // FEAT-1: Dùng tỷ lệ từ ThietLap thay vì hardcode 20.000
+                        diemCong = (int)(hoaDon.TongTien / tyLeTichDiem);
+                        khachHang.TongDiemTichLuy += diemCong;
+                        khachHang.DiemHienTai += diemCong;
                     }
                 }
 
@@ -534,7 +567,7 @@ namespace POS36.Api.Controllers
                 {
                     CuaHangId = hoaDon.CuaHangId,
                     ChiNhanhId = hoaDon.ChiNhanhId,
-                    MaChungTu = $"PT{DateTime.Now:ddMMyy}-{new Random().Next(1000, 9999)}",
+                    MaChungTu = $"PT{DateTime.Now:ddMMyy}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}",
                     LoaiPhieu = "Thu",
                     PhuongThuc = phuongThuc,
                     NguoiNopNhan = tenKhachHang,
