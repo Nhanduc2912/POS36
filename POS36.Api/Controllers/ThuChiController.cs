@@ -105,6 +105,12 @@ namespace POS36.Api.Controllers
                 if (string.IsNullOrWhiteSpace(dto.NguoiNopNhan))
                     return BadRequest("Người nộp/nhận là bắt buộc.");
 
+                // FIX-2: Thu ngân chỉ được tạo phiếu THU — không được tạo phiếu CHI
+                var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+                           ?? User.FindFirst("VaiTro")?.Value;
+                if (role == "ThuNgan" && dto.LoaiPhieu == "Chi")
+                    return StatusCode(403, "Thu ngân không có quyền tạo phiếu Chi. Vui lòng liên hệ Quản lý!");
+
                 int cuaHangId = GetCuaHangId();
                 string prefix = dto.LoaiPhieu == "Thu" ? "PT" : "PC";
                 string hangMucDefault = dto.LoaiPhieu == "Thu" ? "Thu khác" : "Chi khác";
