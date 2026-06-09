@@ -102,6 +102,17 @@ namespace POS36.Api.Controllers
         {
             int cuaHangId = GetCuaHangId();
 
+            // 1. Xác thực chi nhánh có thuộc cửa hàng hiện tại hay không để chống IDOR
+            var checkChiNhanh = await _context.ChiNhanhs.AnyAsync(cn => cn.Id == request.ChiNhanhId && cn.CuaHangId == cuaHangId);
+            if (!checkChiNhanh) return BadRequest("Chi nhánh không hợp lệ hoặc không thuộc cửa hàng của bạn!");
+
+            // 2. Xác thực tất cả sản phẩm kiểm kê có thuộc cửa hàng hiện tại hay không
+            foreach (var item in request.ChiTiets)
+            {
+                var checkSanPham = await _context.SanPhams.AnyAsync(sp => sp.Id == item.SanPhamId && sp.CuaHangId == cuaHangId);
+                if (!checkSanPham) return BadRequest($"Sản phẩm (ID: {item.SanPhamId}) không hợp lệ hoặc không thuộc cửa hàng của bạn!");
+            }
+
             // Dùng Transaction để đảm bảo: Nếu lỗi giữa chừng thì hủy toàn bộ, không lưu rác vào Database
             using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -209,6 +220,13 @@ namespace POS36.Api.Controllers
         public async Task<IActionResult> CapNhatPhieuKiemKe(int id, [FromBody] TaoPhieuKiemKeDto request)
         {
             int cuaHangId = GetCuaHangId();
+
+            // Xác thực tất cả sản phẩm kiểm kê có thuộc cửa hàng hiện tại hay không để chống IDOR
+            foreach (var item in request.ChiTiets)
+            {
+                var checkSanPham = await _context.SanPhams.AnyAsync(sp => sp.Id == item.SanPhamId && sp.CuaHangId == cuaHangId);
+                if (!checkSanPham) return BadRequest($"Sản phẩm (ID: {item.SanPhamId}) không hợp lệ hoặc không thuộc cửa hàng của bạn!");
+            }
 
             using var transaction = await _context.Database.BeginTransactionAsync();
 
