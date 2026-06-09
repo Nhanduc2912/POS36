@@ -114,7 +114,7 @@ namespace POS36.Api.Controllers
                     GhiChu = request.GhiChu, // Đã xóa phần gài Nhà CC vào ghi chú
                     TrangThai = request.TrangThai,
                     NgayNhap = DateTime.Now,
-                    MaChungTu = $"NH{DateTime.Now:ddMM}-{new Random().Next(1000, 9999)}"
+                    MaChungTu = $"NH{DateTime.Now:ddMM}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}"
                 };
 
                 _context.PhieuNhaps.Add(phieu);
@@ -151,24 +151,25 @@ namespace POS36.Api.Controllers
                     }
                 }
 
-                // Lập phiếu chi nếu có thanh toán tiền (Đã bỏ NguoiNopNhan = NCC)
-                if (request.TrangThai == "Hoàn thành" && request.TienThanhToan > 0)
+                // FIX-1: Chỉ ghi phiếu chi nếu chưa ghi lần nào (chống kép)
+                if (request.TrangThai == "Hoàn thành" && request.TienThanhToan > 0 && !phieu.DaGhiSoQuy)
                 {
                     var (supplier, _) = ParseGhiChu(request.GhiChu);
                     _context.PhieuThuChis.Add(new PhieuThuChi
                     {
                         CuaHangId = cuaHangId,
                         ChiNhanhId = request.ChiNhanhId,
-                        MaChungTu = $"PC{DateTime.Now:ddMM}-{new Random().Next(1000, 9999)}",
+                        MaChungTu = $"PC{DateTime.Now:ddMM}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}",
                         LoaiPhieu = "Chi",
                         PhuongThuc = "Tiền mặt",
-                        NguoiNopNhan = supplier, // SỬ DỤNG NHÀ CUNG CẤP TỪ GHI CHÚ
+                        NguoiNopNhan = supplier,
                         HangMuc = "Chi trả tiền nhập hàng",
                         LyDo = $"Thanh toán cho phiếu nhập {phieu.MaChungTu}",
                         GiaTri = (double)request.TienThanhToan,
                         NgayGiaoDich = DateTime.Now,
                         NguoiTao = User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")?.Value ?? "Admin"
                     });
+                    phieu.DaGhiSoQuy = true; // Đánh dấu đã ghi
                 }
 
                 await _context.SaveChangesAsync();
@@ -231,25 +232,26 @@ namespace POS36.Api.Controllers
                     }
                 }
 
-                // Ghi phiếu chi (audit trail tài chính) nếu phiếu có giá trị
+                // FIX-1: Chỉ ghi phiếu chi nếu chưa ghi lần nào (chống kép)
                 decimal tongTienPhieu = phieu.ChiTiets.Sum(c => c.SoLuong * c.DonGiaNhap);
-                if (tongTienPhieu > 0)
+                if (tongTienPhieu > 0 && !phieu.DaGhiSoQuy)
                 {
                     var (supplier, _) = ParseGhiChu(phieu.GhiChu);
                     _context.PhieuThuChis.Add(new PhieuThuChi
                     {
                         CuaHangId = cuaHangId,
                         ChiNhanhId = phieu.ChiNhanhId,
-                        MaChungTu = $"PC{DateTime.Now:ddMM}-{new Random().Next(1000, 9999)}",
+                        MaChungTu = $"PC{DateTime.Now:ddMM}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}",
                         LoaiPhieu = "Chi",
                         PhuongThuc = "Tiền mặt",
-                        NguoiNopNhan = supplier, // SỬ DỤNG NHÀ CUNG CẤP TỪ GHI CHÚ
+                        NguoiNopNhan = supplier,
                         HangMuc = "Chi trả tiền nhập hàng",
                         LyDo = $"Xác nhận và thanh toán phiếu nhập {phieu.MaChungTu}",
                         GiaTri = (double)tongTienPhieu,
                         NgayGiaoDich = DateTime.Now,
                         NguoiTao = User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")?.Value ?? "Admin"
                     });
+                    phieu.DaGhiSoQuy = true; // Đánh dấu đã ghi, phòng gọi lại
                 }
 
                 await _context.SaveChangesAsync();

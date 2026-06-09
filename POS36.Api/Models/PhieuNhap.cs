@@ -18,6 +18,10 @@ namespace POS36.Api.Models
         public DateTime NgayNhap { get; set; }
         public string GhiChu { get; set; } = string.Empty;
 
+        // FIX-1: Cờ chống ghi kép phiếu chi vào sổ quỹ
+        // true = đã ghi 1 lần, không ghi nữa
+        public bool DaGhiSoQuy { get; set; } = false;
+
         public List<ChiTietPhieuNhap> ChiTiets { get; set; } = new();
     }
 }
