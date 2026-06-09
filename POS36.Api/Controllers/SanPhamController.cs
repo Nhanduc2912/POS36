@@ -99,6 +99,10 @@ namespace POS36.Api.Controllers
             var sp = await _context.SanPhams.FirstOrDefaultAsync(s => s.Id == id && s.CuaHangId == cuaHangId);
             if (sp == null) return NotFound("Không tìm thấy sản phẩm!");
 
+            // Xác thực Danh mục có thuộc về cửa hàng này hay không để chống IDOR
+            var checkDanhMuc = await _context.DanhMucs.AnyAsync(d => d.Id == request.DanhMucId && d.CuaHangId == cuaHangId);
+            if (!checkDanhMuc) return BadRequest("Danh mục không hợp lệ hoặc không thuộc cửa hàng của bạn!");
+
             sp.TenSanPham = request.TenSanPham;
             sp.GiaBan = request.GiaBan;
             sp.DanhMucId = request.DanhMucId;
