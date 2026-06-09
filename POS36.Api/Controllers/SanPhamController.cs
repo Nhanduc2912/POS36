@@ -55,12 +55,12 @@ namespace POS36.Api.Controllers
                 s.DanhMucId,
                 TenDanhMuc = s.DanhMuc != null ? s.DanhMuc.TenDanhMuc : "Khác",
 
-                HinhAnh = s.HinhAnh, // <--- THÊM ĐÚNG DÒNG NÀY VÀO ĐÂY LÀ XONG
+                HinhAnh = s.HinhAnh,
                 GiaVon = _context.ChiTietPhieuNhaps
                             .Where(ct => ct.SanPhamId == s.Id && ct.PhieuNhap != null && ct.PhieuNhap.ChiNhanhId == chiNhanhId && ct.PhieuNhap.TrangThai == "Hoàn thành")
                             .Select(ct => (decimal?)ct.DonGiaNhap)
                             .Average() ?? 0,
-                // Tìm tồn kho của sản phẩm này tại chi nhánh đang chọn, nếu không có thì trả về 0
+                NgưỡngCanhBao = s.NgưỡngCanhBao, // FEAT-2
                 TonKho = _context.TonKhos
                             .Where(t => t.SanPhamId == s.Id && t.ChiNhanhId == chiNhanhId)
                             .Select(t => t.SoLuong)
@@ -106,6 +106,7 @@ namespace POS36.Api.Controllers
             sp.TenSanPham = request.TenSanPham;
             sp.GiaBan = request.GiaBan;
             sp.DanhMucId = request.DanhMucId;
+            if (request.NgưỡngCanhBao > 0) sp.NgưỡngCanhBao = request.NgưỡngCanhBao; // FEAT-2
 
             // Nếu người dùng có chọn ảnh mới thì mới up và đè lên ảnh cũ
             if (request.HinhAnhFile != null)
@@ -149,6 +150,7 @@ namespace POS36.Api.Controllers
             public string TenSanPham { get; set; } = string.Empty;
             public decimal GiaBan { get; set; }
             public IFormFile? HinhAnhFile { get; set; } // Nhận file ảnh từ Vue
+            public int NgưỡngCanhBao { get; set; } = 5; // FEAT-2
         }
 
         // HÀM HỖ TRỢ LƯU FILE ẢNH VÀO THƯ MỤC wwwroot/images
@@ -193,7 +195,8 @@ namespace POS36.Api.Controllers
                 TenSanPham = request.TenSanPham,
                 GiaBan = request.GiaBan,
                 TrangThai = true,
-                HinhAnh = hinhAnhPath // Gắn đường dẫn ảnh vào DB
+                HinhAnh = hinhAnhPath,
+                NgưỡngCanhBao = request.NgưỡngCanhBao > 0 ? request.NgưỡngCanhBao : 5 // FEAT-2
             };
 
             _context.SanPhams.Add(newSanPham);

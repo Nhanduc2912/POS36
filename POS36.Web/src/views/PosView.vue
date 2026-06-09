@@ -745,9 +745,10 @@ const logout = () => {
 };
 
 // --- HÀM THỰC HIỆN THANH TOÁN CHÍNH THỨC ---
-const thucHienThanhToanChinhThuc = async (banId, phuongThuc, diemSuDung = 0) => {
+const thucHienThanhToanChinhThuc = async (banId, phuongThuc, diemSuDung = 0, discountPercent = 0) => {
   try {
     let url = `/api/HoaDon/thanhtoan/${banId}?phuongThuc=${phuongThuc}&diemSuDung=${diemSuDung}`;
+    if (discountPercent > 0) url += `&discountPercent=${discountPercent}`;
     if (selectedCustomer.value) {
       url += `&khachHangId=${selectedCustomer.value.id}`;
     }
@@ -826,10 +827,21 @@ const handleThanhToan = async () => {
         </div>`
     : "";
 
+  // UI-4: Biến tạm theo dõi chiết khấu %
+  let _discountTemp = 0;
+
   const result = await swal.fire({
     title: `Thanh toán Bàn ${activeTable.value.tenBan}`,
     html: `
       ${diemHtml}
+      <div class="border rounded p-2 mb-3 text-start" style="background:#fff8e1">
+        <label class="small fw-semibold mb-1"><i class="bi bi-percent me-1 text-warning"></i>Chiết khấu hóa đơn (%):</label>
+        <div class="d-flex align-items-center gap-2">
+          <input id="swal-discount" type="number" class="form-control form-control-sm text-center"
+                 value="0" min="0" max="100" step="1" style="width:80px" placeholder="0">
+          <span class="text-muted small">% &rarr; Giảm <span id="swal-tien-giam-discount" class="text-danger fw-bold"></span></span>
+        </div>
+      </div>
       <h3 class="text-danger fw-bold mb-1" id="swal-so-tien">${formatPrice(soTien)}</h3>
       <p class="text-muted small mb-0" id="swal-so-tien-goc"></p>
     `,
@@ -841,30 +853,34 @@ const handleThanhToan = async () => {
     confirmButtonColor: "#28a745",
     denyButtonColor: "#f37021",
     didOpen: () => {
-      const input = document.getElementById("swal-diem-sd");
-      if (!input) return;
-      input.addEventListener("input", () => {
-        const diem = Math.max(
-          0,
-          Math.min(parseInt(input.value) || 0, khachHang?.diemHienTai || 0),
-        );
-        input.value = diem;
+      const inputDiem = document.getElementById('swal-diem-sd');
+      const inputDiscount = document.getElementById('swal-discount');
+
+      const recalcTotal = () => {
+        const diem = Math.max(0, Math.min(parseInt(inputDiem?.value) || 0, khachHang?.diemHienTai || 0));
+        const discount = Math.max(0, Math.min(parseFloat(inputDiscount?.value) || 0, 100));
         _diemTemp = diem;
-        const tienGiam = Math.min(diem * 1000, soTien);
-        const conLai = soTien - tienGiam;
-        const elTotal = document.getElementById("swal-so-tien");
-        const elGoc = document.getElementById("swal-so-tien-goc");
-        const elGiam = document.getElementById("swal-tien-giam");
-        if (tienGiam > 0) {
-          elTotal.textContent = formatPrice(conLai);
-          elGoc.innerHTML = `<s class="text-muted">${formatPrice(soTien)}</s> — Giảm ${formatPrice(tienGiam)}`;
-          elGiam.textContent = `−${formatPrice(tienGiam)}`;
-        } else {
-          elTotal.textContent = formatPrice(soTien);
-          elGoc.textContent = "";
-          elGiam.textContent = "";
-        }
-      });
+        _discountTemp = discount;
+
+        const tienGiamDiem = Math.min(diem * 1000, soTien);
+        const soSauDiem = soTien - tienGiamDiem;
+        const tienGiamDiscount = soSauDiem * discount / 100;
+        const conLai = soSauDiem - tienGiamDiscount;
+
+        document.getElementById('swal-so-tien').textContent = formatPrice(conLai);
+        const elGoc = document.getElementById('swal-so-tien-goc');
+        const parts = [];
+        if (tienGiamDiem > 0) parts.push(`điểm: -${formatPrice(tienGiamDiem)}`);
+        if (tienGiamDiscount > 0) parts.push(`CK: -${formatPrice(tienGiamDiscount)}`);
+        elGoc.innerHTML = parts.length ? `<s class="text-muted">${formatPrice(soTien)}</s> &mdash; ${parts.join(', ')}` : '';
+        const elGiamD = document.getElementById('swal-tien-giam');
+        if (elGiamD) elGiamD.textContent = tienGiamDiem > 0 ? `−${formatPrice(tienGiamDiem)}` : '';
+        const elGiamDis = document.getElementById('swal-tien-giam-discount');
+        if (elGiamDis) elGiamDis.textContent = tienGiamDiscount > 0 ? formatPrice(tienGiamDiscount) : '';
+      };
+
+      if (inputDiem) inputDiem.addEventListener('input', recalcTotal);
+      if (inputDiscount) inputDiscount.addEventListener('input', recalcTotal);
     },
   });
 
@@ -902,6 +918,7 @@ const handleThanhToan = async () => {
       tenBan: activeTable.value.tenBan,
       soTien: soTienThucTe,
       diemSuDung: diemSuDung,
+      discountPercent: discountPercent,
     };
 
     if (!pendingPayments.value.some((p) => p.banId === banId)) {

@@ -116,6 +116,10 @@ const handleAddProduct = async () => {
       <select id="swal-category" class="form-select mb-3">${categoryOptions}</select>
       <input id="swal-name" class="form-control mb-3" placeholder="Tên hàng hóa (VD: Lẩu Thái)">
       <input id="swal-price" class="form-control mb-3" type="number" placeholder="Giá bán (VNĐ)">
+      <div class="mb-3">
+        <label class="d-block text-start mb-1 small fw-semibold">Ngưỡng cảnh báo tồn kho:</label>
+        <input id="swal-nguong" class="form-control" type="number" value="5" min="0" placeholder="VD: 5 (khi tồn kho &lt;= 5 sẽ cảnh báo)">
+      </div>
       <label class="d-block text-start mb-1 small text-muted">Hình ảnh (Tùy chọn):</label>
       <input id="swal-image" class="form-control" type="file" accept="image/*">
     `,
@@ -135,6 +139,7 @@ const handleAddProduct = async () => {
           danhMucId: catId,
           tenSanPham: name,
           giaBan: price,
+          nguongCanhBao: parseInt(document.getElementById('swal-nguong').value) || 5,
           imageFile: imageFile,
         };
       },
@@ -146,6 +151,7 @@ const handleAddProduct = async () => {
           formData.append("DanhMucId", result.value.danhMucId);
           formData.append("TenSanPham", result.value.tenSanPham);
           formData.append("GiaBan", result.value.giaBan);
+          formData.append("NgưỡngCanhBao", result.value.nguongCanhBao);
           if (result.value.imageFile)
             formData.append("HinhAnhFile", result.value.imageFile);
 
@@ -175,6 +181,11 @@ const handleEditProduct = async (prod) => {
       <select id="swal-category-edit" class="form-select mb-3">${categoryOptions}</select>
       <input id="swal-name-edit" class="form-control mb-3" value="${prod.tenSanPham}">
       <input id="swal-price-edit" class="form-control mb-3" type="number" value="${prod.giaBan}">
+      <div class="mb-3">
+        <label class="d-block text-start mb-1 small fw-semibold">Ngưỡng cảnh báo tồn kho:</label>
+        <input id="swal-nguong-edit" class="form-control" type="number" value="${prod.ngưỡngCanhBao || 5}" min="0">
+        <div class="form-text text-muted small">Hệ thống sẽ cảnh báo khi tồn kho ≤ giá trị này</div>
+      </div>
       <label class="d-block text-start mb-1 small text-muted">Ảnh mới (Bỏ trống nếu giữ ảnh cũ):</label>
       <input id="swal-image-edit" class="form-control" type="file" accept="image/*">
     `,
@@ -193,6 +204,7 @@ const handleEditProduct = async (prod) => {
           danhMucId: catId,
           tenSanPham: name,
           giaBan: price,
+          nguongCanhBao: parseInt(document.getElementById('swal-nguong-edit').value) || 5,
           imageFile: imageFile,
         };
       },
@@ -204,6 +216,7 @@ const handleEditProduct = async (prod) => {
           formData.append("DanhMucId", result.value.danhMucId);
           formData.append("TenSanPham", result.value.tenSanPham);
           formData.append("GiaBan", result.value.giaBan);
+          formData.append("NgưỡngCanhBao", result.value.nguongCanhBao);
           if (result.value.imageFile)
             formData.append("HinhAnhFile", result.value.imageFile);
 

@@ -283,6 +283,12 @@ const bannerInfo = computed(() => {
                     >Báo cáo bán hàng</router-link
                   >
                 </li>
+                <li>
+                  <router-link
+                    to="/admin/lai-gop"
+                    class="dropdown-item py-2"
+                  ><i class="bi bi-graph-up-arrow text-success me-1"></i> Báo cáo Lãi gộp</router-link>
+                </li>
                 <li><hr class="dropdown-divider" /></li>
                 <li>
                   <router-link

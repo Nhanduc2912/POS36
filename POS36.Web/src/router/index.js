@@ -189,6 +189,12 @@ const routes = [
         component: () => import("../views/SalesReport.vue"),
       },
       {
+        path: "lai-gop",
+        name: "LaiGopReport",
+        component: () => import("../views/LaiGopReport.vue"),
+      },
+
+      {
         path: "profile",
         name: "AdminProfile",
         component: () => import("../views/ProfileView.vue"),

@@ -11,9 +11,12 @@ namespace POS36.Api.Models
         public decimal GiaBan { get; set; }
         public bool TrangThai { get; set; } = true;
 
-        // --- THÊM DÒNG NÀY ---
         // Lưu đường dẫn ảnh, ví dụ: /images/products/lau-thai.jpg
         public string? HinhAnh { get; set; }
+
+        // FEAT-2: Ngưỡng cảnh báo tồn kho riêng cho từng sản phẩm
+        // Default = 5 để backward compatible với dữ liệu cũ
+        public int NgưỡngCanhBao { get; set; } = 5;
 
         public DanhMuc? DanhMuc { get; set; }
     }
