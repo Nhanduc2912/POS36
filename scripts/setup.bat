@@ -102,7 +102,7 @@ echo      POS36.Api\appsettings.json
 echo      (sua ConnectionStrings.DefaultConnection)
 echo.
 echo   2. Import database:
-echo      Chay file Pos36DB.sql vao SQL Server
+echo      Chay file POS36_DATA.sql vao SQL Server
 echo.
 echo   3. Chay he thong:
 echo      Double-click: scripts\run.bat
