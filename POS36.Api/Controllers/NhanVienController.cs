@@ -48,6 +48,11 @@ namespace POS36.Api.Controllers
         {
             int cuaHangId = GetCuaHangId();
 
+            // VALIDATION 0: Xác thực chi nhánh có thuộc cửa hàng hiện tại hay không để chống IDOR
+            var checkChiNhanh = await _context.ChiNhanhs.AnyAsync(cn => cn.Id == request.ChiNhanhId && cn.CuaHangId == cuaHangId);
+            if (!checkChiNhanh)
+                return BadRequest(new { message = "Chi nhánh không hợp lệ hoặc không thuộc cửa hàng của bạn!" });
+
             // VALIDATION 1: Bắt buộc phải cấp tài khoản và vai trò
             if (string.IsNullOrWhiteSpace(request.VaiTro))
                 return BadRequest(new { message = "Vui lòng chọn Vai trò cho nhân viên!" });
