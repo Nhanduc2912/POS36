@@ -160,6 +160,38 @@ const handleEditEmployee = async (emp) => {
   }
 };
 
+const handleToggleActive = async (emp) => {
+  const isCurrentlyActive = emp.isActive !== false;
+  const actionText = isCurrentlyActive ? "Khóa tài khoản" : "Mở khóa tài khoản";
+  const confirmResult = await swal.fire({
+    title: `${actionText} nhân viên này?`,
+    text: isCurrentlyActive 
+      ? "Tài khoản nhân viên này sẽ bị vô hiệu hóa ngay lập tức và không thể đăng nhập!" 
+      : "Kích hoạt lại tài khoản cho nhân viên này đăng nhập hệ thống.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Đồng ý",
+    confirmButtonColor: isCurrentlyActive ? "#dc3545" : "#28a745"
+  });
+
+  if (confirmResult.isConfirmed) {
+    try {
+      const res = await axios.put(`/api/NhanVien/${emp.id}/toggle-active`);
+      swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: res.data.message || "Thành công!",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+      fetchEmployees();
+    } catch (e) {
+      swal.fire("Lỗi", e.response?.data?.message || "Không thể thay đổi trạng thái", "error");
+    }
+  }
+};
+
 const handleDeleteEmployee = (id) => {
   swal
     .fire({
@@ -211,7 +243,8 @@ const handleDeleteEmployee = (id) => {
               <th>Số điện thoại</th>
               <th>Tên đăng nhập</th>
               <th>Vai trò phần mềm</th>
-              <th class="text-center" style="width: 120px">Thao tác</th>
+              <th class="text-center" style="width: 130px">Trạng thái</th>
+              <th class="text-center" style="width: 140px">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -248,6 +281,27 @@ const handleDeleteEmployee = (id) => {
               </td>
 
               <td class="text-center">
+                <span
+                  v-if="emp.isActive !== false"
+                  class="badge bg-success bg-opacity-10 text-success rounded-pill fw-semibold px-3 py-1.5"
+                  ><i class="bi bi-patch-check-fill me-1"></i>Hoạt động</span
+                >
+                <span
+                  v-else
+                  class="badge bg-danger bg-opacity-10 text-danger rounded-pill fw-semibold px-3 py-1.5"
+                  ><i class="bi bi-shield-slash-fill me-1"></i>Bị khóa</span
+                >
+              </td>
+
+              <td class="text-center">
+                <button
+                  @click="handleToggleActive(emp)"
+                  class="btn btn-sm btn-light me-1"
+                  :class="emp.isActive !== false ? 'text-warning' : 'text-success'"
+                  :title="emp.isActive !== false ? 'Khóa tài khoản' : 'Mở khóa tài khoản'"
+                >
+                  <i class="bi" :class="emp.isActive !== false ? 'bi-lock-fill' : 'bi-unlock-fill'"></i>
+                </button>
                 <button
                   @click="handleEditEmployee(emp)"
                   class="btn btn-sm btn-light text-primary me-1"
@@ -263,7 +317,7 @@ const handleDeleteEmployee = (id) => {
               </td>
             </tr>
             <tr v-if="employees.length === 0">
-              <td colspan="8" class="text-center py-5 text-muted">
+              <td colspan="9" class="text-center py-5 text-muted">
                 <i class="bi bi-inbox fs-1 d-block mb-2"></i> Chi nhánh này chưa
                 có nhân viên nào.
               </td>
