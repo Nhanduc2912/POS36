@@ -436,7 +436,7 @@ namespace POS36.Api.Controllers
         // 5. THANH TOÁN KẾT HỢP TRỪ KHO & TẠO PHIẾU THU SỔ QUỸ
         // ==========================================
         [HttpPost("thanhtoan/{banId}")]
-        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan,Order")]
         public async Task<IActionResult> ThanhToan(int banId,
             [FromQuery] string phuongThuc = "Tiền mặt",
             [FromQuery] int? khachHangId = null,
@@ -697,7 +697,7 @@ namespace POS36.Api.Controllers
         // 8. LẤY DANH SÁCH ĐƠN HÀNG (CHO ADMIN) - ĐÃ NÂNG CẤP
         // ==========================================
         [HttpGet("danh-sach-admin")]
-        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan")]
         public async Task<IActionResult> GetDanhSachAdmin([FromQuery] int chiNhanhId, [FromQuery] string? search, [FromQuery] string? status, [FromQuery] string? startDate, [FromQuery] string? endDate)
         {
             try
@@ -705,6 +705,7 @@ namespace POS36.Api.Controllers
                 int cuaHangId = GetCuaHangId();
                 var query = _context.HoaDons
                     .Include(h => h.Ban)
+                    .Include(h => h.KhachHang)
                     .Include(h => h.ChiTietHoaDons!)
                     .ThenInclude(c => c.SanPham)
                     .Where(h => h.CuaHangId == cuaHangId);
@@ -725,10 +726,11 @@ namespace POS36.Api.Controllers
                         Id = h.Id,
                         MaChungTu = $"HD{h.NgayTao:ddMMyy}-{h.Id:D4}",
                         TenBan = h.Ban != null ? h.Ban.TenBan : "Mang về",
-                        KhachHang = "Khách lẻ",
+                        KhachHang = h.KhachHang != null ? h.KhachHang.TenKhachHang : "Khách lẻ",
                         NgayBan = h.NgayTao,
-                        TongCong = h.TongTien,
+                        TongCong = h.ChiTietHoaDons!.Any() ? h.ChiTietHoaDons!.Sum(ct => ct.SoLuong * ct.DonGia) : 0,
                         TongThanhToan = h.TongTien,
+                        TienGiam = Math.Max(0, (h.ChiTietHoaDons!.Any() ? h.ChiTietHoaDons!.Sum(ct => ct.SoLuong * ct.DonGia) : 0) - h.TongTien),
                         TrangThai = h.TrangThai,
                         ChiTiets = h.ChiTietHoaDons!.Select(ct => new
                         {
