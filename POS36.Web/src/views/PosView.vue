@@ -1603,18 +1603,30 @@ watch(activeRightTab, (newTab) => {
 
                 <!-- Items Breakdown -->
                 <div class="card-body pt-1 pb-3 px-3">
-                  <div class="p-2 rounded-3 mb-3 bg-white" style="border: 1px dashed #e2e8f0;">
+                  <div class="p-2 rounded-3 mb-2 bg-white" style="border: 1px dashed #e2e8f0;">
                     <div v-for="(ct, idx) in invoice.chiTiets" :key="idx" class="d-flex justify-content-between align-items-center py-1 border-bottom border-light" style="font-size: 0.85rem">
                       <span class="text-secondary fw-semibold">{{ ct.tenSanPham }}</span>
                       <div class="d-flex align-items-center gap-4">
                         <span class="text-muted font-monospace">x{{ ct.soLuong }}</span>
-                        <span class="fw-bold text-dark font-monospace" style="width: 80px; text-align: right;">{{ formatPrice(ct.ThanhTien) }}</span>
+                        <span class="fw-bold text-dark font-monospace" style="width: 80px; text-align: right;">{{ formatPrice(ct.thanhTien) }}</span>
                       </div>
+                    </div>
+                  </div>
+
+                  <!-- Hiển thị chi tiết giảm giá nếu có -->
+                  <div v-if="invoice.tienGiam > 0" class="mb-3 px-2 small text-secondary" style="font-size: 0.8rem;">
+                    <div class="d-flex justify-content-between mb-0.5">
+                      <span>Tổng tiền hàng:</span>
+                      <span class="font-monospace">{{ formatPrice(invoice.tongCong) }} ₫</span>
+                    </div>
+                    <div class="d-flex justify-content-between text-danger mb-0.5">
+                      <span>Giảm giá / Chiết khấu:</span>
+                      <span class="font-monospace fw-semibold">-{{ formatPrice(invoice.tienGiam) }} ₫</span>
                     </div>
                   </div>
                   
                   <div class="d-flex justify-content-between align-items-center">
-                    <span class="small text-muted"><i class="bi bi-person-fill text-muted me-1"></i>{{ invoice.KhachHang || 'Khách lẻ' }}</span>
+                    <span class="small text-muted"><i class="bi bi-person-fill text-muted me-1"></i>{{ invoice.khachHang || 'Khách lẻ' }}</span>
                     <button
                       @click="reprintInvoice(invoice)"
                       class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3 shadow-sm d-flex align-items-center gap-1 hover-reprint-btn"
