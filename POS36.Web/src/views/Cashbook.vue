@@ -339,48 +339,52 @@
                       <div class="row g-0">
                         <div class="col-md-5">
                           <table class="detail-table">
-                            <tr>
-                              <td>Mã chứng từ</td>
-                              <td class="fw-semibold">{{ t.maChungTu }}</td>
-                            </tr>
-                            <tr>
-                              <td>Loại phiếu</td>
-                              <td>
-                                <span
-                                  class="badge"
-                                  :class="
-                                    t.loaiPhieu === 'Thu'
-                                      ? 'bg-primary'
-                                      : 'bg-danger'
-                                  "
-                                  >Phiếu {{ t.loaiPhieu }}</span
-                                >
-                              </td>
-                            </tr>
-                            <tr>
-                              <td>Hạng mục</td>
-                              <td>{{ t.hangMuc }}</td>
-                            </tr>
-                            <tr>
-                              <td>Người nộp/nhận</td>
-                              <td>{{ t.nguoiNopNhan || "—" }}</td>
-                            </tr>
+                            <tbody>
+                              <tr>
+                                <td>Mã chứng từ</td>
+                                <td class="fw-semibold">{{ t.maChungTu }}</td>
+                              </tr>
+                              <tr>
+                                <td>Loại phiếu</td>
+                                <td>
+                                  <span
+                                    class="badge"
+                                    :class="
+                                      t.loaiPhieu === 'Thu'
+                                        ? 'bg-primary'
+                                        : 'bg-danger'
+                                    "
+                                    >Phiếu {{ t.loaiPhieu }}</span
+                                  >
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>Hạng mục</td>
+                                <td>{{ t.hangMuc }}</td>
+                              </tr>
+                              <tr>
+                                <td>Người nộp/nhận</td>
+                                <td>{{ t.nguoiNopNhan || "—" }}</td>
+                              </tr>
+                            </tbody>
                           </table>
                         </div>
                         <div class="col-md-4">
                           <table class="detail-table">
-                            <tr>
-                              <td>Phương thức</td>
-                              <td>{{ t.phuongThuc }}</td>
-                            </tr>
-                            <tr>
-                              <td>Ngày giao dịch</td>
-                              <td>{{ formatDateFull(t.ngayGiaoDich) }}</td>
-                            </tr>
-                            <tr>
-                              <td>Người tạo</td>
-                              <td>{{ t.nguoiTao }}</td>
-                            </tr>
+                            <tbody>
+                              <tr>
+                                <td>Phương thức</td>
+                                <td>{{ t.phuongThuc }}</td>
+                              </tr>
+                              <tr>
+                                <td>Ngày giao dịch</td>
+                                <td>{{ formatDateFull(t.ngayGiaoDich) }}</td>
+                              </tr>
+                              <tr>
+                                <td>Người tạo</td>
+                                <td>{{ t.nguoiTao }}</td>
+                              </tr>
+                            </tbody>
                           </table>
                         </div>
                         <div
@@ -400,7 +404,7 @@
                               }}{{ formatPrice(t.giaTri) }} ₫
                             </div>
                           </div>
-                          <button class="btn btn-sm btn-outline-secondary mt-2">
+                          <button @click="handlePrint(t)" class="btn btn-sm btn-outline-secondary mt-2">
                             <i class="bi bi-printer me-1"></i>In phiếu
                           </button>
                         </div>
@@ -700,6 +704,82 @@ const openChiModal = async () => {
     },
   });
   if (form) await submitPhieu(form);
+};
+
+const handlePrint = (t) => {
+  const isThu = t.loaiPhieu === 'Thu';
+  const html = `
+    <html>
+      <head>
+        <title>In ${isThu ? 'Phiếu Thu' : 'Phiếu Chi'} - ${t.maChungTu}</title>
+        <style>
+          body { font-family: 'Arial', sans-serif; padding: 25px; color: #333; line-height: 1.5; }
+          .header { text-align: center; margin-bottom: 25px; border-bottom: 2px solid #333; padding-bottom: 15px; }
+          .title { font-size: 22px; font-weight: bold; text-transform: uppercase; margin-bottom: 5px; }
+          .subtitle { font-size: 13px; color: #555; font-style: italic; }
+          .info-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
+          .info-table td { padding: 10px 5px; vertical-align: top; border-bottom: 1px dashed #ddd; }
+          .info-table td.label { width: 150px; color: #666; font-weight: bold; }
+          .info-table td.value { color: #111; }
+          .amount-row { background-color: #f8f9fa; font-size: 17px; }
+          .amount-row td { padding: 12px 10px !important; border-bottom: 2px solid #333 !important; }
+          .amount { font-size: 19px; font-weight: bold; color: ${isThu ? '#0d6efd' : '#dc3545'}; }
+          .footer { margin-top: 60px; display: flex; justify-content: space-between; }
+          .signature-box { text-align: center; width: 220px; }
+          .signature-title { font-weight: bold; margin-bottom: 70px; }
+          .signature-name { font-style: italic; color: #666; font-size: 13px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">${isThu ? 'PHIẾU THU TIỀN' : 'PHIẾU CHI TIỀN'}</div>
+          <div class="subtitle">Mã chứng từ: ${t.maChungTu}</div>
+          <div class="subtitle">Ngày lập: ${formatDateFull(t.ngayGiaoDich)}</div>
+        </div>
+        <table class="info-table">
+          <tr>
+            <td class="label">Người ${isThu ? 'nộp tiền' : 'nhận tiền'}:</td>
+            <td class="value" style="font-weight: bold; font-size: 15px;">${t.nguoiNopNhan || '—'}</td>
+          </tr>
+          <tr>
+            <td class="label">Hạng mục:</td>
+            <td class="value">${t.hangMuc}</td>
+          </tr>
+          <tr>
+            <td class="label">Phương thức:</td>
+            <td class="value">${t.phuongThuc}</td>
+          </tr>
+          <tr>
+            <td class="label">Diễn giải:</td>
+            <td class="value">${t.lyDo || '—'}</td>
+          </tr>
+          <tr class="amount-row">
+            <td class="label">Số tiền:</td>
+            <td class="amount">${formatPrice(t.giaTri)} VNĐ</td>
+          </tr>
+        </table>
+        <div class="footer">
+          <div class="signature-box">
+            <div class="signature-title">Người lập phiếu</div>
+            <div class="signature-name">(Ký, ghi rõ họ tên)</div>
+          </div>
+          <div class="signature-box">
+            <div class="signature-title">Người ${isThu ? 'nộp tiền' : 'nhận tiền'}</div>
+            <div class="signature-name">(Ký, ghi rõ họ tên)</div>
+          </div>
+        </div>
+        ` + "<script" + ">" + `
+          window.onload = function() {
+            window.print();
+            setTimeout(function() { window.close(); }, 500);
+          }
+        ` + "</script" + ">" + `
+      </body>
+    </html>
+  `;
+  const printWindow = window.open('', '_blank');
+  printWindow.document.write(html);
+  printWindow.document.close();
 };
 
 // ─── Vòng đời (Lifecycle) ────────────────────────────────────────────────────
