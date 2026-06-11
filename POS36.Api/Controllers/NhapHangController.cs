@@ -152,7 +152,10 @@ namespace POS36.Api.Controllers
                 }
 
                 // FIX-1: Chỉ ghi phiếu chi nếu chưa ghi lần nào (chống kép)
-                if (request.TrangThai == "Hoàn thành" && request.TienThanhToan > 0 && !phieu.DaGhiSoQuy)
+                decimal tongTienPhieu = phieu.ChiTiets.Sum(c => c.SoLuong * c.DonGiaNhap);
+                decimal soTienChi = request.TienThanhToan > 0 ? request.TienThanhToan : tongTienPhieu;
+
+                if (request.TrangThai == "Hoàn thành" && soTienChi > 0 && !phieu.DaGhiSoQuy)
                 {
                     var (supplier, _) = ParseGhiChu(request.GhiChu);
                     _context.PhieuThuChis.Add(new PhieuThuChi
@@ -165,7 +168,7 @@ namespace POS36.Api.Controllers
                         NguoiNopNhan = supplier,
                         HangMuc = "Chi trả tiền nhập hàng",
                         LyDo = $"Thanh toán cho phiếu nhập {phieu.MaChungTu}",
-                        GiaTri = (double)request.TienThanhToan,
+                        GiaTri = (double)soTienChi,
                         NgayGiaoDich = DateTime.Now,
                         NguoiTao = User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")?.Value ?? "Admin"
                     });
