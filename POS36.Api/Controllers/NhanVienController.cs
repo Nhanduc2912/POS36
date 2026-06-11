@@ -33,7 +33,8 @@ namespace POS36.Api.Controllers
                     nv.SoDienThoai,
                     nv.Email,
                     TenDangNhap = _context.TaiKhoans.Where(t => t.NhanVienId == nv.Id).Select(t => t.TenDangNhap).FirstOrDefault(),
-                    VaiTro = _context.TaiKhoans.Where(t => t.NhanVienId == nv.Id).Select(t => t.VaiTro).FirstOrDefault()
+                    VaiTro = _context.TaiKhoans.Where(t => t.NhanVienId == nv.Id).Select(t => t.VaiTro).FirstOrDefault(),
+                    IsActive = _context.TaiKhoans.Where(t => t.NhanVienId == nv.Id).Select(t => t.IsActive).FirstOrDefault()
                 })
                 .ToListAsync();
 
@@ -187,6 +188,24 @@ namespace POS36.Api.Controllers
 
             await _context.SaveChangesAsync();
             return Ok(new { message = "Khôi phục nhân viên thành công!" });
+        }
+
+        // 6. TOGGLE TRẠNG THÁI HOẠT ĐỘNG (Kích hoạt/Vô hiệu hóa tài khoản)
+        [Authorize(Roles = "ChuCuaHang,Admin,QuanLy")]
+        [HttpPut("{id}/toggle-active")]
+        public async Task<IActionResult> ToggleActive(int id)
+        {
+            int cuaHangId = GetCuaHangId();
+            var taiKhoan = await _context.TaiKhoans.FirstOrDefaultAsync(t => t.NhanVienId == id && t.CuaHangId == cuaHangId);
+            if (taiKhoan == null) return NotFound(new { message = "Không tìm thấy tài khoản nhân viên!" });
+
+            taiKhoan.IsActive = !taiKhoan.IsActive;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { 
+                message = taiKhoan.IsActive ? "Đã kích hoạt tài khoản thành công!" : "Đã khóa tài khoản thành công!",
+                isActive = taiKhoan.IsActive 
+            });
         }
     }
 }
