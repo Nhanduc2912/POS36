@@ -191,6 +191,21 @@
         @mousedown="startResizeWin"
       />
 
+      <!-- Suggestions -->
+      <div class="ai-suggestions-wrap border-top" v-if="mode === 'agent'">
+        <div class="sug-list">
+          <button
+            v-for="s in cmdSuggestions"
+            :key="s.text"
+            class="sug-btn"
+            @click="inputText = s.cmd; autoResize(); inputEl?.focus()"
+            :disabled="loading"
+          >
+            <i :class="'bi bi-' + s.icon"></i> {{ s.text }}
+          </button>
+        </div>
+      </div>
+
       <!-- INPUT -->
       <div class="ai-input-area">
         <textarea
@@ -255,6 +270,14 @@ const panelEl = ref(null);
 const msgEl = ref(null);
 const inputEl = ref(null);
 const inputText = ref("");
+
+const cmdSuggestions = [
+  { text: "Thống kê SaaS", cmd: "Hãy cho tôi xem thống kê tổng quan của hệ thống SaaS.", icon: "speedometer2" },
+  { text: "Xem cửa hàng", cmd: "Hiển thị danh sách các cửa hàng đang hoạt động.", icon: "shop" },
+  { text: "Nhật ký hệ thống", cmd: "Cho tôi xem nhật ký hoạt động gần đây.", icon: "journal-text" },
+  { text: "Tạo gói mới", cmd: "Hãy tạo một gói dịch vụ mới tên là 'Gói Doanh Nghiệp', mã gói 'GOI_DN', thời gian 12 tháng, giá 150000 một tháng.", icon: "box-seam" },
+  { text: "Gửi thông báo", cmd: "Gửi thông báo đến tất cả các cửa hàng với tiêu đề 'Bảo trì hệ thống' và nội dung 'Hệ thống sẽ bảo trì từ 23:00 hôm nay'.", icon: "bell-fill" },
+];
 
 // Window drag
 const winPos = ref({ x: 80, y: 80 });
@@ -1028,5 +1051,46 @@ button:disabled {
 /* ms-auto helper */
 .ms-auto {
   margin-left: auto;
+}
+
+/* AI Command Suggestions styles */
+.ai-suggestions-wrap {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: 8px 10px;
+  flex-shrink: 0;
+}
+.sug-list {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+}
+.sug-list::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+.sug-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sug-btn:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.sug-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

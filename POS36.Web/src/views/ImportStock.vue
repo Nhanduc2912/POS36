@@ -133,14 +133,21 @@
               <tr v-if="expandedRowId === p.id" class="bg-light detail-row">
                 <td colspan="6" class="p-0 border-start border-4 border-danger">
                   <div class="p-3">
-                    <div class="mb-3 d-flex flex-wrap gap-4 bg-white p-2.5 rounded border">
-                      <div>
-                        <span class="text-secondary fw-bold small">Nhà cung cấp:</span>
-                        <span class="ms-2 fw-bold text-dark">{{ parseNhaCungCap(p.ghiChu) }}</span>
+                    <div class="mb-3 d-flex flex-wrap justify-content-between align-items-center bg-white p-3 rounded border">
+                      <div class="d-flex flex-wrap gap-4">
+                        <div>
+                          <span class="text-secondary fw-bold small">Nhà cung cấp:</span>
+                          <span class="ms-2 fw-bold text-dark">{{ parseNhaCungCap(p.ghiChu) }}</span>
+                        </div>
+                        <div>
+                          <span class="text-secondary fw-bold small">Ghi chú:</span>
+                          <span class="ms-2 text-dark">{{ parseGhiChuOnly(p.ghiChu) || '---' }}</span>
+                        </div>
                       </div>
-                      <div>
-                        <span class="text-secondary fw-bold small">Ghi chú:</span>
-                        <span class="ms-2 text-dark">{{ parseGhiChuOnly(p.ghiChu) || '---' }}</span>
+                      <div v-if="p.trangThai === 'Đang xử lý'">
+                        <button class="btn btn-success btn-sm fw-bold px-3 d-flex align-items-center gap-1" @click.stop="confirmImport(p.id)">
+                          <i class="bi bi-check-circle-fill"></i> Xác nhận nhập kho
+                        </button>
                       </div>
                     </div>
                     <h6 class="fw-bold mb-3">CHI TIẾT MẶT HÀNG</h6>
@@ -181,9 +188,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted, watch, inject } from "vue";
 import axios from "axios";
 import { globalState } from "../store";
+
+const swal = inject("$swal");
 
 const imports = ref([]);
 const loading = ref(false);
@@ -275,6 +284,39 @@ watch(datePreset, (newVal) => {
 // Tự động load lại khi đổi chi nhánh hoặc đổi status trên bộ lọc
 watch(() => globalState.value.activeBranchId, fetchImports);
 watch(() => filter.value.status, fetchImports);
+
+const confirmImport = async (id) => {
+  const result = await swal.fire({
+    title: "Xác nhận nhập kho?",
+    text: "Hệ thống sẽ chuyển trạng thái phiếu sang Hoàn thành, cộng dồn số lượng vào Tồn kho và tự động tạo Phiếu chi ghi Sổ quỹ. Hành động này không thể hoàn tác!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Đồng ý nhập",
+    cancelButtonText: "Hủy",
+    confirmButtonColor: "#198754",
+  });
+
+  if (result.isConfirmed) {
+    try {
+      await axios.put(`/api/NhapHang/${id}/xacnhan`);
+      swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: "Đã xác nhận phiếu nhập và cập nhật tồn kho thành công!",
+        timer: 2500,
+        showConfirmButton: false,
+      });
+      fetchImports();
+    } catch (error) {
+      swal.fire(
+        "Lỗi",
+        error.response?.data?.message || error.response?.data || "Không thể xác nhận phiếu nhập.",
+        "error"
+      );
+    }
+  }
+};
 
 onMounted(fetchImports);
 </script>
