@@ -75,7 +75,7 @@
         <div v-show="activeTab === 'pos'" class="tab-pane-content">
           <div class="card border-0 shadow-sm rounded-3 p-4 mb-4">
             <h5 class="fw-bold text-primary mb-4 pb-2 border-bottom d-flex align-items-center gap-2">
-              <i class="bi bi-cash-register fs-4"></i> Tùy Chọn Vận Hành POS
+              <i class="bi bi-sliders fs-4"></i> Tùy Chọn Vận Hành POS
             </h5>
 
             <div class="toggle-list-group">
@@ -452,7 +452,7 @@ const saving = ref(false);
 
 const tabs = [
   { key: 'info', label: 'Thông tin CH', icon: 'shop' },
-  { key: 'pos', label: 'Tùy chọn POS', icon: 'cash-register' },
+  { key: 'pos', label: 'Tùy chọn POS', icon: 'sliders' },
   { key: 'permission', label: 'Phân quyền', icon: 'shield-lock' },
   { key: 'loyalty', label: 'Tích điểm', icon: 'star' },
   { key: 'security', label: 'Bảo mật', icon: 'shield' },

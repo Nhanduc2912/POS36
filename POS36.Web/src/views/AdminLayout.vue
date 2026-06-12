@@ -214,7 +214,7 @@ const bannerInfo = computed(() => {
               <ul class="dropdown-menu shadow-sm border-0">
                 <li>
                   <router-link class="dropdown-item" to="/admin/orders"
-                    >Danh sách đơn hàng</router-link
+                    ><i class="bi bi-receipt me-2 text-muted"></i> Danh sách đơn hàng</router-link
                   >
                 </li>
                 <li>
@@ -273,14 +273,14 @@ const bannerInfo = computed(() => {
                   <router-link
                     to="/admin/daily-summary"
                     class="dropdown-item py-2"
-                    >Tổng kết cuối ngày</router-link
+                    ><i class="bi bi-calendar-check me-2 text-muted"></i> Tổng kết cuối ngày</router-link
                   >
                 </li>
                 <li>
                   <router-link
                     to="/admin/sales-report"
                     class="dropdown-item py-2"
-                    >Báo cáo bán hàng</router-link
+                    ><i class="bi bi-cash-stack me-2 text-muted"></i> Báo cáo bán hàng</router-link
                   >
                 </li>
                 <li>
