@@ -54,6 +54,37 @@ axios.interceptors.response.use(
       localStorage.clear();
       window.location.href = "/login";
     }
+
+    // NẾU BACKEND BÁO 403 (HẾT HẠN DÙNG THỬ/GÓI CƯỚC HOẶC BỊ KHÓA)
+    if (error.response && error.response.status === 403) {
+      const data = error.response.data;
+      if (data && data.code === "SUBSCRIPTION_EXPIRED") {
+        Swal.fire({
+          icon: "warning",
+          title: "Hết Hạn Gói Dịch Vụ!",
+          text: data.message || "Gói dịch vụ đã hết hạn. Sếp vui lòng gia hạn để tiếp tục sử dụng nhé!",
+          confirmButtonText: "Gia Hạn Ngay",
+          confirmButtonColor: "#f37021",
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+        }).then((result) => {
+          if (result.isConfirmed) {
+            window.location.href = "/admin/subscription";
+          }
+        });
+      } else if (data && data.code === "STORE_LOCKED") {
+        Swal.fire({
+          icon: "error",
+          title: "Cửa Hàng Bị Khóa!",
+          text: data.message || "Cửa hàng của bạn đã bị khóa. Vui lòng liên hệ Super Admin.",
+          confirmButtonText: "OK",
+          confirmButtonColor: "#dc3545",
+          allowOutsideClick: false,
+          allowEscapeKey: false,
+        });
+      }
+    }
+
     return Promise.reject(error);
   },
 );
