@@ -94,10 +94,13 @@ namespace POS36.Api.Middleware
                 }
             }
 
-            var trangThai = await db.CuaHangs
+            var store = await db.CuaHangs
                 .Where(c => c.Id == cuaHangId)
-                .Select(c => c.TrangThai)
+                .Select(c => new { c.TrangThai, c.NgayHetHan })
                 .FirstOrDefaultAsync();
+
+            var trangThai = store?.TrangThai;
+            var ngayHetHan = store?.NgayHetHan;
 
             var path = context.Request.Path.Value ?? "";
             var method = context.Request.Method;
@@ -120,7 +123,7 @@ namespace POS36.Api.Middleware
                     return;
                 }
             }
-            else if (trangThai == "ChiDoc")
+            else if (trangThai == "ChiDoc" || (ngayHetHan.HasValue && ngayHetHan.Value < DateTime.Now))
             {
                 // Chỉ đọc — chặn POST, PUT, DELETE
                 if (method != "GET" && !_whitelist.Any(w => path.StartsWith(w, StringComparison.OrdinalIgnoreCase)))
