@@ -249,10 +249,31 @@ const router = createRouter({
   routes,
 });
 
+// Map từng route Admin → mã quyền cần thiết (chỉ dành cho ThuNgan)
+const ROUTE_QUYEN_MAP = {
+  "/admin/orders": "view_orders",
+  "/admin/cashbook": "view_cashbook",
+  "/admin/daily-summary": "view_daily_summary",
+  "/admin/sales-report": "view_sales_report",
+  "/admin/lai-gop": "view_lai_gop",
+  "/admin/customers": "view_customers",
+  "/admin/import-stock": "view_import_stock",
+  "/admin/import-create": "view_import_stock",
+  "/admin/inventory": "view_inventory",
+  "/admin/inventory-create": "view_inventory",
+  "/admin/products": "view_products",
+  "/admin/ai-report": "view_ai_report",
+  // Các route sau luôn mở cho Admin (không cần map)
+  "/admin": null,
+  "/admin/profile": null,
+};
+
 router.beforeEach((to, from) => {
   const token =
     localStorage.getItem("pos36_token") || localStorage.getItem("token");
   const role = localStorage.getItem("pos36_role");
+  const quyenRaw = localStorage.getItem("pos36_quyen_thungan") || "";
+  const danhSachQuyen = quyenRaw ? quyenRaw.split(",").map(q => q.trim()) : [];
 
   if (to.meta.requiresAuth && !token) {
     return "/login";
@@ -266,13 +287,35 @@ router.beforeEach((to, from) => {
   if (to.path.startsWith("/admin")) {
     if (!token) return "/login";
 
+    // *** THU NGÂN: Cho phép vào nếu có ít nhất 1 quyền ***
+    if (role === "ThuNgan") {
+      if (danhSachQuyen.length === 0) {
+        // Không có quyền gì → về POS
+        return "/pos";
+      }
+
+      // Kiểm tra quyền cụ thể của từng route
+      const exactPath = to.path;
+      // Tìm mapping phù hợp nhất (khớp exact hoặc prefix)
+      const requiredQuyen = ROUTE_QUYEN_MAP[exactPath];
+      if (requiredQuyen === undefined) {
+        // Route nhạy cảm không có trong map → chặn
+        return "/pos";
+      }
+      if (requiredQuyen !== null && !danhSachQuyen.includes(requiredQuyen)) {
+        // Route yêu cầu quyền cụ thể nhưng không có → về trang admin chính
+        return "/admin";
+      }
+      // OK: có quyền → cho vào
+      return true;
+    }
+
     if (
       role !== "Admin" &&
       role !== "QuanLy" &&
       role !== "ChuCuaHang" &&
       role !== "SuperAdmin"
     ) {
-      if (role === "ThuNgan") return "/pos";
       if (role === "Order") return "/order";
       if (role === "Bep") return "/kitchen";
       return "/login";
@@ -281,7 +324,13 @@ router.beforeEach((to, from) => {
 
   // Guard: Chặn phân quyền chéo giữa POS, Order, Kitchen
   if (to.meta.roles && !to.meta.roles.includes(role)) {
-    if (role === "ThuNgan") return "/pos";
+    if (role === "ThuNgan") {
+      // ThuNgan được vào /pos
+      if (to.path === "/pos") return true;
+      // Và được vào /admin nếu có quyền
+      if (to.path.startsWith("/admin") && danhSachQuyen.length > 0) return true;
+      return "/pos";
+    }
     if (role === "Order") return "/order";
     if (role === "Bep") return "/kitchen";
     if (

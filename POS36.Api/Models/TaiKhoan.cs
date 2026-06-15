@@ -20,6 +20,12 @@ namespace POS36.Api.Models
         public bool IsActive { get; set; } = true;
         public DateTime? LanDangNhapCuoi { get; set; }
 
+        // === Phân quyền Admin cho Thu ngân ===
+        // Lưu danh sách quyền dạng chuỗi phân cách bởi dấu phẩy
+        // Ví dụ: "view_orders,view_cashbook,view_daily_summary"
+        // Chỉ có ý nghĩa khi VaiTro = "ThuNgan"
+        public string? QuyenThuNgan { get; set; }
+
         public CuaHang? CuaHang { get; set; }
         public ChiNhanh? ChiNhanh { get; set; }
         public NhanVien? NhanVien { get; set; } // Navigation

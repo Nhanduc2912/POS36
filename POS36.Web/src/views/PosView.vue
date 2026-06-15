@@ -17,6 +17,13 @@ const userRole = localStorage.getItem("pos36_role") || "ThuNgan";
 const isThuNgan =
   userRole === "ThuNgan" || userRole === "Admin" || userRole === "QuanLy";
 
+// Thu ngân có quyền vào Admin không
+const hasAdminQuyen = computed(() => {
+  if (userRole !== "ThuNgan") return false;
+  const q = localStorage.getItem("pos36_quyen_thungan") || "";
+  return q.trim().length > 0;
+});
+
 // --- STATE GIAO DIỆN ---
 const activeRightTab = ref("tables");
 const tables = ref([]);
@@ -1202,6 +1209,18 @@ watch(activeRightTab, (newTab) => {
           }})</span
         >
 
+        <!-- Nút vào Admin (chỉ hiện khi Thu ngân có ít nhất 1 quyền) -->
+        <button
+          v-if="hasAdminQuyen"
+          @click="router.push('/admin')"
+          class="btn btn-sm fw-bold d-flex align-items-center gap-1"
+          style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); border-radius: 8px; font-size: 0.8rem;"
+          title="Vào trang quản lý (chế độ hạn chế)"
+        >
+          <i class="bi bi-grid-3x3-gap-fill"></i>
+          <span class="d-none d-md-inline">Quản lý</span>
+        </button>
+
         <div class="dropdown">
           <button
             class="btn btn-sm btn-dark position-relative rounded-circle"
@@ -1246,6 +1265,7 @@ watch(activeRightTab, (newTab) => {
         </button>
       </div>
     </div>
+
 
     <div class="row g-0 flex-grow-1 overflow-hidden">
       <div

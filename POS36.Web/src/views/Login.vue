@@ -48,6 +48,8 @@ const handleLogin = async () => {
       "tenNhanVien",
       data.tenNhanVien || form.value.tenDangNhap,
     );
+    // Lưu quyền Admin của Thu ngân (nếu có)
+    localStorage.setItem("pos36_quyen_thungan", data.quyenThuNgan || "");
     if (data.cuaHangId) localStorage.setItem("cuaHangId", data.cuaHangId);
 
     // 3. THÔNG BÁO THÀNH CÔNG

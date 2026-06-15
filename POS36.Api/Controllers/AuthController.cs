@@ -144,7 +144,7 @@ namespace POS36.Api.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginDto request)
         {
-            var user = await _context.TaiKhoans.FirstOrDefaultAsync(u => u.TenDangNhap == request.TenDangNhap);
+            var user = await _context.TaiKhoans.Include(t => t.NhanVien).FirstOrDefaultAsync(u => u.TenDangNhap == request.TenDangNhap);
 
             if (user == null || !BCrypt.Net.BCrypt.Verify(request.MatKhau, user.MatKhauHash))
             {
@@ -203,7 +203,13 @@ namespace POS36.Api.Controllers
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);
             Log.Information("👤 Tài khoản {TenDangNhap} vừa ĐĂNG NHẬP thành công.", request.TenDangNhap);
 
-            return Ok(new { token = jwt, role = user.VaiTro, storeTrangThai });
+            return Ok(new { 
+                token = jwt, 
+                role = user.VaiTro, 
+                storeTrangThai,
+                tenNhanVien = user.NhanVien?.TenNhanVien ?? user.TenDangNhap,
+                quyenThuNgan = user.QuyenThuNgan ?? ""
+            });
         }
 
         // ==========================================

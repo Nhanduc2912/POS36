@@ -15,4 +15,13 @@ namespace POS36.Api.DTOs
         public string? MatKhau { get; set; }
         public string? VaiTro { get; set; } // VD: "ThuNgan", "Order", "Bep"
     }
+
+    // DTO cập nhật quyền Admin cho Thu ngân
+    public class UpdateQuyenDto
+    {
+        // Danh sách quyền phân cách bởi dấu phẩy
+        // VD: "view_orders,view_cashbook,view_daily_summary"
+        // Để rỗng = thu hồi toàn bộ quyền
+        public string? QuyenThuNgan { get; set; }
+    }
 }

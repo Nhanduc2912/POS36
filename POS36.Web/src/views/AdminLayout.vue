@@ -11,6 +11,21 @@ const soNgayConLai = ref(999);
 const router = useRouter();
 
 // ==========================================
+// PHÂN QUYỀN THU NGÂN
+// ==========================================
+const userRole = localStorage.getItem("pos36_role") || "";
+const tenNhanVien = localStorage.getItem("tenNhanVien") || "Nhân viên";
+const isThuNgan = userRole === "ThuNgan";
+const quyenRaw = localStorage.getItem("pos36_quyen_thungan") || "";
+const danhSachQuyen = quyenRaw ? quyenRaw.split(",").map(q => q.trim()) : [];
+
+// Helper kiểm tra quyền (Thu ngân)
+const hasQuyen = (ma) => !isThuNgan || danhSachQuyen.includes(ma);
+
+// Nút quay lại màn hình Thu ngân
+const goBackToPOS = () => router.push("/pos");
+
+// ==========================================
 // THUẬT TOÁN ĐỔI MÀU GIAO DIỆN (THEME)
 // ==========================================
 const currentTheme = ref("#f37021"); // Mặc định là màu Cam POS36 cũ của sếp
@@ -108,6 +123,12 @@ const bannerInfo = computed(() => {
   }
   return { text: "", cls: "" };
 });
+
+// Tên hiển thị cho Thu ngân
+const userDisplayLabel = computed(() => {
+  if (isThuNgan) return `${tenNhanVien} (Thu ngân)`;
+  return "Admin";
+});
 </script>
 
 <template>
@@ -127,8 +148,19 @@ const bannerInfo = computed(() => {
         </router-link>
 
         <div class="collapse navbar-collapse" id="adminMenu">
+          <!-- Banner chế độ hạn chế khi là Thu ngân -->
+          <div v-if="isThuNgan" class="d-flex align-items-center me-3">
+            <span class="badge rounded-pill px-3 py-2" style="background: rgba(255,193,7,0.2); border: 1px solid rgba(255,193,7,0.5); color: #ffc107; font-size: 0.75rem;">
+              <i class="bi bi-shield-lock-fill me-1"></i> Chế độ hạn chế
+            </span>
+            <button @click="goBackToPOS" class="btn btn-sm ms-2 fw-bold" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px;">
+              <i class="bi bi-arrow-left me-1"></i> Về Thu ngân
+            </button>
+          </div>
+
           <ul class="navbar-nav me-auto mb-2 mb-lg-0 fw-medium">
-            <li class="nav-item dropdown me-2">
+            <!-- Hàng hóa: Ẩn toàn bộ với Thu ngân trừ khi có quyền xem thực đơn -->
+            <li v-if="!isThuNgan || hasQuyen('view_products') || hasQuyen('view_inventory')" class="nav-item dropdown me-2">
               <a
                 class="nav-link dropdown-toggle"
                 href="#"
@@ -137,20 +169,21 @@ const bannerInfo = computed(() => {
                 <i class="bi bi-box-seam me-1"></i> Hàng hóa
               </a>
               <ul class="dropdown-menu shadow-sm border-0">
-                <li>
+                <li v-if="hasQuyen('view_products')">
                   <router-link
                     class="dropdown-item fw-bold"
                     to="/admin/products"
                     ><i class="bi bi-card-list"></i> Thực đơn</router-link
                   >
                 </li>
-                <li>
+                <!-- Thiết lập giá: Ẩn với Thu ngân -->
+                <li v-if="!isThuNgan">
                   <router-link class="dropdown-item fw-bold" to="/admin/prices"
                     ><i class="bi bi-currency-dollar"></i> Thiết lập
                     giá</router-link
                   >
                 </li>
-                <li>
+                <li v-if="hasQuyen('view_inventory')">
                   <router-link
                     class="dropdown-item fw-bold"
                     to="/admin/inventory"
@@ -160,7 +193,8 @@ const bannerInfo = computed(() => {
               </ul>
             </li>
 
-            <li class="nav-item dropdown me-2">
+            <!-- Nhà hàng: Ẩn tòan bộ với Thu ngân -->
+            <li v-if="!isThuNgan" class="nav-item dropdown me-2">
               <a
                 class="nav-link dropdown-toggle"
                 href="#"
@@ -203,7 +237,8 @@ const bannerInfo = computed(() => {
               </ul>
             </li>
 
-            <li class="nav-item dropdown me-2">
+            <!-- Giao dịch -->
+            <li v-if="!isThuNgan || hasQuyen('view_orders') || hasQuyen('view_import_stock')" class="nav-item dropdown me-2">
               <a
                 class="nav-link dropdown-toggle"
                 href="#"
@@ -212,12 +247,12 @@ const bannerInfo = computed(() => {
                 <i class="bi bi-arrow-left-right me-1"></i> Giao dịch
               </a>
               <ul class="dropdown-menu shadow-sm border-0">
-                <li>
+                <li v-if="hasQuyen('view_orders')">
                   <router-link class="dropdown-item" to="/admin/orders"
                     ><i class="bi bi-receipt me-2 text-muted"></i> Danh sách đơn hàng</router-link
                   >
                 </li>
-                <li>
+                <li v-if="hasQuyen('view_import_stock')">
                   <router-link
                     class="dropdown-item fw-bold"
                     to="/admin/import-stock"
@@ -228,7 +263,8 @@ const bannerInfo = computed(() => {
               </ul>
             </li>
 
-            <li class="nav-item dropdown me-2">
+            <!-- Nội bộ: Ẩn toàn bộ với Thu ngân (trừ khi có quyền xem khách hàng) -->
+            <li v-if="!isThuNgan || hasQuyen('view_customers')" class="nav-item dropdown me-2">
               <a
                 class="nav-link dropdown-toggle"
                 href="#"
@@ -237,14 +273,15 @@ const bannerInfo = computed(() => {
                 <i class="bi bi-people me-1"></i> Nội bộ
               </a>
               <ul class="dropdown-menu shadow-sm border-0">
-                <li>
+                <!-- Nhân viên: Ẩn với Thu ngân -->
+                <li v-if="!isThuNgan">
                   <router-link
                     class="dropdown-item fw-bold"
                     to="/admin/employees"
                     ><i class="bi bi-person-badge me-1"></i> Nhân viên</router-link
                   >
                 </li>
-                <li>
+                <li v-if="hasQuyen('view_customers')">
                   <router-link
                     class="dropdown-item fw-bold"
                     to="/admin/customers"
@@ -254,13 +291,14 @@ const bannerInfo = computed(() => {
               </ul>
             </li>
 
-            <li class="nav-item me-2">
+            <li v-if="hasQuyen('view_cashbook')" class="nav-item me-2">
               <router-link class="nav-link" to="/admin/cashbook">
-                <i class="bi bi-wallet2 me-1"></i> Thu & Chi
+                <i class="bi bi-wallet2 me-1"></i> Thu &amp; Chi
               </router-link>
             </li>
 
-            <li class="nav-item dropdown me-2">
+            <!-- Báo cáo -->
+            <li v-if="!isThuNgan || hasQuyen('view_daily_summary') || hasQuyen('view_sales_report') || hasQuyen('view_lai_gop') || hasQuyen('view_ai_report')" class="nav-item dropdown me-2">
               <a
                 class="nav-link dropdown-toggle"
                 href="#"
@@ -269,28 +307,28 @@ const bannerInfo = computed(() => {
                 <i class="bi bi-bar-chart-line me-1"></i> Báo cáo
               </a>
               <ul class="dropdown-menu shadow border-0 mt-2">
-                <li>
+                <li v-if="hasQuyen('view_daily_summary')">
                   <router-link
                     to="/admin/daily-summary"
                     class="dropdown-item py-2"
                     ><i class="bi bi-calendar-check me-2 text-muted"></i> Tổng kết cuối ngày</router-link
                   >
                 </li>
-                <li>
+                <li v-if="hasQuyen('view_sales_report')">
                   <router-link
                     to="/admin/sales-report"
                     class="dropdown-item py-2"
                     ><i class="bi bi-cash-stack me-2 text-muted"></i> Báo cáo bán hàng</router-link
                   >
                 </li>
-                <li>
+                <li v-if="hasQuyen('view_lai_gop')">
                   <router-link
                     to="/admin/lai-gop"
                     class="dropdown-item py-2"
                   ><i class="bi bi-graph-up-arrow text-success me-1"></i> Báo cáo Lãi gộp</router-link>
                 </li>
                 <li><hr class="dropdown-divider" /></li>
-                <li>
+                <li v-if="hasQuyen('view_ai_report')">
                   <router-link
                     to="/admin/ai-report"
                     class="dropdown-item py-2 fw-bold text-primary"
@@ -326,10 +364,11 @@ const bannerInfo = computed(() => {
               </select>
             </div>
 
-            <span class="text-white me-2 fw-medium"
-              ><i class="bi bi-person-circle fs-5 align-middle me-1"></i>
-              Admin</span
-            >
+            <span class="text-white me-2 fw-medium">
+              <i class="bi bi-person-circle fs-5 align-middle me-1"></i>
+              {{ userDisplayLabel }}
+              <span v-if="isThuNgan" class="badge ms-1" style="background: rgba(255,193,7,0.3); color: #ffc107; font-size: 0.65rem;">Hạn chế</span>
+            </span>
 
             <ul class="navbar-nav">
               <li class="nav-item dropdown ms-1">
@@ -352,7 +391,8 @@ const bannerInfo = computed(() => {
                   <li>
                     <h6 class="dropdown-header text-muted fw-bold">HỆ THỐNG</h6>
                   </li>
-                  <li>
+                  <!-- Chỉ hiển thị các mục nhạy cảm với Admin thực sự, ẩn với Thu ngân -->
+                  <li v-if="!isThuNgan">
                     <router-link class="dropdown-item" to="/admin/store-info"
                       ><i class="bi bi-shop-window me-2 text-muted"></i> Thông
                       tin cửa hàng</router-link
@@ -365,29 +405,29 @@ const bannerInfo = computed(() => {
                     >
                   </li>
 
-                  <li>
+                  <li v-if="!isThuNgan">
                     <router-link class="dropdown-item" to="/admin/print-setup"
                       ><i class="bi bi-printer me-2 text-muted"></i> Thiết lập
                       mẫu in</router-link
                     >
                   </li>
-                  <li>
+                  <li v-if="!isThuNgan">
                     <router-link class="dropdown-item" to="/admin/bank-setup"
                       ><i class="bi bi-qr-code-scan me-2 text-muted"></i> Thiết
                       lập chuyển khoản</router-link
                     >
                   </li>
-                  <li>
+                  <li v-if="!isThuNgan">
                     <router-link class="dropdown-item fw-bold text-warning" to="/admin/subscription"
                       ><i class="bi bi-credit-card-2-front me-2"></i> Gói dịch vụ</router-link
                     >
                   </li>
-                  <li>
+                  <li v-if="!isThuNgan">
                     <router-link class="dropdown-item fw-bold" to="/admin/thiet-lap"
                       ><i class="bi bi-gear me-2 text-muted"></i> Thiết lập hệ thống</router-link
                     >
                   </li>
-                  <li>
+                  <li v-if="!isThuNgan">
                     <router-link class="dropdown-item fw-bold text-info" to="/admin/audit-log"
                       ><i class="bi bi-journal-text me-2"></i> Nhật ký hoạt động</router-link
                     >

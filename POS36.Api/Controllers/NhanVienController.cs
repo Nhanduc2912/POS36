@@ -34,7 +34,8 @@ namespace POS36.Api.Controllers
                     nv.Email,
                     TenDangNhap = _context.TaiKhoans.Where(t => t.NhanVienId == nv.Id).Select(t => t.TenDangNhap).FirstOrDefault(),
                     VaiTro = _context.TaiKhoans.Where(t => t.NhanVienId == nv.Id).Select(t => t.VaiTro).FirstOrDefault(),
-                    IsActive = _context.TaiKhoans.Where(t => t.NhanVienId == nv.Id).Select(t => t.IsActive).FirstOrDefault()
+                    IsActive = _context.TaiKhoans.Where(t => t.NhanVienId == nv.Id).Select(t => t.IsActive).FirstOrDefault(),
+                    QuyenThuNgan = _context.TaiKhoans.Where(t => t.NhanVienId == nv.Id).Select(t => t.QuyenThuNgan).FirstOrDefault()
                 })
                 .ToListAsync();
 
@@ -206,6 +207,35 @@ namespace POS36.Api.Controllers
                 message = taiKhoan.IsActive ? "Đã kích hoạt tài khoản thành công!" : "Đã khóa tài khoản thành công!",
                 isActive = taiKhoan.IsActive 
             });
+        }
+
+        // 7. LẤY QUYỀN ADMIN CỦA THU NGÂN
+        [Authorize(Roles = "ChuCuaHang")]
+        [HttpGet("{id}/quyen-admin")]
+        public async Task<IActionResult> GetQuyenAdmin(int id)
+        {
+            int cuaHangId = GetCuaHangId();
+            var taiKhoan = await _context.TaiKhoans.FirstOrDefaultAsync(
+                t => t.NhanVienId == id && t.CuaHangId == cuaHangId && t.VaiTro == "ThuNgan");
+            if (taiKhoan == null) return NotFound(new { message = "Không tìm thấy tài khoản Thu ngân!" });
+
+            return Ok(new { quyenThuNgan = taiKhoan.QuyenThuNgan ?? "" });
+        }
+
+        // 8. CẬP NHẬT QUYỀN ADMIN CỦA THU NGÂN (Chủ cửa hàng phân quyền)
+        [Authorize(Roles = "ChuCuaHang")]
+        [HttpPut("{id}/quyen-admin")]
+        public async Task<IActionResult> UpdateQuyenAdmin(int id, [FromBody] UpdateQuyenDto request)
+        {
+            int cuaHangId = GetCuaHangId();
+            var taiKhoan = await _context.TaiKhoans.FirstOrDefaultAsync(
+                t => t.NhanVienId == id && t.CuaHangId == cuaHangId && t.VaiTro == "ThuNgan");
+            if (taiKhoan == null) return NotFound(new { message = "Chỉ có thể phân quyền cho tài khoản Thu ngân!" });
+
+            taiKhoan.QuyenThuNgan = string.IsNullOrWhiteSpace(request.QuyenThuNgan) ? null : request.QuyenThuNgan.Trim();
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Đã cập nhật quyền Admin thành công!", quyenThuNgan = taiKhoan.QuyenThuNgan });
         }
     }
 }
