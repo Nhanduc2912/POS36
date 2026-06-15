@@ -212,85 +212,6 @@ const handleDeleteEmployee = (id) => {
       }
     });
 };
-
-// PHÂN QUYỀN ADMIN CHO THU NGÂN
-const ALL_QUYEN = [
-  { ma: "view_orders",       ten: "📝 Danh sách đơn hàng",     moTa: "Xem tất cả đơn hàng đã tạo" },
-  { ma: "view_cashbook",     ten: "💰 Thu & Chi",              moTa: "Xem sổ quỹ, phiếu thu chi" },
-  { ma: "view_daily_summary",ten: "📅 Tổng kết cuối ngày",    moTa: "Xem báo cáo tổng kết theo ngày" },
-  { ma: "view_sales_report", ten: "📊 Báo cáo bán hàng",       moTa: "Xem doanh thu, thống kê" },
-  { ma: "view_lai_gop",      ten: "📈 Báo cáo Lãi gộp",        moTa: "Xem báo cáo lợi nhuận" },
-  { ma: "view_customers",    ten: "👥 Quản lý khách hàng",    moTa: "Xem, thêm, tích điểm khách" },
-  { ma: "view_import_stock", ten: "📦 Nhập hàng",             moTa: "Xem phiếu nhập, xác nhận nhập kho" },
-  { ma: "view_inventory",    ten: "🔍 Kiểm kê kho",           moTa: "Tạo phiếu kiểm kê, điều chỉnh tồn" },
-  { ma: "view_products",     ten: "🍽️ Xem thực đơn",          moTa: "Xem danh sách sản phẩm (chỉ xem)" },
-  { ma: "view_ai_report",    ten: "🤖 Trợ lý AI",             moTa: "Dùng AI phân tích báo cáo" },
-];
-
-const handlePhanQuyenAdmin = async (emp) => {
-  // Lấy quyền hiện tại
-  let currentQuyen = [];
-  try {
-    const res = await axios.get(`/api/NhanVien/${emp.id}/quyen-admin`);
-    currentQuyen = (res.data.quyenThuNgan || "").split(",").map(q => q.trim()).filter(Boolean);
-  } catch (e) {
-    currentQuyen = [];
-  }
-
-  // Tạo HTML checklist
-  const checkboxHtml = ALL_QUYEN.map(q => `
-    <div class="d-flex align-items-start p-2 mb-1 rounded" style="background: ${currentQuyen.includes(q.ma) ? '#e8f5e9' : '#f8f9fa'}; border: 1px solid ${currentQuyen.includes(q.ma) ? '#c8e6c9' : '#dee2e6'}; cursor:pointer;" onclick="this.querySelector('input').click(); this.style.background=this.querySelector('input').checked?'#e8f5e9':'#f8f9fa'; this.style.borderColor=this.querySelector('input').checked?'#c8e6c9':'#dee2e6'">
-      <input type="checkbox" id="quyen-${q.ma}" value="${q.ma}" ${currentQuyen.includes(q.ma) ? 'checked' : ''} class="form-check-input me-2 mt-0" onclick="event.stopPropagation()">
-      <div>
-        <div class="fw-bold text-dark" style="font-size:0.9rem">${q.ten}</div>
-        <div class="text-muted" style="font-size:0.75rem">${q.moTa}</div>
-      </div>
-    </div>
-  `).join('');
-
-  const { value: confirmed } = await swal.fire({
-    title: `🔑 Phân quyền Admin cho ${emp.tenNhanVien}`,
-    html: `
-      <div class="text-start mb-3">
-        <div class="alert alert-info py-2 px-3 mb-3" style="font-size:0.82rem">
-          <i class="bi bi-info-circle me-1"></i>
-          Chặn tích các chức năng bạn muốn cho phép <strong>${emp.tenNhanVien}</strong> sử dụng trong trang Admin.
-        </div>
-        <div style="max-height: 380px; overflow-y: auto;">
-          ${checkboxHtml}
-        </div>
-      </div>
-    `,
-    showCancelButton: true,
-    confirmButtonText: '💾 Lưu phân quyền',
-    cancelButtonText: 'Hủy',
-    confirmButtonColor: '#198754',
-    width: '520px',
-    preConfirm: () => {
-      const checked = ALL_QUYEN.map(q => q.ma).filter(ma => {
-        const el = document.getElementById(`quyen-${ma}`);
-        return el && el.checked;
-      });
-      return checked.join(',');
-    }
-  });
-
-  if (confirmed !== undefined) {
-    try {
-      await axios.put(`/api/NhanVien/${emp.id}/quyen-admin`, { quyenThuNgan: confirmed });
-      swal.fire({
-        icon: 'success',
-        title: 'Cập nhật quyền thành công!',
-        text: confirmed ? `Đã cấp ${confirmed.split(',').length} quyền cho ${emp.tenNhanVien}` : `Đã thu hồi toàn bộ quyền Admin của ${emp.tenNhanVien}`,
-        timer: 2000,
-        showConfirmButton: false
-      });
-      fetchEmployees();
-    } catch (e) {
-      swal.fire('Lỗi', e.response?.data?.message || 'Không thể cập nhật quyền', 'error');
-    }
-  }
-};
 </script>
 
 <template>
@@ -357,6 +278,16 @@ const handlePhanQuyenAdmin = async (emp) => {
                 <span v-else class="text-muted small fst-italic"
                   >Không có quyền</span
                 >
+                <!-- Link phân quyền nhỏ gọn chỉ hiện với Thu ngân -->
+                <div v-if="emp.vaiTro === 'ThuNgan'" class="mt-1">
+                  <router-link
+                    to="/admin/thiet-lap"
+                    class="text-info small fw-semibold text-decoration-none"
+                    style="font-size:0.72rem; letter-spacing:0.01em;"
+                  >
+                    <i class="bi bi-shield-lock me-1"></i>Thiết lập quyền →
+                  </router-link>
+                </div>
               </td>
 
               <td class="text-center">
@@ -386,15 +317,6 @@ const handlePhanQuyenAdmin = async (emp) => {
                   class="btn btn-sm btn-light text-primary me-1"
                 >
                   <i class="bi bi-pencil-square"></i>
-                </button>
-                <!-- Nút phân quyền Admin: Chỉ hiện với Thu ngân -->
-                <button
-                  v-if="emp.vaiTro === 'ThuNgan'"
-                  @click="handlePhanQuyenAdmin(emp)"
-                  class="btn btn-sm btn-light text-info me-1"
-                  title="Phân quyền Admin cho Thu ngân"
-                >
-                  <i class="bi bi-shield-lock-fill"></i>
                 </button>
                 <button
                   @click="handleDeleteEmployee(emp.id)"

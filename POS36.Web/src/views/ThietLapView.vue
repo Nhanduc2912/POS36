@@ -281,6 +281,102 @@
               </div>
             </div>
           </div>
+
+          <!-- PHÂN QUYỀN ADMIN CHO TỪNG THU NGÂN -->
+          <div class="card border-0 shadow-sm rounded-3 p-4">
+            <h5 class="fw-bold text-primary mb-1 d-flex align-items-center gap-2">
+              <i class="bi bi-person-badge-fill fs-4"></i> Phân Quyền Truy Cập Admin cho Thu Ngân
+            </h5>
+            <p class="text-muted small mb-4">
+              Cấp phép từng Thu ngân được vào Admin để xem một số chức năng nhất định
+              mà không cần cấp toàn quyền Quản lý.
+            </p>
+
+            <div v-if="loadingThuNgan" class="text-center py-4">
+              <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+              <span class="text-muted small">Đang tải danh sách Thu ngân...</span>
+            </div>
+
+            <div v-else-if="thuNganList.length === 0" class="text-center py-5 text-muted">
+              <i class="bi bi-people fs-1 d-block mb-2 opacity-25"></i>
+              <p class="small mb-2">Chưa có nhân viên Thu ngân nào trong chi nhánh.</p>
+              <router-link to="/admin/employees" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                <i class="bi bi-person-plus me-1"></i> Thêm nhân viên Thu ngân
+              </router-link>
+            </div>
+
+            <div v-else class="d-flex flex-column gap-3">
+              <div
+                v-for="nv in thuNganList"
+                :key="nv.id"
+                class="border rounded-3 overflow-hidden"
+              >
+                <!-- Header nhân viên -->
+                <div class="d-flex align-items-center justify-content-between px-4 py-3 bg-light border-bottom">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0" style="width:40px;height:40px;background:#0284c7;font-size:1rem;">
+                      {{ nv.tenNhanVien.charAt(0).toUpperCase() }}
+                    </div>
+                    <div>
+                      <div class="fw-bold text-dark">{{ nv.tenNhanVien }}</div>
+                      <div class="text-muted small font-monospace">{{ nv.tenDangNhap }} &nbsp;·&nbsp; {{ nv.maNhanVien }}</div>
+                    </div>
+                  </div>
+                  <div class="d-flex align-items-center gap-2">
+                    <span v-if="nv.quyenArr.length > 0" class="badge bg-success bg-opacity-10 text-success rounded-pill px-3">
+                      <i class="bi bi-shield-check me-1"></i>{{ nv.quyenArr.length }} quyền
+                    </span>
+                    <span v-else class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3">
+                      <i class="bi bi-shield-slash me-1"></i>Chưa cấp quyền
+                    </span>
+                    <button
+                      v-if="nv.isActive !== false"
+                      @click="nv.expanded = !nv.expanded"
+                      class="btn btn-sm rounded-pill px-3"
+                      :class="nv.expanded ? 'btn-primary' : 'btn-outline-primary'"
+                    >
+                      <i :class="nv.expanded ? 'bi bi-chevron-up me-1' : 'bi bi-chevron-down me-1'"></i>
+                      {{ nv.expanded ? 'Thu gọn' : 'Thiết lập quyền' }}
+                    </button>
+                    <span v-else class="text-muted small fst-italic">Tài khoản bị khóa</span>
+                  </div>
+                </div>
+
+                <!-- Checklist quyền (mở rộng) -->
+                <div v-show="nv.expanded" class="px-4 py-3 bg-white">
+                  <div class="row g-2 mb-3">
+                    <div v-for="q in ALL_QUYEN_THUNGAN" :key="q.ma" class="col-md-6">
+                      <label
+                        class="d-flex align-items-start gap-2 p-2 rounded-2 w-100"
+                        :style="nv.quyenArr.includes(q.ma)
+                          ? 'background:#e8f5e9;border:1px solid #c8e6c9;cursor:pointer;'
+                          : 'background:#f8f9fa;border:1px solid #e9ecef;cursor:pointer;'"
+                      >
+                        <input
+                          type="checkbox"
+                          class="form-check-input flex-shrink-0 mt-1"
+                          :checked="nv.quyenArr.includes(q.ma)"
+                          @change="toggleQuyen(nv, q.ma)"
+                        />
+                        <div>
+                          <div class="fw-semibold text-dark" style="font-size:0.85rem;">{{ q.ten }}</div>
+                          <div class="text-muted" style="font-size:0.73rem;">{{ q.moTa }}</div>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                    <button @click="clearQuyen(nv)" class="btn btn-sm btn-outline-danger rounded-pill px-3">
+                      <i class="bi bi-shield-slash me-1"></i>Thu hồi tất cả
+                    </button>
+                    <button @click="saveQuyen(nv)" class="btn btn-sm btn-success rounded-pill px-4 fw-bold">
+                      <i class="bi bi-cloud-check me-1"></i>Lưu quyền
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- TAB 4: Tích điểm khách hàng -->
@@ -443,8 +539,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, inject } from 'vue';
+import { ref, reactive, onMounted, inject, watch } from 'vue';
 import axios from 'axios';
+import { globalState } from '../store';
 const swal = inject('$swal');
 
 const activeTab = ref('info');
@@ -521,6 +618,69 @@ const saveAll = async () => {
     swal.fire('Lỗi', 'Lưu thiết lập thất bại!', 'error');
   } finally { saving.value = false; }
 };
+
+// ========== PHÂN QUYỀN ADMIN CHO THU NGÂN ==========
+const ALL_QUYEN_THUNGAN = [
+  { ma: 'view_orders',       ten: 'Danh sách đơn hàng',   moTa: 'Xem tất cả đơn hàng đã tạo' },
+  { ma: 'view_cashbook',     ten: 'Thu & Chi',            moTa: 'Xem sổ quỹ, phiếu thu chi' },
+  { ma: 'view_daily_summary',ten: 'Tổng kết cuối ngày',  moTa: 'Xem báo cáo tổng kết theo ngày' },
+  { ma: 'view_sales_report', ten: 'Báo cáo bán hàng',     moTa: 'Xem doanh thu, thống kê' },
+  { ma: 'view_lai_gop',      ten: 'Báo cáo Lãi gộp',      moTa: 'Xem báo cáo lợi nhuận' },
+  { ma: 'view_customers',    ten: 'Quản lý khách hàng',  moTa: 'Xem, thêm, tích điểm khách' },
+  { ma: 'view_import_stock', ten: 'Nhập hàng',           moTa: 'Xem phiếu nhập, xác nhận nhập kho' },
+  { ma: 'view_inventory',    ten: 'Kiểm kê kho',         moTa: 'Tạo phiếu kiểm kê, điều chỉnh tồn' },
+  { ma: 'view_products',     ten: 'Xem thực đơn',        moTa: 'Xem danh sách sản phẩm (chỉ xem)' },
+  { ma: 'view_ai_report',    ten: 'Trợ lý AI',           moTa: 'Dùng AI phân tích báo cáo' },
+];
+
+const thuNganList = ref([]);
+const loadingThuNgan = ref(false);
+
+const loadThuNganList = async () => {
+  const branchId = globalState.value.activeBranchId;
+  if (!branchId) return;
+  loadingThuNgan.value = true;
+  try {
+    const res = await axios.get(`/api/NhanVien/danh-sach?chiNhanhId=${branchId}`);
+    thuNganList.value = (res.data || [])
+      .filter(nv => nv.vaiTro === 'ThuNgan')
+      .map(nv => ({
+        ...nv,
+        expanded: false,
+        quyenArr: (nv.quyenThuNgan || '').split(',').map(q => q.trim()).filter(Boolean),
+        get quyenDuocCap() { return this.quyenArr.length; }
+      }));
+  } catch (e) { console.error(e); }
+  finally { loadingThuNgan.value = false; }
+};
+
+// Toggle 1 quyền trong array cục bộ
+const toggleQuyen = (nv, ma) => {
+  const idx = nv.quyenArr.indexOf(ma);
+  if (idx >= 0) nv.quyenArr.splice(idx, 1);
+  else nv.quyenArr.push(ma);
+};
+
+// Xóa toàn bộ quyền
+const clearQuyen = (nv) => { nv.quyenArr = []; };
+
+// Lưu quyền lên server
+const saveQuyen = async (nv) => {
+  try {
+    await axios.put(`/api/NhanVien/${nv.id}/quyen-admin`, { quyenThuNgan: nv.quyenArr.join(',') });
+    swal.fire({
+      toast: true, position: 'top-end', icon: 'success',
+      title: `Đã cập nhật quyền cho ${nv.tenNhanVien}!`,
+      timer: 1800, showConfirmButton: false
+    });
+    nv.expanded = false;
+  } catch (e) {
+    swal.fire('Lỗi', e.response?.data?.message || 'Không thể lưu quyền', 'error');
+  }
+};
+
+// Load khi chuyển sang tab phân quyền
+watch(activeTab, (val) => { if (val === 'permission') loadThuNganList(); });
 
 onMounted(load);
 </script>
