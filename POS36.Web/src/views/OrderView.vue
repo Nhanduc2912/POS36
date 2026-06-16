@@ -969,7 +969,12 @@ const toggleNotifications = () => {
     activeTab.value === "notifications" ? "map" : "notifications";
 };
 
-const logout = () => {
+const logout = async () => {
+  try {
+    await axios.post("/api/Auth/logout");
+  } catch (e) {
+    console.error("Lỗi đăng xuất", e);
+  }
   // 1. Quét sạch toàn bộ Token và ID Chi nhánh cũ lưu trong máy
   localStorage.clear();
 

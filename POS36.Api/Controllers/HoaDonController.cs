@@ -703,6 +703,8 @@ namespace POS36.Api.Controllers
             try
             {
                 int cuaHangId = GetCuaHangId();
+
+                await _context.LogHoatDongAsync(chiNhanhId, "Danh sách đơn hàng", $"Xem danh sách đơn hàng. Tìm kiếm: '{search}', Trạng thái: '{status}', Từ ngày: '{startDate}', Đến ngày: '{endDate}'");
                 var query = _context.HoaDons
                     .Include(h => h.Ban)
                     .Include(h => h.KhachHang)

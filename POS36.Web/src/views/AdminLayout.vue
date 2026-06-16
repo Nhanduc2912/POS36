@@ -76,7 +76,12 @@ const fetchBranches = async () => {
   }
 };
 
-const handleLogout = () => {
+const handleLogout = async () => {
+  try {
+    await axios.post("/api/Auth/logout");
+  } catch (e) {
+    console.error("Lỗi đăng xuất", e);
+  }
   localStorage.clear();
   window.location.href = "/login";
 };

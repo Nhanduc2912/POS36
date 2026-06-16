@@ -40,6 +40,8 @@ namespace POS36.Api.Controllers
             DateTime start = tuNgay ?? DateTime.Today;
             DateTime end = denNgay ?? DateTime.Today.AddDays(1).AddTicks(-1);
 
+            await _context.LogHoatDongAsync(chiNhanhId, "Báo cáo bán hàng", $"Xem báo cáo doanh thu tổng quan từ ngày {start:dd/MM/yyyy} đến ngày {end:dd/MM/yyyy}");
+
             // 2. Hóa đơn đã thanh toán trong kỳ
             var queryHoaDon = _context.HoaDons
                 .Where(h => h.CuaHangId == cuaHangId
@@ -111,6 +113,8 @@ namespace POS36.Api.Controllers
 
             DateTime start = tuNgay ?? DateTime.Today;
             DateTime end = denNgay ?? DateTime.Today.AddDays(1).AddTicks(-1);
+
+            await _context.LogHoatDongAsync(chiNhanhId, "Báo cáo Lãi gộp", $"Xem báo cáo lãi gộp từ ngày {start:dd/MM/yyyy} đến ngày {end:dd/MM/yyyy}");
 
             // Lấy tất cả chi tiết hóa đơn đã thanh toán trong kỳ
             var chiTiets = await _context.ChiTietHoaDons

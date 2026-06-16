@@ -32,6 +32,10 @@ namespace POS36.Api.Controllers
             {
                 int cuaHangId = GetCuaHangId();
                 DateTime targetDate = DateTime.TryParse(date, out var d) ? d.Date : DateTime.Now.Date;
+
+                var claimChiNhanhId = User.FindFirst("ChiNhanhId");
+                int chiNhanhId = claimChiNhanhId != null ? int.Parse(claimChiNhanhId.Value) : 0;
+                await _context.LogHoatDongAsync(chiNhanhId, "Tổng kết cuối ngày", $"Xem báo cáo tổng kết ngày {targetDate:dd/MM/yyyy}");
                 DateTime nextDay = targetDate.AddDays(1);
 
                 var hoaDons = await _context.HoaDons
@@ -73,6 +77,10 @@ namespace POS36.Api.Controllers
                 int cuaHangId = GetCuaHangId();
                 DateTime start = DateTime.TryParse(fromDate, out var s) ? s.Date : DateTime.Now.Date.AddDays(-30);
                 DateTime end = DateTime.TryParse(toDate, out var e) ? e.Date.AddDays(1).AddTicks(-1) : DateTime.Now.Date.AddDays(1).AddTicks(-1);
+
+                var claimChiNhanhId = User.FindFirst("ChiNhanhId");
+                int chiNhanhId = claimChiNhanhId != null ? int.Parse(claimChiNhanhId.Value) : 0;
+                await _context.LogHoatDongAsync(chiNhanhId, "Báo cáo bán hàng", $"Xem báo cáo sản phẩm bán chạy từ ngày {start:dd/MM/yyyy} đến ngày {end:dd/MM/yyyy}");
 
                 var topItems = await _context.ChiTietHoaDons
                     .Include(ct => ct.HoaDon)

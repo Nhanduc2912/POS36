@@ -176,6 +176,10 @@ namespace POS36.Api.Controllers
             _context.KhachHangs.Add(newKhach);
             await _context.SaveChangesAsync();
 
+            var claimChiNhanhId = User.FindFirst("ChiNhanhId");
+            int chiNhanhId = claimChiNhanhId != null ? int.Parse(claimChiNhanhId.Value) : 0;
+            await _context.LogHoatDongAsync(chiNhanhId, "Khách hàng", $"Thêm mới khách hàng '{newKhach.TenKhachHang}' (SĐT: {newKhach.SoDienThoai})");
+
             return Ok(new
             {
                 message = "Thêm khách hàng thành công!",
@@ -218,6 +222,11 @@ namespace POS36.Api.Controllers
             khach.GhiChu = request.GhiChu;
 
             await _context.SaveChangesAsync();
+
+            var claimChiNhanhId = User.FindFirst("ChiNhanhId");
+            int chiNhanhId = claimChiNhanhId != null ? int.Parse(claimChiNhanhId.Value) : 0;
+            await _context.LogHoatDongAsync(chiNhanhId, "Khách hàng", $"Cập nhật thông tin khách hàng '{khach.TenKhachHang}' (SĐT: {khach.SoDienThoai})");
+
             return Ok(new { message = "Cập nhật thông tin khách hàng thành công!" });
         }
 
@@ -238,6 +247,11 @@ namespace POS36.Api.Controllers
             khach.NguoiXoa = User.FindFirst("TenDangNhap")?.Value ?? User.Identity?.Name;
 
             await _context.SaveChangesAsync();
+
+            var claimChiNhanhId = User.FindFirst("ChiNhanhId");
+            int chiNhanhId = claimChiNhanhId != null ? int.Parse(claimChiNhanhId.Value) : 0;
+            await _context.LogHoatDongAsync(chiNhanhId, "Khách hàng", $"Xóa khách hàng '{khach.TenKhachHang}' (SĐT: {khach.SoDienThoai})");
+
             return Ok(new { message = "Xóa khách hàng thành công!" });
         }
     }

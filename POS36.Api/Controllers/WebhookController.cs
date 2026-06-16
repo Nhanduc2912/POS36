@@ -112,7 +112,7 @@ namespace POS36.Api.Controllers
                 await _context.SaveChangesAsync();
 
                 // Ghi nhận nhật ký SaaS
-                await _context.LogHoatDongAsync(0, "Kích hoạt SaaS", 
+                await _context.LogHoatDongAsync(0, "Nhật ký gói mua", 
                     $"Cửa hàng {store?.TenCuaHang} kích hoạt thành công gói dịch vụ {lichSu.GoiDichVu?.TenGoi}. Số tiền: {payload.transferAmount:N0}đ",
                     "Ngân hàng (SePay Webhook)", "Hệ thống", lichSu.CuaHangId);
 

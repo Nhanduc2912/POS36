@@ -173,6 +173,8 @@ namespace POS36.Api.Controllers
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
+                await _context.LogHoatDongAsync(phieu.ChiNhanhId, "Kiểm kê kho", $"Tạo phiếu kiểm kê {phieu.MaChungTu} ({phieu.TrangThai}). Ghi chú: {phieu.GhiChu}");
+
                 return Ok(new { message = "Lưu phiếu kiểm kê thành công!" });
             }
             catch (Exception ex)
@@ -282,6 +284,8 @@ namespace POS36.Api.Controllers
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+
+                await _context.LogHoatDongAsync(phieu.ChiNhanhId, "Kiểm kê kho", $"Cập nhật phiếu kiểm kê {phieu.MaChungTu} ({phieu.TrangThai}). Ghi chú: {phieu.GhiChu}");
 
                 return Ok(new { message = "Cập nhật phiếu kiểm kê thành công!" });
             }

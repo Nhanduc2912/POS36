@@ -140,6 +140,8 @@ namespace POS36.Api.Controllers
             lichSu.MaGiaoDich = $"POS36G{lichSu.Id}";
             await _context.SaveChangesAsync();
 
+            await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), "Nhật ký gói mua", $"Tạo yêu cầu thanh toán mua gói '{goi.TenGoi}' ({goi.SoThang} tháng) - Số tiền: {goi.TongGia:N0}đ. Mã giao dịch: {lichSu.MaGiaoDich}");
+
             Log.Information("💳 Cửa hàng [{CuaHangId}] tạo đơn mua gói {TenGoi} — Mã: {MaGiaoDich}",
                 cuaHangId, goi.TenGoi, lichSu.MaGiaoDich);
 

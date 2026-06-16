@@ -513,6 +513,8 @@ namespace POS36.Api.Controllers
             });
             await _context.SaveChangesAsync();
 
+            await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), "Trợ lý AI", $"Hỏi Trợ lý AI: \"{Truncate(req.Question, 100)}\"");
+
             return Ok(new { answer = response.Text });
         }
     }

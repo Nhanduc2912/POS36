@@ -132,6 +132,8 @@ namespace POS36.Api.Data
             {
                 relationship.DeleteBehavior = DeleteBehavior.Restrict;
             }
+
+            modelBuilder.Entity<NhatKyHoatDong>().HasIndex(n => new { n.CuaHangId, n.ThoiGian });
         }
 
         public async Task LogHoatDongAsync(int chiNhanhId, string hanhDong, string moTa, string? nguoiThucHienMacDinh = null, string? vaiTroMacDinh = null, int cuaHangIdMacDinh = 0)

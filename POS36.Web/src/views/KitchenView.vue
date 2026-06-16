@@ -561,7 +561,12 @@ const applySettings = () => {
   swal.fire({ toast: true, position: "top-end", icon: "success", title: "Đã lưu thiết lập!", timer: 1500, showConfirmButton: false });
 };
 
-const logout = () => {
+const logout = async () => {
+  try {
+    await axios.post("/api/Auth/logout");
+  } catch (e) {
+    console.error("Lỗi đăng xuất", e);
+  }
   localStorage.clear();
   window.location.href = "/login";
 };

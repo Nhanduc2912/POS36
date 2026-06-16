@@ -151,6 +151,7 @@ namespace POS36.Api.Controllers
 
                 _context.PhieuThuChis.Add(phieu);
                 await _context.SaveChangesAsync();
+                await _context.LogHoatDongAsync(phieu.ChiNhanhId, "Thu & Chi", $"Tạo phiếu {phieu.LoaiPhieu} {phieu.MaChungTu}. Số tiền: {phieu.GiaTri:N0}đ. Người nộp/nhận: {phieu.NguoiNopNhan}. Hạng mục: {phieu.HangMuc}. Lý do: {phieu.LyDo}");
                 return Ok(phieu);
             }
             catch (Exception ex)

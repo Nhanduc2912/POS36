@@ -746,7 +746,12 @@ const handleCancelItem = async (item, index) => {
   }
 };
 
-const logout = () => {
+const logout = async () => {
+  try {
+    await axios.post("/api/Auth/logout");
+  } catch (e) {
+    console.error("Lỗi đăng xuất", e);
+  }
   localStorage.clear();
   router.push("/login");
 };

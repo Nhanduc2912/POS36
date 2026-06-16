@@ -200,6 +200,8 @@ namespace POS36.Api.Controllers
             user.LanDangNhapCuoi = DateTime.Now;
             await _context.SaveChangesAsync();
 
+            await _context.LogHoatDongAsync(user.ChiNhanhId ?? 0, "Đăng nhập", $"Tài khoản {user.TenDangNhap} đăng nhập thành công vào hệ thống.", user.NhanVien?.TenNhanVien ?? user.TenDangNhap, user.VaiTro, user.CuaHangId);
+
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);
             Log.Information("👤 Tài khoản {TenDangNhap} vừa ĐĂNG NHẬP thành công.", request.TenDangNhap);
 
@@ -210,6 +212,32 @@ namespace POS36.Api.Controllers
                 tenNhanVien = user.NhanVien?.TenNhanVien ?? user.TenDangNhap,
                 quyenThuNgan = user.QuyenThuNgan ?? ""
             });
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            try
+            {
+                var claimCuaHangId = User.FindFirst("CuaHangId");
+                var claimChiNhanhId = User.FindFirst("ChiNhanhId");
+                var claimRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role) ?? User.FindFirst("VaiTro");
+                
+                int cuaHangId = claimCuaHangId != null ? int.Parse(claimCuaHangId.Value) : 0;
+                int chiNhanhId = claimChiNhanhId != null ? int.Parse(claimChiNhanhId.Value) : 0;
+                string userRole = claimRole?.Value ?? "Hội viên";
+                string userName = User.Identity?.Name ?? User.FindFirst("TenDangNhap")?.Value ?? "NguoiDung";
+
+                if (cuaHangId > 0)
+                {
+                    await _context.LogHoatDongAsync(chiNhanhId, "Đăng xuất", $"Tài khoản {userName} đăng xuất khỏi hệ thống.", userName, userRole, cuaHangId);
+                }
+                return Ok(new { message = "Đăng xuất thành công" });
+            }
+            catch (Exception)
+            {
+                return Ok(new { message = "Đăng xuất thành công" });
+            }
         }
 
         // ==========================================

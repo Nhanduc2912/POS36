@@ -275,7 +275,15 @@ const currentDate = computed(() =>
   new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 );
 
-const logout = () => { localStorage.clear(); window.location.href = '/login'; };
+const logout = async () => {
+  try {
+    await axios.post('/api/Auth/logout');
+  } catch (e) {
+    console.error("Lỗi đăng xuất", e);
+  }
+  localStorage.clear();
+  window.location.href = '/login';
+};
 
 const acceptNavigation = () => {
   const nav = navConfirm.value;

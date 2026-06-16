@@ -44,6 +44,9 @@ namespace POS36.Api.Controllers
 
             _context.ChiNhanhs.Add(newChiNhanh);
             await _context.SaveChangesAsync();
+
+            await _context.LogHoatDongAsync(newChiNhanh.Id, "Thiết lập hệ thống", $"Thêm chi nhánh mới '{newChiNhanh.TenChiNhanh}' tại '{newChiNhanh.DiaChi}'");
+
             return Ok(new { message = "Thêm Chi Nhánh thành công!", id = newChiNhanh.Id });
         }
 
@@ -73,6 +76,9 @@ namespace POS36.Api.Controllers
             cn.IsDeleted = true; cn.NgayXoa = DateTime.Now;
             cn.NguoiXoa = User.FindFirst("TenDangNhap")?.Value ?? User.Identity?.Name;
             await _context.SaveChangesAsync();
+
+            await _context.LogHoatDongAsync(cn.Id, "Thiết lập hệ thống", $"Xóa chi nhánh '{cn.TenChiNhanh}'");
+
             return Ok(new { message = "Xóa chi nhánh thành công!" });
         }
 
@@ -86,6 +92,9 @@ namespace POS36.Api.Controllers
             if (cn == null) return NotFound("Không tìm thấy chi nhánh đã xóa!");
             cn.IsDeleted = false; cn.NgayXoa = null; cn.NguoiXoa = null;
             await _context.SaveChangesAsync();
+
+            await _context.LogHoatDongAsync(cn.Id, "Thiết lập hệ thống", $"Khôi phục chi nhánh '{cn.TenChiNhanh}'");
+
             return Ok(new { message = "Khôi phục chi nhánh thành công!" });
         }
 
@@ -112,6 +121,9 @@ namespace POS36.Api.Controllers
 
             _context.KhuVucs.Add(newKhuVuc);
             await _context.SaveChangesAsync();
+
+            await _context.LogHoatDongAsync(request.ChiNhanhId, "Thiết lập hệ thống", $"Thêm khu vực mới '{newKhuVuc.TenKhuVuc}'");
+
             return Ok(new { message = "Thêm Khu Vực thành công!", id = newKhuVuc.Id });
         }
 
@@ -139,6 +151,9 @@ namespace POS36.Api.Controllers
 
             _context.Bans.Add(newBan);
             await _context.SaveChangesAsync();
+
+            await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), "Thiết lập hệ thống", $"Thêm bàn mới '{newBan.TenBan}'");
+
             return Ok(new { message = "Thêm Bàn thành công!", id = newBan.Id });
         }
 
@@ -216,6 +231,21 @@ namespace POS36.Api.Controllers
             }
 
             await _context.SaveChangesAsync();
+
+            string actionType = "Thiết lập hệ thống";
+            string desc = $"Cập nhật cấu hình hệ thống: {request.MaThietLap}";
+            if (request.MaThietLap.ToLower().Contains("print") || request.MaThietLap.ToLower().Contains("template"))
+            {
+                actionType = "Thiết lập mẫu in";
+                desc = $"Cập nhật mẫu in hóa đơn {request.MaThietLap}";
+            }
+            else if (request.MaThietLap.ToLower().Contains("bank") || request.MaThietLap.ToLower().Contains("chuyenkhoan"))
+            {
+                actionType = "Thiết lập mẫu chuyển khoản";
+                desc = $"Cập nhật cấu hình tài khoản QR {request.MaThietLap}";
+            }
+            await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), actionType, desc);
+
             return Ok(new { message = "Lưu thiết lập thành công" });
         }
 
@@ -261,6 +291,10 @@ namespace POS36.Api.Controllers
             }
 
             await _context.SaveChangesAsync();
+
+            string keysStr = string.Join(", ", data.Keys);
+            await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), "Thiết lập hệ thống", $"Cập nhật hàng loạt thiết lập hệ thống ({keysStr})");
+
             return Ok(new { message = $"Đã lưu {data.Count} thiết lập!" });
         }
 
@@ -298,6 +332,9 @@ namespace POS36.Api.Controllers
             if (dto.LogoUrl != null) ch.LogoUrl = dto.LogoUrl.Trim();
 
             await _context.SaveChangesAsync();
+
+            await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), "Thông tin cửa hàng", $"Cập nhật thông tin cửa hàng '{ch.TenCuaHang}'. Số điện thoại: '{ch.SoDienThoai}', Email: '{ch.Email}', Địa chỉ: '{ch.DiaChi}'");
+
             return Ok(new { message = "Cập nhật thông tin cửa hàng thành công!" });
         }
     }

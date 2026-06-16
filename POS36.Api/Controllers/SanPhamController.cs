@@ -86,6 +86,8 @@ namespace POS36.Api.Controllers
             sp.TrangThai = !sp.TrangThai;
             await _context.SaveChangesAsync();
 
+            await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), "Thực đơn", $"{(sp.TrangThai ? "Kích hoạt" : "Ngừng kích hoạt")} sản phẩm '{sp.TenSanPham}'");
+
             return Ok(new { message = "Đã cập nhật trạng thái!", newStatus = sp.TrangThai });
         }
         // 4. SỬA MÓN ĂN
@@ -115,6 +117,9 @@ namespace POS36.Api.Controllers
             }
 
             await _context.SaveChangesAsync();
+
+            await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), "Thực đơn", $"Cập nhật sản phẩm '{sp.TenSanPham}'. Giá bán: {sp.GiaBan:N0}đ");
+
             return Ok(new { message = "Cập nhật thành công!" });
         }
 
@@ -141,6 +146,9 @@ namespace POS36.Api.Controllers
 
             _context.SanPhams.Remove(sp);
             await _context.SaveChangesAsync();
+
+            await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), "Thực đơn", $"Xóa sản phẩm '{sp.TenSanPham}'");
+
             return Ok(new { message = "Xóa thành công!" });
         }
         // DTO nhận dữ liệu từ Form (Có chứa File ảnh)
@@ -201,6 +209,9 @@ namespace POS36.Api.Controllers
 
             _context.SanPhams.Add(newSanPham);
             await _context.SaveChangesAsync();
+
+            await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), "Thực đơn", $"Thêm sản phẩm mới '{newSanPham.TenSanPham}' với giá bán {newSanPham.GiaBan:N0}đ");
+
             Log.Information("📦 Đã thêm sản phẩm mới: {TenSanPham} (Giá: {GiaBan} VND)", request.TenSanPham, request.GiaBan);
             return Ok(new { message = "Thêm thành công!", id = newSanPham.Id });
         }
@@ -216,6 +227,8 @@ namespace POS36.Api.Controllers
 
             sp.GiaBan = request.GiaBan;
             await _context.SaveChangesAsync();
+
+            await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), "Thực đơn", $"Cập nhật nhanh giá bán sản phẩm '{sp.TenSanPham}' thành {sp.GiaBan:N0}đ");
 
             return Ok(new { message = "Cập nhật giá thành công!" });
         }

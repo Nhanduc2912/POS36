@@ -79,6 +79,9 @@ namespace POS36.Api.Controllers
             }
 
             await _context.SaveChangesAsync();
+
+            await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), "Thông tin cá nhân", $"Cập nhật hồ sơ cá nhân. Tên: '{dto.FullName}', Email: '{dto.Email}'");
+
             return Ok(new { message = "Cập nhật thành công" });
         }
 
@@ -102,6 +105,8 @@ namespace POS36.Api.Controllers
             user.MatKhauHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
 
             await _context.SaveChangesAsync();
+
+            await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), "Thông tin cá nhân", "Thay đổi mật khẩu tài khoản");
 
             return Ok(new { message = "Đổi mật khẩu thành công! Hãy ghi nhớ mật khẩu mới nhé." });
         }

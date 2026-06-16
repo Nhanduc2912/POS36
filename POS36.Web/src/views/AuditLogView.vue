@@ -96,6 +96,51 @@
                 <input type="checkbox" v-model="actionsSelected.nhapkho" class="form-check-input" />
                 <span class="small fw-semibold text-dark"><i class="bi bi-box-seam-fill text-danger"></i> Nhập kho kho bãi</span>
               </label>
+
+              <label class="checkbox-pill d-flex align-items-center gap-2 cursor-pointer p-2 rounded-3 border bg-white">
+                <input type="checkbox" v-model="actionsSelected.khachhang" class="form-check-input" />
+                <span class="small fw-semibold text-dark"><i class="bi bi-people-fill text-info"></i> Khách hàng</span>
+              </label>
+
+              <label class="checkbox-pill d-flex align-items-center gap-2 cursor-pointer p-2 rounded-3 border bg-white">
+                <input type="checkbox" v-model="actionsSelected.thuchichi" class="form-check-input" />
+                <span class="small fw-semibold text-dark"><i class="bi bi-piggy-bank-fill text-success"></i> Thu & Chi</span>
+              </label>
+
+              <label class="checkbox-pill d-flex align-items-center gap-2 cursor-pointer p-2 rounded-3 border bg-white">
+                <input type="checkbox" v-model="actionsSelected.kiemke" class="form-check-input" />
+                <span class="small fw-semibold text-dark"><i class="bi bi-clipboard-check-fill text-warning"></i> Kiểm kê kho</span>
+              </label>
+
+              <label class="checkbox-pill d-flex align-items-center gap-2 cursor-pointer p-2 rounded-3 border bg-white">
+                <input type="checkbox" v-model="actionsSelected.thucdon" class="form-check-input" />
+                <span class="small fw-semibold text-dark"><i class="bi bi-book-half text-danger"></i> Thực đơn</span>
+              </label>
+
+              <label class="checkbox-pill d-flex align-items-center gap-2 cursor-pointer p-2 rounded-3 border bg-white">
+                <input type="checkbox" v-model="actionsSelected.trolyai" class="form-check-input" />
+                <span class="small fw-semibold text-dark"><i class="bi bi-cpu-fill text-primary"></i> Trợ lý AI</span>
+              </label>
+
+              <label class="checkbox-pill d-flex align-items-center gap-2 cursor-pointer p-2 rounded-3 border bg-white">
+                <input type="checkbox" v-model="actionsSelected.thietlap" class="form-check-input" />
+                <span class="small fw-semibold text-dark"><i class="bi bi-gear-wide-connected text-secondary"></i> Thiết lập hệ thống</span>
+              </label>
+
+              <label class="checkbox-pill d-flex align-items-center gap-2 cursor-pointer p-2 rounded-3 border bg-white">
+                <input type="checkbox" v-model="actionsSelected.goimua" class="form-check-input" />
+                <span class="small fw-semibold text-dark"><i class="bi bi-credit-card-2-front-fill text-pink"></i> Nhật ký gói mua</span>
+              </label>
+
+              <label class="checkbox-pill d-flex align-items-center gap-2 cursor-pointer p-2 rounded-3 border bg-white">
+                <input type="checkbox" v-model="actionsSelected.baocao" class="form-check-input" />
+                <span class="small fw-semibold text-dark"><i class="bi bi-graph-up-arrow text-indigo"></i> Báo cáo & Tổng kết</span>
+              </label>
+
+              <label class="checkbox-pill d-flex align-items-center gap-2 cursor-pointer p-2 rounded-3 border bg-white">
+                <input type="checkbox" v-model="actionsSelected.truycap" class="form-check-input" />
+                <span class="small fw-semibold text-dark"><i class="bi bi-door-open-fill text-success"></i> Đăng nhập & Đăng xuất</span>
+              </label>
             </div>
           </div>
         </div>
@@ -257,7 +302,16 @@ const actionsSelected = reactive({
   inbill: true,
   dieuphoi: true,
   thongbao: true,
-  nhapkho: true
+  nhapkho: true,
+  thietlap: true,
+  khachhang: true,
+  thuchichi: true,
+  kiemke: true,
+  thucdon: true,
+  trolyai: true,
+  goimua: true,
+  baocao: true,
+  truycap: true
 });
 
 const totalPages = computed(() => Math.ceil(totalCount.value / filters.pageSize) || 1);
@@ -302,7 +356,34 @@ const getSelectedActionsString = () => {
     list.push("Báo bếp", "Báo xong món", "Báo thu ngân");
   }
   if (actionsSelected.nhapkho) {
-    list.push("Tạo phiếu nhập", "Xác nhận nhập");
+    list.push("Tạo phiếu nhập", "Xác nhận nhập", "Nhập kho");
+  }
+  if (actionsSelected.thietlap) {
+    list.push("Thiết lập hệ thống", "Thiết lập mẫu in", "Thiết lập mẫu chuyển khoản", "Thông tin cửa hàng", "Thông tin cá nhân");
+  }
+  if (actionsSelected.khachhang) {
+    list.push("Khách hàng");
+  }
+  if (actionsSelected.thuchichi) {
+    list.push("Thu & Chi");
+  }
+  if (actionsSelected.kiemke) {
+    list.push("Kiểm kê kho");
+  }
+  if (actionsSelected.thucdon) {
+    list.push("Thực đơn");
+  }
+  if (actionsSelected.trolyai) {
+    list.push("Trợ lý AI");
+  }
+  if (actionsSelected.goimua) {
+    list.push("Nhật ký gói mua");
+  }
+  if (actionsSelected.baocao) {
+    list.push("Báo cáo bán hàng", "Báo cáo Lãi gộp", "Tổng kết cuối ngày", "Danh sách đơn hàng");
+  }
+  if (actionsSelected.truycap) {
+    list.push("Đăng nhập", "Đăng xuất");
   }
   return list.join(",");
 };
@@ -315,14 +396,21 @@ const getActionBadgeStyle = (action) => {
       border: '1px solid rgba(25, 135, 84, 0.25)'
     };
   }
-  if (action === 'Gọi món') {
+  if (action === 'Đăng nhập' || action === 'Đăng xuất') {
+    return {
+      backgroundColor: 'rgba(25, 135, 84, 0.1)',
+      color: '#198754',
+      border: '1px solid rgba(25, 135, 84, 0.25)'
+    };
+  }
+  if (action === 'Gọi món' || action === 'Danh sách đơn hàng') {
     return {
       backgroundColor: 'rgba(13, 110, 253, 0.1)',
       color: '#0d6efd',
       border: '1px solid rgba(13, 110, 253, 0.25)'
     };
   }
-  if (action === 'In hóa đơn') {
+  if (action === 'In hóa đơn' || action === 'Thiết lập mẫu in') {
     return {
       backgroundColor: 'rgba(13, 202, 240, 0.1)',
       color: '#0aa2c0',
@@ -348,6 +436,55 @@ const getActionBadgeStyle = (action) => {
       backgroundColor: 'rgba(255, 193, 7, 0.1)',
       color: '#b58100',
       border: '1px solid rgba(255, 193, 7, 0.25)'
+    };
+  }
+  if (action === 'Nhập kho' || action === 'Tạo phiếu nhập' || action === 'Xác nhận nhập' || action === 'Kiểm kê kho') {
+    return {
+      backgroundColor: 'rgba(249, 115, 22, 0.1)',
+      color: '#ea580c',
+      border: '1px solid rgba(249, 115, 22, 0.25)'
+    };
+  }
+  if (action === 'Thu & Chi') {
+    return {
+      backgroundColor: 'rgba(16, 185, 129, 0.1)',
+      color: '#059669',
+      border: '1px solid rgba(16, 185, 129, 0.25)'
+    };
+  }
+  if (action === 'Khách hàng') {
+    return {
+      backgroundColor: 'rgba(14, 165, 233, 0.1)',
+      color: '#0284c7',
+      border: '1px solid rgba(14, 165, 233, 0.25)'
+    };
+  }
+  if (action === 'Thực đơn') {
+    return {
+      backgroundColor: 'rgba(239, 68, 68, 0.1)',
+      color: '#dc2626',
+      border: '1px solid rgba(239, 68, 68, 0.25)'
+    };
+  }
+  if (action === 'Trợ lý AI') {
+    return {
+      backgroundColor: 'rgba(168, 85, 247, 0.1)',
+      color: '#9333ea',
+      border: '1px solid rgba(168, 85, 247, 0.25)'
+    };
+  }
+  if (action === 'Nhật ký gói mua') {
+    return {
+      backgroundColor: 'rgba(236, 72, 153, 0.1)',
+      color: '#db2777',
+      border: '1px solid rgba(236, 72, 153, 0.25)'
+    };
+  }
+  if (action === 'Báo cáo bán hàng' || action === 'Báo cáo Lãi gộp' || action === 'Tổng kết cuối ngày') {
+    return {
+      backgroundColor: 'rgba(99, 102, 241, 0.1)',
+      color: '#4f46e5',
+      border: '1px solid rgba(99, 102, 241, 0.25)'
     };
   }
   return {
@@ -437,7 +574,16 @@ watch(() => [
   actionsSelected.inbill,
   actionsSelected.dieuphoi,
   actionsSelected.thongbao,
-  actionsSelected.nhapkho
+  actionsSelected.nhapkho,
+  actionsSelected.thietlap,
+  actionsSelected.khachhang,
+  actionsSelected.thuchichi,
+  actionsSelected.kiemke,
+  actionsSelected.thucdon,
+  actionsSelected.trolyai,
+  actionsSelected.goimua,
+  actionsSelected.baocao,
+  actionsSelected.truycap
 ], () => {
   filters.page = 1; // Reset về trang 1
   fetchLogs();
