@@ -57,8 +57,17 @@ namespace POS36.Api.Controllers
         public async Task<IActionResult> GetChiNhanhs()
         {
             int cuaHangId = GetCuaHangId();
-            var branches = await _context.ChiNhanhs
-                .Where(c => c.CuaHangId == cuaHangId && !c.IsDeleted)
+            var query = _context.ChiNhanhs
+                .Where(c => c.CuaHangId == cuaHangId && !c.IsDeleted);
+
+            var branchClaim = User.FindFirst("ChiNhanhId");
+            if (branchClaim != null)
+            {
+                int userBranchId = int.Parse(branchClaim.Value);
+                query = query.Where(c => c.Id == userBranchId);
+            }
+
+            var branches = await query
                 .Select(c => new { c.Id, c.TenChiNhanh, c.DiaChi })
                 .ToListAsync();
 

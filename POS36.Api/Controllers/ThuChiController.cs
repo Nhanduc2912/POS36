@@ -24,7 +24,7 @@ namespace POS36.Api.Controllers
         }
 
         // ChuCuaHang, Admin và QuanLy đều được xem sổ quỹ
-        [Authorize(Roles = "ChuCuaHang,Admin,QuanLy")]
+        [Authorize(Roles = "ChuCuaHang,Admin,QuanLy,ThuNgan")]
         [HttpGet("danh-sach")]
         public async Task<IActionResult> GetDanhSach(
             [FromQuery] int chiNhanhId,
@@ -32,6 +32,17 @@ namespace POS36.Api.Controllers
             [FromQuery] string? endDate   = null)
         {
             int cuaHangId = GetCuaHangId();
+
+            var branchClaim = User.FindFirst("ChiNhanhId");
+            if (branchClaim != null)
+            {
+                int userBranchId = int.Parse(branchClaim.Value);
+                if (chiNhanhId > 0 && chiNhanhId != userBranchId)
+                {
+                    return StatusCode(403, "Bạn không có quyền truy cập dữ liệu của chi nhánh khác!");
+                }
+                chiNhanhId = userBranchId;
+            }
 
             // Query cơ sở — không lọc ngày ở DB để tránh lỗi UTC vs Local
             var baseQuery = _context.PhieuThuChis.Where(p => p.CuaHangId == cuaHangId);

@@ -36,6 +36,17 @@ namespace POS36.Api.Controllers
         {
             int cuaHangId = GetCuaHangId();
 
+            var branchClaim = User.FindFirst("ChiNhanhId");
+            if (branchClaim != null)
+            {
+                int userBranchId = int.Parse(branchClaim.Value);
+                if (chiNhanhId > 0 && chiNhanhId != userBranchId)
+                {
+                    return StatusCode(403, "Bạn không có quyền truy cập dữ liệu của chi nhánh khác!");
+                }
+                chiNhanhId = userBranchId;
+            }
+
             // 1. Xử lý thời gian
             DateTime start = tuNgay ?? DateTime.Today;
             DateTime end = denNgay ?? DateTime.Today.AddDays(1).AddTicks(-1);
@@ -103,13 +114,24 @@ namespace POS36.Api.Controllers
         // GiaVon đã được lưu vào ChiTietHoaDon tại thời điểm gọi món (average cost)
         // ==========================================
         [HttpGet("lai-gop")]
-        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan")]
         public async Task<IActionResult> GetBaoCaoLaiGop(
             [FromQuery] int chiNhanhId,
             [FromQuery] DateTime? tuNgay,
             [FromQuery] DateTime? denNgay)
         {
             int cuaHangId = GetCuaHangId();
+
+            var branchClaim = User.FindFirst("ChiNhanhId");
+            if (branchClaim != null)
+            {
+                int userBranchId = int.Parse(branchClaim.Value);
+                if (chiNhanhId > 0 && chiNhanhId != userBranchId)
+                {
+                    return StatusCode(403, "Bạn không có quyền truy cập dữ liệu của chi nhánh khác!");
+                }
+                chiNhanhId = userBranchId;
+            }
 
             DateTime start = tuNgay ?? DateTime.Today;
             DateTime end = denNgay ?? DateTime.Today.AddDays(1).AddTicks(-1);

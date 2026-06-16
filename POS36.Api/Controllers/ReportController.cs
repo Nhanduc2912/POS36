@@ -38,10 +38,17 @@ namespace POS36.Api.Controllers
                 await _context.LogHoatDongAsync(chiNhanhId, "Tổng kết cuối ngày", $"Xem báo cáo tổng kết ngày {targetDate:dd/MM/yyyy}");
                 DateTime nextDay = targetDate.AddDays(1);
 
-                var hoaDons = await _context.HoaDons
+                var query = _context.HoaDons
                     .Include(h => h.Ban)
-                    .Where(h => h.CuaHangId == cuaHangId && h.TrangThai == "Đã thanh toán" && h.NgayTao >= targetDate && h.NgayTao < nextDay)
-                    .ToListAsync();
+                    .Where(h => h.CuaHangId == cuaHangId && h.TrangThai == "Đã thanh toán" && h.NgayTao >= targetDate && h.NgayTao < nextDay);
+
+                if (claimChiNhanhId != null)
+                {
+                    int userBranchId = int.Parse(claimChiNhanhId.Value);
+                    query = query.Where(h => h.ChiNhanhId == userBranchId);
+                }
+
+                var hoaDons = await query.ToListAsync();
 
                 var result = new
                 {
@@ -82,10 +89,18 @@ namespace POS36.Api.Controllers
                 int chiNhanhId = claimChiNhanhId != null ? int.Parse(claimChiNhanhId.Value) : 0;
                 await _context.LogHoatDongAsync(chiNhanhId, "Báo cáo bán hàng", $"Xem báo cáo sản phẩm bán chạy từ ngày {start:dd/MM/yyyy} đến ngày {end:dd/MM/yyyy}");
 
-                var topItems = await _context.ChiTietHoaDons
+                var query = _context.ChiTietHoaDons
                     .Include(ct => ct.HoaDon)
                     .Include(ct => ct.SanPham)
-                    .Where(ct => ct.HoaDon!.CuaHangId == cuaHangId && ct.HoaDon.TrangThai == "Đã thanh toán" && ct.HoaDon.NgayTao >= start && ct.HoaDon.NgayTao <= end)
+                    .Where(ct => ct.HoaDon!.CuaHangId == cuaHangId && ct.HoaDon.TrangThai == "Đã thanh toán" && ct.HoaDon.NgayTao >= start && ct.HoaDon.NgayTao <= end);
+
+                if (claimChiNhanhId != null)
+                {
+                    int userBranchId = int.Parse(claimChiNhanhId.Value);
+                    query = query.Where(ct => ct.HoaDon!.ChiNhanhId == userBranchId);
+                }
+
+                var topItems = await query
                     .GroupBy(ct => ct.SanPham!.TenSanPham)
                     .Select(g => new
                     {
