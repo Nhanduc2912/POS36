@@ -39,6 +39,18 @@ namespace POS36.Api.Controllers
             try
             {
                 int cuaHangId = GetCuaHangId();
+
+                var branchClaim = User.FindFirst("ChiNhanhId");
+                if (branchClaim != null)
+                {
+                    int userBranchId = int.Parse(branchClaim.Value);
+                    if (chiNhanhId > 0 && chiNhanhId != userBranchId)
+                    {
+                        return StatusCode(403, "Bạn không có quyền truy cập dữ liệu của chi nhánh khác!");
+                    }
+                    chiNhanhId = userBranchId;
+                }
+
                 var query = _context.PhieuKiemKes.Where(p => p.CuaHangId == cuaHangId);
 
                 // Lọc theo chi nhánh nếu có truyền lên
@@ -75,6 +87,18 @@ namespace POS36.Api.Controllers
             try
             {
                 int cuaHangId = GetCuaHangId();
+
+                var branchClaim = User.FindFirst("ChiNhanhId");
+                if (branchClaim != null)
+                {
+                    int userBranchId = int.Parse(branchClaim.Value);
+                    if (chiNhanhId > 0 && chiNhanhId != userBranchId)
+                    {
+                        return StatusCode(403, "Bạn không có quyền truy cập dữ liệu của chi nhánh khác!");
+                    }
+                    chiNhanhId = userBranchId;
+                }
+
                 var list = await _context.SanPhams
                     .Include(s => s.DanhMuc) // Kèm Danh mục để lấy tên nhóm
                     .Where(s => s.CuaHangId == cuaHangId && s.TrangThai == true)
@@ -101,6 +125,17 @@ namespace POS36.Api.Controllers
         public async Task<IActionResult> TaoPhieuKiemKe([FromBody] TaoPhieuKiemKeDto request)
         {
             int cuaHangId = GetCuaHangId();
+
+            var branchClaim = User.FindFirst("ChiNhanhId");
+            if (branchClaim != null)
+            {
+                int userBranchId = int.Parse(branchClaim.Value);
+                if (request.ChiNhanhId > 0 && request.ChiNhanhId != userBranchId)
+                {
+                    return StatusCode(403, "Bạn không có quyền thực hiện nghiệp vụ cho chi nhánh khác!");
+                }
+                request.ChiNhanhId = userBranchId;
+            }
 
             // 1. Xác thực chi nhánh có thuộc cửa hàng hiện tại hay không để chống IDOR
             var checkChiNhanh = await _context.ChiNhanhs.AnyAsync(cn => cn.Id == request.ChiNhanhId && cn.CuaHangId == cuaHangId);
@@ -189,11 +224,19 @@ namespace POS36.Api.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetChiTiet(int id)
         {
-            var phieu = await _context.PhieuKiemKes
+            var query = _context.PhieuKiemKes
                 .Include(p => p.ChiTiets)
                     .ThenInclude(c => c.SanPham)
-                .Where(p => p.Id == id && p.CuaHangId == GetCuaHangId())
-                .Select(p => new
+                .Where(p => p.Id == id && p.CuaHangId == GetCuaHangId());
+
+            var branchClaim = User.FindFirst("ChiNhanhId");
+            if (branchClaim != null)
+            {
+                int userBranchId = int.Parse(branchClaim.Value);
+                query = query.Where(p => p.ChiNhanhId == userBranchId);
+            }
+
+            var phieu = await query.Select(p => new
                 {
                     p.Id,
                     p.MaChungTu,
@@ -222,6 +265,20 @@ namespace POS36.Api.Controllers
         public async Task<IActionResult> CapNhatPhieuKiemKe(int id, [FromBody] TaoPhieuKiemKeDto request)
         {
             int cuaHangId = GetCuaHangId();
+
+            var branchClaim = User.FindFirst("ChiNhanhId");
+            if (branchClaim != null)
+            {
+                int userBranchId = int.Parse(branchClaim.Value);
+                if (request.ChiNhanhId > 0 && request.ChiNhanhId != userBranchId)
+                {
+                    return StatusCode(403, "Bạn không có quyền thực hiện nghiệp vụ cho chi nhánh khác!");
+                }
+                request.ChiNhanhId = userBranchId;
+
+                var checkPhieuBranch = await _context.PhieuKiemKes.AnyAsync(p => p.Id == id && p.ChiNhanhId == userBranchId && p.CuaHangId == cuaHangId);
+                if (!checkPhieuBranch) return StatusCode(403, "Bạn không có quyền cập nhật phiếu kiểm kê của chi nhánh khác!");
+            }
 
             // Xác thực tất cả sản phẩm kiểm kê có thuộc cửa hàng hiện tại hay không để chống IDOR
             foreach (var item in request.ChiTiets)

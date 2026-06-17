@@ -355,6 +355,7 @@ const userDisplayLabel = computed(() => {
               <select
                 class="form-select form-select-sm border-0 shadow-none fw-bold text-dark"
                 v-model="globalState.activeBranchId"
+                :disabled="globalState.branches.length <= 1"
               >
                 <option
                   v-for="b in globalState.branches"

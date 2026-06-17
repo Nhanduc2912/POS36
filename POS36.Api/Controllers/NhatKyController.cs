@@ -44,6 +44,17 @@ namespace POS36.Api.Controllers
             {
                 int cuaHangId = GetCuaHangId();
 
+                var branchClaim = User.FindFirst("ChiNhanhId");
+                if (branchClaim != null)
+                {
+                    int userBranchId = int.Parse(branchClaim.Value);
+                    if (chiNhanhId > 0 && chiNhanhId != userBranchId)
+                    {
+                        return StatusCode(403, "Bạn không có quyền truy cập dữ liệu của chi nhánh khác!");
+                    }
+                    chiNhanhId = userBranchId;
+                }
+
                 var dbQuery = _context.NhatKyHoatDongs.AsQueryable();
 
                 if (chiNhanhId > 0)

@@ -19,13 +19,23 @@ namespace POS36.Api.Controllers
         {
             // Tự động lấy ID Cửa hàng của người đang đăng nhập từ Token
             var cuaHangId = int.Parse(User.FindFirst("CuaHangId")!.Value);
-            var ds = await _context.ChiNhanhs.Where(c => c.CuaHangId == cuaHangId).ToListAsync();
+            var query = _context.ChiNhanhs.Where(c => c.CuaHangId == cuaHangId);
+
+            var branchClaim = User.FindFirst("ChiNhanhId");
+            if (branchClaim != null)
+            {
+                int userBranchId = int.Parse(branchClaim.Value);
+                query = query.Where(c => c.Id == userBranchId);
+            }
+
+            var ds = await query.ToListAsync();
             return Ok(ds);
         }
 
         public class CreateChiNhanhDto { public string TenChiNhanh { get; set; } = string.Empty; }
 
         [HttpPost]
+        [Authorize(Roles = "ChuCuaHang,Admin")]
         public async Task<IActionResult> Create([FromBody] CreateChiNhanhDto request)
         {
             var cuaHangId = int.Parse(User.FindFirst("CuaHangId")!.Value);

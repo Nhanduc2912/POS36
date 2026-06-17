@@ -49,6 +49,18 @@ namespace POS36.Api.Controllers
         public async Task<IActionResult> GetDanhSach([FromQuery] int chiNhanhId, [FromQuery] string? search, [FromQuery] string? startDate, [FromQuery] string? endDate, [FromQuery] string? status)
         {
             int cuaHangId = GetCuaHangId();
+
+            var branchClaim = User.FindFirst("ChiNhanhId");
+            if (branchClaim != null)
+            {
+                int userBranchId = int.Parse(branchClaim.Value);
+                if (chiNhanhId > 0 && chiNhanhId != userBranchId)
+                {
+                    return StatusCode(403, "Bạn không có quyền truy cập dữ liệu của chi nhánh khác!");
+                }
+                chiNhanhId = userBranchId;
+            }
+
             var query = _context.PhieuNhaps
                 .Include(p => p.ChiTiets)
                 .ThenInclude(c => c.SanPham)
@@ -91,6 +103,17 @@ namespace POS36.Api.Controllers
         public async Task<IActionResult> TaoPhieuNhap([FromBody] TaoPhieuNhapDto request)
         {
             int cuaHangId = GetCuaHangId();
+
+            var branchClaim = User.FindFirst("ChiNhanhId");
+            if (branchClaim != null)
+            {
+                int userBranchId = int.Parse(branchClaim.Value);
+                if (request.ChiNhanhId > 0 && request.ChiNhanhId != userBranchId)
+                {
+                    return StatusCode(403, "Bạn không có quyền thực hiện nghiệp vụ cho chi nhánh khác!");
+                }
+                request.ChiNhanhId = userBranchId;
+            }
 
             // 1. Xác thực chi nhánh có thuộc cửa hàng hiện tại hay không để chống IDOR
             var checkChiNhanh = await _context.ChiNhanhs.AnyAsync(cn => cn.Id == request.ChiNhanhId && cn.CuaHangId == cuaHangId);
@@ -198,6 +221,15 @@ namespace POS36.Api.Controllers
         public async Task<IActionResult> XacNhanPhieuNhap(int id)
         {
             int cuaHangId = GetCuaHangId();
+
+            var branchClaim = User.FindFirst("ChiNhanhId");
+            if (branchClaim != null)
+            {
+                int userBranchId = int.Parse(branchClaim.Value);
+                var checkPhieuBranch = await _context.PhieuNhaps.AnyAsync(p => p.Id == id && p.ChiNhanhId == userBranchId && p.CuaHangId == cuaHangId);
+                if (!checkPhieuBranch) return StatusCode(403, "Bạn không có quyền xác nhận phiếu nhập của chi nhánh khác!");
+            }
+
             using var transaction = await _context.Database.BeginTransactionAsync();
 
             try

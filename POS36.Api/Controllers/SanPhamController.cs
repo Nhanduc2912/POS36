@@ -38,6 +38,17 @@ namespace POS36.Api.Controllers
             if (claim == null) return Unauthorized();
             int cuaHangId = int.Parse(claim.Value);
 
+            var branchClaim = User.FindFirst("ChiNhanhId");
+            if (branchClaim != null)
+            {
+                int userBranchId = int.Parse(branchClaim.Value);
+                if (chiNhanhId > 0 && chiNhanhId != userBranchId)
+                {
+                    return StatusCode(403, "Bạn không có quyền truy cập dữ liệu của chi nhánh khác!");
+                }
+                chiNhanhId = userBranchId;
+            }
+
             // Lọc sản phẩm theo Cửa hàng và Danh mục (nếu có chọn)
             var query = _context.SanPhams.Where(s => s.CuaHangId == cuaHangId);
             if (danhMucId.HasValue && danhMucId.Value > 0)

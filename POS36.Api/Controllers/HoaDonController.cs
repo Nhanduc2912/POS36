@@ -41,6 +41,16 @@ namespace POS36.Api.Controllers
                 .FirstOrDefaultAsync(b => b.Id == request.BanId && b.CuaHangId == cuaHangId);
             if (ban == null) return BadRequest("Bàn không tồn tại trong cửa hàng của bạn!");
 
+            var branchClaim = User.FindFirst("ChiNhanhId");
+            if (branchClaim != null)
+            {
+                int userBranchId = int.Parse(branchClaim.Value);
+                if (ban.KhuVuc?.ChiNhanhId != userBranchId)
+                {
+                    return StatusCode(403, "Bạn không có quyền thực hiện nghiệp vụ cho chi nhánh khác!");
+                }
+            }
+
             // Chống lỗi Null khi danh sách món trống
             if (request.DanhSachMon == null || !request.DanhSachMon.Any())
                 return BadRequest("Chưa có món nào được chọn!");
@@ -206,10 +216,20 @@ namespace POS36.Api.Controllers
                     return StatusCode(403, "Nhân viên Order không được cấp quyền chuyển bàn!");
             }
 
-            var tuBan = await _context.Bans.FirstOrDefaultAsync(b => b.Id == request.TuBanId && b.CuaHangId == cuaHangId);
-            var denBan = await _context.Bans.FirstOrDefaultAsync(b => b.Id == request.DenBanId && b.CuaHangId == cuaHangId);
+            var tuBan = await _context.Bans.Include(b => b.KhuVuc).FirstOrDefaultAsync(b => b.Id == request.TuBanId && b.CuaHangId == cuaHangId);
+            var denBan = await _context.Bans.Include(b => b.KhuVuc).FirstOrDefaultAsync(b => b.Id == request.DenBanId && b.CuaHangId == cuaHangId);
 
             if (tuBan == null || denBan == null) return BadRequest("Bàn không tồn tại.");
+
+            var branchClaim = User.FindFirst("ChiNhanhId");
+            if (branchClaim != null)
+            {
+                int userBranchId = int.Parse(branchClaim.Value);
+                if (tuBan.KhuVuc?.ChiNhanhId != userBranchId || denBan.KhuVuc?.ChiNhanhId != userBranchId)
+                {
+                    return StatusCode(403, "Bạn không có quyền thực hiện nghiệp vụ cho chi nhánh khác!");
+                }
+            }
             if (tuBan.TrangThai != "Đang phục vụ") return BadRequest("Bàn chuyển đi chưa có khách.");
             if (denBan.TrangThai == "Đang phục vụ") return BadRequest("Bàn chuyển đến đã có khách, vui lòng sử dụng chức năng Ghép Bàn.");
 
@@ -268,10 +288,20 @@ namespace POS36.Api.Controllers
                     return StatusCode(403, "Nhân viên Order không được cấp quyền ghép bàn!");
             }
 
-            var tuBan = await _context.Bans.FirstOrDefaultAsync(b => b.Id == request.TuBanId && b.CuaHangId == cuaHangId);
-            var denBan = await _context.Bans.FirstOrDefaultAsync(b => b.Id == request.DenBanId && b.CuaHangId == cuaHangId);
+            var tuBan = await _context.Bans.Include(b => b.KhuVuc).FirstOrDefaultAsync(b => b.Id == request.TuBanId && b.CuaHangId == cuaHangId);
+            var denBan = await _context.Bans.Include(b => b.KhuVuc).FirstOrDefaultAsync(b => b.Id == request.DenBanId && b.CuaHangId == cuaHangId);
 
             if (tuBan == null || denBan == null) return BadRequest("Bàn không tồn tại.");
+
+            var branchClaim = User.FindFirst("ChiNhanhId");
+            if (branchClaim != null)
+            {
+                int userBranchId = int.Parse(branchClaim.Value);
+                if (tuBan.KhuVuc?.ChiNhanhId != userBranchId || denBan.KhuVuc?.ChiNhanhId != userBranchId)
+                {
+                    return StatusCode(403, "Bạn không có quyền thực hiện nghiệp vụ cho chi nhánh khác!");
+                }
+            }
             if (tuBan.TrangThai != "Đang phục vụ" || denBan.TrangThai != "Đang phục vụ")
                 return BadRequest("Cả 2 bàn phải đang có khách để thực hiện ghép.");
 
@@ -348,10 +378,20 @@ namespace POS36.Api.Controllers
                     return StatusCode(403, "Nhân viên Order không được cấp quyền tách bàn!");
             }
 
-            var tuBan = await _context.Bans.FirstOrDefaultAsync(b => b.Id == request.TuBanId && b.CuaHangId == cuaHangId);
-            var denBan = await _context.Bans.FirstOrDefaultAsync(b => b.Id == request.DenBanId && b.CuaHangId == cuaHangId);
+            var tuBan = await _context.Bans.Include(b => b.KhuVuc).FirstOrDefaultAsync(b => b.Id == request.TuBanId && b.CuaHangId == cuaHangId);
+            var denBan = await _context.Bans.Include(b => b.KhuVuc).FirstOrDefaultAsync(b => b.Id == request.DenBanId && b.CuaHangId == cuaHangId);
 
             if (tuBan == null || denBan == null) return BadRequest("Bàn không tồn tại.");
+
+            var branchClaim = User.FindFirst("ChiNhanhId");
+            if (branchClaim != null)
+            {
+                int userBranchId = int.Parse(branchClaim.Value);
+                if (tuBan.KhuVuc?.ChiNhanhId != userBranchId || denBan.KhuVuc?.ChiNhanhId != userBranchId)
+                {
+                    return StatusCode(403, "Bạn không có quyền thực hiện nghiệp vụ cho chi nhánh khác!");
+                }
+            }
             if (tuBan.TrangThai != "Đang phục vụ") return BadRequest("Bàn nguồn chưa có khách.");
             if (denBan.TrangThai == "Đang phục vụ") return BadRequest("Bàn đích đang có khách, vui lòng chọn bàn trống.");
             if (request.DanhSachChiTietId == null || !request.DanhSachChiTietId.Any())
@@ -454,6 +494,16 @@ namespace POS36.Api.Controllers
                     .FirstOrDefaultAsync(h => h.BanId == banId && h.TrangThai == "Đang phục vụ" && h.CuaHangId == cuaHangId);
 
                 if (hoaDon == null) return BadRequest("Không tìm thấy hóa đơn đang phục vụ của bàn này!");
+
+                var branchClaim = User.FindFirst("ChiNhanhId");
+                if (branchClaim != null)
+                {
+                    int userBranchId = int.Parse(branchClaim.Value);
+                    if (hoaDon.ChiNhanhId != userBranchId)
+                    {
+                        return StatusCode(403, "Bạn không có quyền thực hiện nghiệp vụ cho chi nhánh khác!");
+                    }
+                }
 
                 // FEAT-4: Áp chiết khấu % trước khi tính toán
                 if (discountPercent > 0)
@@ -613,6 +663,17 @@ namespace POS36.Api.Controllers
             try
             {
                 int cuaHangId = GetCuaHangId();
+
+                var branchClaim = User.FindFirst("ChiNhanhId");
+                if (branchClaim != null)
+                {
+                    int userBranchId = int.Parse(branchClaim.Value);
+                    if (chiNhanhId > 0 && chiNhanhId != userBranchId)
+                    {
+                        return StatusCode(403, "Bạn không có quyền truy cập dữ liệu của chi nhánh khác!");
+                    }
+                    chiNhanhId = userBranchId;
+                }
 
                 var rawItems = await _context.ChiTietHoaDons
                     .Where(c => c.HoaDon != null
@@ -911,6 +972,17 @@ namespace POS36.Api.Controllers
             {
                 var ban = await _context.Bans.Include(b => b.KhuVuc).FirstOrDefaultAsync(b => b.Id == request.BanId);
                 chiNhanhId = ban?.KhuVuc?.ChiNhanhId ?? 0;
+            }
+
+            var branchClaim = User.FindFirst("ChiNhanhId");
+            if (branchClaim != null)
+            {
+                int userBranchId = int.Parse(branchClaim.Value);
+                if (chiNhanhId > 0 && chiNhanhId != userBranchId)
+                {
+                    return StatusCode(403, "Bạn không có quyền thực hiện nghiệp vụ cho chi nhánh khác!");
+                }
+                chiNhanhId = userBranchId;
             }
 
             string loaiIn = request.LoaiIn ?? "In hóa đơn";

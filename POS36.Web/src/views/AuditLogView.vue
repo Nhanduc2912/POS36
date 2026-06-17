@@ -22,8 +22,8 @@
           <!-- Hàng 1: Chi nhánh, Lọc nhanh thời gian, Từ khóa -->
           <div class="col-lg-3 col-md-6 col-12">
             <label class="form-label text-dark small fw-bold">Chi nhánh hoạt động</label>
-            <select v-model="filters.branchId" class="form-select bg-white border border-light-subtle rounded-3 py-2">
-              <option :value="0">-- Tất cả chi nhánh --</option>
+            <select v-model="filters.branchId" class="form-select bg-white border border-light-subtle rounded-3 py-2" :disabled="branches.length <= 1">
+              <option v-if="branches.length > 1" :value="0">-- Tất cả chi nhánh --</option>
               <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.tenChiNhanh }}</option>
             </select>
           </div>
@@ -517,7 +517,10 @@ const formatUserAgent = (ua) => {
 const fetchBranches = async () => {
   try {
     const res = await axios.get('/api/ThietLap/chinhanh');
-    branches.value = res.data;
+    branches.value = res.data || [];
+    if (branches.value.length === 1) {
+      filters.branchId = branches.value[0].id;
+    }
   } catch (error) {
     console.error('Lỗi tải danh sách chi nhánh', error);
   }

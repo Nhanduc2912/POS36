@@ -32,6 +32,15 @@ namespace POS36.Api.Controllers
         public async Task<IActionResult> GetByKhuVuc(int khuVucId, [FromQuery] bool includeHidden = false)
         {
             int cuaHangId = GetCuaHangId();
+
+            var branchClaim = User.FindFirst("ChiNhanhId");
+            if (branchClaim != null)
+            {
+                int userBranchId = int.Parse(branchClaim.Value);
+                var isKhuVucOfBranch = await _context.KhuVucs.AnyAsync(k => k.Id == khuVucId && k.ChiNhanhId == userBranchId && k.CuaHangId == cuaHangId);
+                if (!isKhuVucOfBranch) return StatusCode(403, "Bạn không có quyền truy cập dữ liệu của chi nhánh khác!");
+            }
+
             var query = _context.Bans
                 .Where(b => b.KhuVucId == khuVucId && b.CuaHangId == cuaHangId);
 
@@ -181,6 +190,18 @@ namespace POS36.Api.Controllers
         public async Task<IActionResult> GetDanhSachPos([FromQuery] int chiNhanhId)
         {
             int cuaHangId = GetCuaHangId();
+
+            var branchClaim = User.FindFirst("ChiNhanhId");
+            if (branchClaim != null)
+            {
+                int userBranchId = int.Parse(branchClaim.Value);
+                if (chiNhanhId > 0 && chiNhanhId != userBranchId)
+                {
+                    return StatusCode(403, "Bạn không có quyền truy cập dữ liệu của chi nhánh khác!");
+                }
+                chiNhanhId = userBranchId;
+            }
+
             var bans = await _context.Bans
                 .Include(b => b.KhuVuc)
                 .Where(b => b.KhuVuc!.ChiNhanhId == chiNhanhId && b.CuaHangId == cuaHangId && b.TrangThai != TrangThaiAn)
