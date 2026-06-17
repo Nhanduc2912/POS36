@@ -348,14 +348,14 @@ const userDisplayLabel = computed(() => {
 
           <div class="d-flex align-items-center">
             <div
-              class="me-3 d-flex align-items-center bg-white rounded-pill px-2 py-1"
-              style="min-width: 200px"
+              class="me-3 d-flex align-items-center bg-white rounded-pill px-3 py-1.5"
+              style="min-width: 160px"
             >
               <i class="bi bi-geo-alt-fill text-danger me-2 ms-1"></i>
               <select
-                class="form-select form-select-sm border-0 shadow-none fw-bold text-dark"
+                v-if="globalState.branches.length > 1"
+                class="form-select form-select-sm border-0 shadow-none fw-bold text-dark p-0"
                 v-model="globalState.activeBranchId"
-                :disabled="globalState.branches.length <= 1"
               >
                 <option
                   v-for="b in globalState.branches"
@@ -364,10 +364,10 @@ const userDisplayLabel = computed(() => {
                 >
                   {{ b.tenChiNhanh }}
                 </option>
-                <option v-if="globalState.branches.length === 0" value="null">
-                  Chưa có chi nhánh
-                </option>
               </select>
+              <span v-else class="fw-bold text-dark small">
+                {{ globalState.branches[0]?.tenChiNhanh || 'Chưa có chi nhánh' }}
+              </span>
             </div>
 
             <span class="text-white me-2 fw-medium">

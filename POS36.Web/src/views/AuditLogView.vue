@@ -22,10 +22,13 @@
           <!-- Hàng 1: Chi nhánh, Lọc nhanh thời gian, Từ khóa -->
           <div class="col-lg-3 col-md-6 col-12">
             <label class="form-label text-dark small fw-bold">Chi nhánh hoạt động</label>
-            <select v-model="filters.branchId" class="form-select bg-white border border-light-subtle rounded-3 py-2" :disabled="branches.length <= 1">
-              <option v-if="branches.length > 1" :value="0">-- Tất cả chi nhánh --</option>
+            <select v-if="branches.length > 1" v-model="filters.branchId" class="form-select bg-white border border-light-subtle rounded-3 py-2">
+              <option :value="0">-- Tất cả chi nhánh --</option>
               <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.tenChiNhanh }}</option>
             </select>
+            <div v-else class="form-control bg-light border border-light-subtle rounded-3 py-2 fw-semibold text-secondary">
+              {{ branches[0]?.tenChiNhanh || 'Chi nhánh mặc định' }}
+            </div>
           </div>
 
           <div class="col-lg-3 col-md-6 col-12">
