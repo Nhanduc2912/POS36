@@ -348,8 +348,8 @@ const userDisplayLabel = computed(() => {
 
           <div class="d-flex align-items-center">
             <div
-              class="me-3 d-flex align-items-center bg-white rounded-pill px-3 py-1.5"
-              style="min-width: 160px"
+             class="me-3 d-flex align-items-center bg-white rounded-pill px-2 py-1"
+              style="min-width: 200px"
             >
               <i class="bi bi-geo-alt-fill text-danger me-2 ms-1"></i>
               <select
