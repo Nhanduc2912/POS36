@@ -11,6 +11,14 @@ const routes = [
     name: "Login",
     component: () => import("../views/Login.vue"),
   },
+  // Trang checkout riêng (mở tab mới) — Không cần layout admin
+  {
+    path: "/payment/checkout/:id",
+    name: "PaymentCheckout",
+    component: () => import("../views/PaymentCheckoutView.vue"),
+    meta: { requiresAuth: true }
+  },
+
   {
     path: "/register",
     name: "Register",

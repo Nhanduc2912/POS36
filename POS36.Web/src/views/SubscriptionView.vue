@@ -40,40 +40,12 @@
               <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>{{ p.gioiHanNhanVien ? p.gioiHanNhanVien + ' nhân viên' : 'Không giới hạn nhân viên' }}</li>
               <li><i class="bi bi-check-circle-fill text-success me-2"></i>Đầy đủ tính năng</li>
             </ul>
-            <button class="btn btn-danger w-100 fw-bold py-2" @click="purchase(p)">
-              <i class="bi bi-cart-check me-1"></i> Mua gói này
+            <button class="btn btn-danger w-100 fw-bold py-2" :disabled="purchasing" @click="purchase(p)">
+              <span v-if="purchasing" class="spinner-border spinner-border-sm me-1"></span>
+              <i v-else class="bi bi-cart-check me-1"></i>
+              {{ purchasing ? 'Đang xử lý...' : 'Mua gói này' }}
             </button>
           </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Payment QR Modal -->
-    <div v-if="showQR" class="modal d-block" style="background:rgba(0,0,0,0.5)">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg">
-          <div class="modal-header bg-danger text-white"><h5 class="modal-title fw-bold">Thanh toán qua chuyển khoản</h5><button class="btn-close btn-close-white" @click="showQR=false"></button></div>
-          <div class="modal-body text-center p-4">
-            <!-- Khi SuperAdmin chưa cấu hình ngân hàng -->
-            <div v-if="!systemBank.configured" class="alert alert-danger fw-bold">
-              <i class="bi bi-exclamation-triangle me-1"></i>
-              Hệ thống chưa cấu hình tài khoản ngân hàng nhận thanh toán. Vui lòng liên hệ quản trị viên.
-            </div>
-            <template v-else>
-              <div class="alert alert-warning small fw-bold"><i class="bi bi-info-circle me-1"></i>Vui lòng chuyển khoản với nội dung chính xác bên dưới. Hệ thống sẽ tự động kích hoạt gói sau khi nhận được thanh toán.</div>
-              <img :src="qrUrl" class="img-fluid rounded border p-2 mb-3" style="max-height:280px" />
-              <div class="bg-light p-3 rounded-3 text-start">
-                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Ngân hàng:</span><span class="fw-bold">{{ systemBank.bankCode }}</span></div>
-                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Số tài khoản:</span><span class="fw-bold font-monospace">{{ systemBank.bankAccountNo }}</span></div>
-                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Chủ tài khoản:</span><span class="fw-bold text-uppercase">{{ systemBank.bankAccountName }}</span></div>
-                <hr class="my-2" />
-                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Số tiền:</span><span class="fw-bold text-danger fs-5">{{ formatVND(purchaseData.tongTien) }}</span></div>
-                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Nội dung CK:</span><span class="fw-bold font-monospace text-primary">{{ purchaseData.maGiaoDich }}</span></div>
-                <div class="d-flex justify-content-between"><span class="text-muted">Gói:</span><span class="fw-bold">{{ purchaseData.tenGoi }}</span></div>
-              </div>
-            </template>
-          </div>
-
         </div>
       </div>
     </div>
@@ -83,14 +55,33 @@
     <div class="card border-0 shadow-sm">
       <div class="card-body p-0">
         <table class="table table-hover mb-0">
-          <thead class="table-light"><tr><th>Gói</th><th>Số tiền</th><th>Mã GD</th><th>Trạng thái</th><th>Ngày</th></tr></thead>
+          <thead class="table-light">
+            <tr>
+              <th>Gói</th><th>Số tiền</th><th>Mã GD</th><th>Trạng thái</th><th>Ngày tạo</th><th>Hành động</th>
+            </tr>
+          </thead>
           <tbody>
             <tr v-for="h in history" :key="h.id">
               <td class="fw-bold">{{ h.tenGoi }}</td>
               <td class="text-danger fw-bold">{{ formatVND(h.soTienThanhToan) }}</td>
               <td><code>{{ h.maGiaoDich }}</code></td>
-              <td><span class="badge" :class="h.trangThai==='DaThanhToan'?'bg-success':'bg-warning text-dark'">{{ h.trangThai==='DaThanhToan'?'Đã TT':'Chờ TT' }}</span></td>
+              <td>
+                <span class="badge" :class="h.trangThai==='DaThanhToan'?'bg-success':h.trangThai==='DaHuy'?'bg-secondary':'bg-warning text-dark'">
+                  {{ h.trangThai==='DaThanhToan'?'Đã TT':h.trangThai==='DaHuy'?'Đã hủy':'Chờ TT' }}
+                </span>
+              </td>
               <td class="small text-muted">{{ formatDate(h.ngayTao) }}</td>
+              <td>
+                <button
+                  v-if="h.trangThai === 'ChoThanhToan'"
+                  class="btn btn-sm btn-outline-primary me-1"
+                  @click="openCheckout(h.id)">
+                  <i class="bi bi-qr-code-scan me-1"></i>Tiếp tục TT
+                </button>
+              </td>
+            </tr>
+            <tr v-if="!history.length">
+              <td colspan="6" class="text-center text-muted py-4">Chưa có lịch sử thanh toán nào.</td>
             </tr>
           </tbody>
         </table>
@@ -103,14 +94,11 @@
 import { ref, computed, onMounted, inject } from "vue";
 import axios from "axios";
 const swal = inject("$swal");
-const myPlan = ref({ tenGoi:"Loading...", soNgayConLai:0, trangThai:"", ngayHetHan:"", gioiHanHoaDon:0, hoaDonThangNay:0 });
-const plans = ref([]);
-const history = ref([]);
-const showQR = ref(false);
-const purchaseData = ref({});
 
-// Cấu hình ngân hàng HỆ THỐNG của SuperAdmin (chủ cửa hàng chuyển tiền mua gói VÀO đây)
-const systemBank = ref({ bankCode:"", bankAccountNo:"", bankAccountName:"", configured: false });
+const myPlan  = ref({ tenGoi:"Loading...", soNgayConLai:0, trangThai:"", ngayHetHan:"", gioiHanHoaDon:0, hoaDonThangNay:0 });
+const plans   = ref([]);
+const history = ref([]);
+const purchasing = ref(false);
 
 const statusClass = computed(() => ({
   DungThu:"bg-info",HoatDong:"bg-success",ChiDoc:"bg-warning text-dark",BiKhoa:"bg-danger"
@@ -120,41 +108,104 @@ const statusText = computed(() => ({
 }[myPlan.value.trangThai]||myPlan.value.trangThai));
 
 const formatDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—";
-const formatVND = (n) => n ? Number(n).toLocaleString("vi-VN") + "đ" : "0đ";
+const formatVND  = (n) => n ? Number(n).toLocaleString("vi-VN") + "đ" : "0đ";
 
-const qrUrl = computed(() => {
-  if(!purchaseData.value.maGiaoDich) return "";
-  if(!systemBank.value.configured) return "";
-  const b = systemBank.value;
-  return `https://img.vietqr.io/image/${b.bankCode}-${b.bankAccountNo}-compact2.png?amount=${purchaseData.value.tongTien}&addInfo=${purchaseData.value.maGiaoDich}&accountName=${encodeURIComponent(b.bankAccountName)}`;
-});
+// Mở tab checkout
+const openCheckout = (donDangKyId) => {
+  window.open(`/payment/checkout/${donDangKyId}`, '_blank');
+};
 
+// Mua gói
 const purchase = async (plan) => {
+  // Xác nhận trước khi tạo đơn
+  const confirm = await swal.fire({
+    title: `Mua gói ${plan.tenGoi}?`,
+    html: `Số tiền: <strong class="text-danger">${formatVND(plan.tongGia)}</strong><br>Thời hạn: <strong>${plan.soThang} tháng</strong><br><br><small class="text-muted">Sau khi xác nhận, một tab thanh toán mới sẽ được mở. Mã QR có hiệu lực trong <strong>10 phút</strong>.</small>`,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: 'Xác nhận mua',
+    cancelButtonText: 'Hủy',
+    confirmButtonColor: '#dc3545',
+  });
+  if (!confirm.isConfirmed) return;
+
+  purchasing.value = true;
   try {
     const res = await axios.post("/api/Subscription/purchase", { goiDichVuId: plan.id });
-    purchaseData.value = res.data;
-    showQR.value = true;
-  } catch(e) { swal.fire("Lỗi", e.response?.data || "Không thể tạo đơn", "error"); }
+    const data = res.data;
+    // Mở tab checkout mới
+    openCheckout(data.donDangKyId);
+    // Reload history sau 1 giây
+    setTimeout(loadHistory, 1200);
+    swal.fire({
+      toast: true, position: 'top-end', icon: 'success',
+      title: 'Đã tạo đơn! Tab thanh toán đã mở.',
+      timer: 4000, showConfirmButton: false
+    });
+  } catch (e) {
+    const errData = e.response?.data;
+    if (errData?.errorCode === 'PENDING_ORDER') {
+      // Có đơn đang chờ
+      const choice = await swal.fire({
+        title: 'Bạn đang có đơn chưa thanh toán!',
+        html: `Gói: <strong>${errData.tenGoi}</strong><br>Mã: <code>${errData.maGiaoDich}</code><br>Còn hạn: <strong>${Math.ceil(errData.giayConLai / 60)} phút</strong>`,
+        icon: 'warning',
+        showCancelButton: true,
+        showDenyButton: true,
+        confirmButtonText: 'Tiếp tục thanh toán',
+        denyButtonText: 'Hủy đơn cũ',
+        cancelButtonText: 'Đóng',
+        confirmButtonColor: '#f97316',
+        denyButtonColor: '#6b7280',
+      });
+      if (choice.isConfirmed) {
+        openCheckout(errData.donDangKyId);
+      } else if (choice.isDenied) {
+        await cancelPendingOrder(errData.donDangKyId);
+      }
+    } else if (errData?.errorCode === 'DAILY_LIMIT') {
+      swal.fire('Đã đạt giới hạn ngày', errData.message, 'warning');
+    } else {
+      swal.fire('Lỗi', errData?.message || e.response?.data || 'Không thể tạo đơn', 'error');
+    }
+  } finally {
+    purchasing.value = false;
+  }
+};
+
+const cancelPendingOrder = async (id) => {
+  try {
+    await axios.post(`/api/Subscription/cancel/${id}`);
+    swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã hủy đơn cũ!', timer: 2000, showConfirmButton: false });
+    await loadHistory();
+  } catch {
+    swal.fire('Lỗi', 'Không thể hủy đơn. Thử lại sau.', 'error');
+  }
+};
+
+const loadHistory = async () => {
+  try {
+    const res = await axios.get("/api/Subscription/history");
+    history.value = res.data;
+  } catch {}
 };
 
 onMounted(async () => {
   try {
-    // Load cấu hình ngân hàng của HỆ THỐNG (SuperAdmin) — chủ cửa hàng chuyển tiền mua gói vào đây
-    try { const bc = await axios.get("/api/Subscription/payment-config"); if(bc.data) systemBank.value = bc.data; } catch(e){}
     const [p1, p2, p3] = await Promise.all([
       axios.get("/api/Subscription/my-plan"),
       axios.get("/api/Subscription/plans"),
       axios.get("/api/Subscription/history"),
     ]);
-    myPlan.value = p1.data;
-    plans.value = p2.data;
+    myPlan.value  = p1.data;
+    plans.value   = p2.data;
     history.value = p3.data;
   } catch(e) { console.error(e); }
 });
 </script>
 
 <style scoped>
-.fw-black{font-weight:800}
-.plan-card{transition:transform .2s,box-shadow .2s}
-.plan-card:hover{transform:translateY(-4px);box-shadow:0 12px 30px rgba(0,0,0,.1)!important}
+.fw-black { font-weight: 800; }
+.plan-card { transition: transform .2s, box-shadow .2s; }
+.plan-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,.1)!important; }
 </style>
