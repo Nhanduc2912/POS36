@@ -54,14 +54,26 @@
         <div class="modal-content border-0 shadow-lg">
           <div class="modal-header bg-danger text-white"><h5 class="modal-title fw-bold">Thanh toán qua chuyển khoản</h5><button class="btn-close btn-close-white" @click="showQR=false"></button></div>
           <div class="modal-body text-center p-4">
-            <div class="alert alert-warning small fw-bold"><i class="bi bi-info-circle me-1"></i>Vui lòng chuyển khoản với nội dung chính xác bên dưới. Hệ thống sẽ tự động kích hoạt gói sau khi nhận được thanh toán.</div>
-            <img :src="qrUrl" class="img-fluid rounded border p-2 mb-3" style="max-height:280px" />
-            <div class="bg-light p-3 rounded-3 text-start">
-              <div class="d-flex justify-content-between mb-2"><span class="text-muted">Số tiền:</span><span class="fw-bold text-danger fs-5">{{ formatVND(purchaseData.tongTien) }}</span></div>
-              <div class="d-flex justify-content-between mb-2"><span class="text-muted">Nội dung CK:</span><span class="fw-bold font-monospace text-primary">{{ purchaseData.maGiaoDich }}</span></div>
-              <div class="d-flex justify-content-between"><span class="text-muted">Gói:</span><span class="fw-bold">{{ purchaseData.tenGoi }}</span></div>
+            <!-- Khi SuperAdmin chưa cấu hình ngân hàng -->
+            <div v-if="!systemBank.configured" class="alert alert-danger fw-bold">
+              <i class="bi bi-exclamation-triangle me-1"></i>
+              Hệ thống chưa cấu hình tài khoản ngân hàng nhận thanh toán. Vui lòng liên hệ quản trị viên.
             </div>
+            <template v-else>
+              <div class="alert alert-warning small fw-bold"><i class="bi bi-info-circle me-1"></i>Vui lòng chuyển khoản với nội dung chính xác bên dưới. Hệ thống sẽ tự động kích hoạt gói sau khi nhận được thanh toán.</div>
+              <img :src="qrUrl" class="img-fluid rounded border p-2 mb-3" style="max-height:280px" />
+              <div class="bg-light p-3 rounded-3 text-start">
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Ngân hàng:</span><span class="fw-bold">{{ systemBank.bankCode }}</span></div>
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Số tài khoản:</span><span class="fw-bold font-monospace">{{ systemBank.bankAccountNo }}</span></div>
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Chủ tài khoản:</span><span class="fw-bold text-uppercase">{{ systemBank.bankAccountName }}</span></div>
+                <hr class="my-2" />
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Số tiền:</span><span class="fw-bold text-danger fs-5">{{ formatVND(purchaseData.tongTien) }}</span></div>
+                <div class="d-flex justify-content-between mb-2"><span class="text-muted">Nội dung CK:</span><span class="fw-bold font-monospace text-primary">{{ purchaseData.maGiaoDich }}</span></div>
+                <div class="d-flex justify-content-between"><span class="text-muted">Gói:</span><span class="fw-bold">{{ purchaseData.tenGoi }}</span></div>
+              </div>
+            </template>
           </div>
+
         </div>
       </div>
     </div>
@@ -97,8 +109,8 @@ const history = ref([]);
 const showQR = ref(false);
 const purchaseData = ref({});
 
-// Lấy cấu hình ngân hàng từ localStorage (đã cấu hình ở BankSetup)
-const bankConfig = ref({ bankId:"MB", accountNo:"", accountName:"", template:"compact2" });
+// Cấu hình ngân hàng HỆ THỐNG của SuperAdmin (chủ cửa hàng chuyển tiền mua gói VÀO đây)
+const systemBank = ref({ bankCode:"", bankAccountNo:"", bankAccountName:"", configured: false });
 
 const statusClass = computed(() => ({
   DungThu:"bg-info",HoatDong:"bg-success",ChiDoc:"bg-warning text-dark",BiKhoa:"bg-danger"
@@ -112,8 +124,9 @@ const formatVND = (n) => n ? Number(n).toLocaleString("vi-VN") + "đ" : "0đ";
 
 const qrUrl = computed(() => {
   if(!purchaseData.value.maGiaoDich) return "";
-  const b = bankConfig.value;
-  return `https://img.vietqr.io/image/${b.bankId}-${b.accountNo}-${b.template}.png?amount=${purchaseData.value.tongTien}&addInfo=${purchaseData.value.maGiaoDich}&accountName=${encodeURIComponent(b.accountName)}`;
+  if(!systemBank.value.configured) return "";
+  const b = systemBank.value;
+  return `https://img.vietqr.io/image/${b.bankCode}-${b.bankAccountNo}-compact2.png?amount=${purchaseData.value.tongTien}&addInfo=${purchaseData.value.maGiaoDich}&accountName=${encodeURIComponent(b.bankAccountName)}`;
 });
 
 const purchase = async (plan) => {
@@ -126,8 +139,8 @@ const purchase = async (plan) => {
 
 onMounted(async () => {
   try {
-    // Load bank config
-    try { const bc = await axios.get("/api/ThietLap/BankConfig"); if(bc.data?.duLieu) bankConfig.value = JSON.parse(bc.data.duLieu); } catch(e){}
+    // Load cấu hình ngân hàng của HỆ THỐNG (SuperAdmin) — chủ cửa hàng chuyển tiền mua gói vào đây
+    try { const bc = await axios.get("/api/Subscription/payment-config"); if(bc.data) systemBank.value = bc.data; } catch(e){}
     const [p1, p2, p3] = await Promise.all([
       axios.get("/api/Subscription/my-plan"),
       axios.get("/api/Subscription/plans"),

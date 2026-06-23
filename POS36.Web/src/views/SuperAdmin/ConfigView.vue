@@ -147,7 +147,7 @@
             </div>
             <div class="webhook-info">
               <i class="bi bi-info-circle me-2 text-info"></i>
-              <span style="font-size:.8rem;color:var(--sa-text-muted)">Webhook URL: <code style="color:var(--sa-accent)">{{ backendUrl }}/api/Payment/webhook</code></span>
+              <span style="font-size:.8rem;color:var(--sa-text-muted)">Webhook URL: <code style="color:var(--sa-accent)">{{ backendUrl }}/api/Webhook/sepay</code></span>
             </div>
           </div>
         </div>

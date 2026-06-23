@@ -157,6 +157,35 @@ namespace POS36.Api.Controllers
         }
 
         /// <summary>
+        /// Lấy thông tin ngân hàng của hệ thống (SuperAdmin) để chủ cửa hàng thanh toán mua gói
+        /// Chỉ trả về các trường cần thiết để sinh QR, không bao giờ trả về Secret Key
+        /// </summary>
+        [HttpGet("payment-config")]
+        public async Task<IActionResult> GetPaymentConfig()
+        {
+            var keys = new[] { "BankCode", "BankAccountNo", "BankAccountName" };
+
+            var configs = await _context.CauHinhHeThangs
+                .Where(c => c.NhomCauHinh == "Payment" && keys.Contains(c.MaKey))
+                .ToListAsync();
+
+            if (!configs.Any())
+            {
+                return Ok(new { bankCode = "", bankAccountNo = "", bankAccountName = "", configured = false });
+            }
+
+            var dict = configs.ToDictionary(c => c.MaKey, c => c.GiaTri);
+
+            return Ok(new
+            {
+                bankCode        = dict.GetValueOrDefault("BankCode", ""),
+                bankAccountNo   = dict.GetValueOrDefault("BankAccountNo", ""),
+                bankAccountName = dict.GetValueOrDefault("BankAccountName", ""),
+                configured      = dict.ContainsKey("BankAccountNo") && !string.IsNullOrWhiteSpace(dict["BankAccountNo"])
+            });
+        }
+
+        /// <summary>
         /// Lịch sử thanh toán
         /// </summary>
         [HttpGet("history")]
