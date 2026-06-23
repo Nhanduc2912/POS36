@@ -67,7 +67,7 @@
               <td><code>{{ h.maGiaoDich }}</code></td>
               <td>
                 <span class="badge" :class="h.trangThai==='DaThanhToan'?'bg-success':h.trangThai==='DaHuy'?'bg-secondary':'bg-warning text-dark'">
-                  {{ h.trangThai==='DaThanhToan'?'Đã Thanh Toán':h.trangThai==='DaHuy'?'Đã hủy':'Chờ TT' }}
+                  {{ h.trangThai==='DaThanhToan'?'Đã thanh toán':h.trangThai==='DaHuy'?'Đã hủy':'Chờ thanh toán' }}
                 </span>
               </td>
               <td class="small text-muted">{{ formatDate(h.ngayTao) }}</td>
@@ -76,7 +76,7 @@
                   v-if="h.trangThai === 'ChoThanhToan'"
                   class="btn btn-sm btn-outline-primary me-1"
                   @click="openCheckout(h.id)">
-                  <i class="bi bi-qr-code-scan me-1"></i>Tiếp tục TT
+                  <i class="bi bi-qr-code-scan me-1"></i>Tiếp tục thanh toán
                 </button>
               </td>
             </tr>
