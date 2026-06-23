@@ -67,7 +67,7 @@
               <td><code>{{ h.maGiaoDich }}</code></td>
               <td>
                 <span class="badge" :class="h.trangThai==='DaThanhToan'?'bg-success':h.trangThai==='DaHuy'?'bg-secondary':'bg-warning text-dark'">
-                  {{ h.trangThai==='DaThanhToan'?'Đã TT':h.trangThai==='DaHuy'?'Đã hủy':'Chờ TT' }}
+                  {{ h.trangThai==='DaThanhToan'?'Đã Thanh Toán':h.trangThai==='DaHuy'?'Đã hủy':'Chờ TT' }}
                 </span>
               </td>
               <td class="small text-muted">{{ formatDate(h.ngayTao) }}</td>
