@@ -217,6 +217,7 @@ namespace POS36.Api.Controllers
 
             var lichSu = await _context.LichSuDangKys
                 .Include(l => l.GoiDichVu)
+                .Include(l => l.CuaHang)
                 .FirstOrDefaultAsync(l => l.Id == id && l.CuaHangId == cuaHangId);
 
             if (lichSu == null) return NotFound(new { message = "Không tìm thấy đơn hàng!" });
@@ -245,6 +246,8 @@ namespace POS36.Api.Controllers
                 ngayTao         = lichSu.NgayTao,
                 hetHanLuc       = lichSu.NgayTao.AddMinutes(EXPIRY_MINUTES),
                 giayConLai      = Math.Max(0, giayConLai),
+                cuaHangId       = lichSu.CuaHangId,
+                tenCuaHang      = lichSu.CuaHang?.TenCuaHang ?? "N/A",
                 bankCode, bankAccountNo, bankAccountName, configured
             });
         }

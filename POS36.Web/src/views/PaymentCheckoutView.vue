@@ -55,7 +55,8 @@
           <span class="co-plan-badge">{{ detail.tenGoi }}</span>
         </div>
         <div class="text-end text-muted small d-none d-md-block">
-          Mã KH: <strong class="text-dark">{{ detail.cuaHangId || 'N/A' }}</strong>
+          Cửa hàng: <strong class="text-dark">{{ detail.tenCuaHang }}</strong> <br>
+          <span style="font-size: 0.75rem;">(Mã KH: {{ detail.cuaHangId }})</span>
         </div>
       </header>
 
@@ -74,17 +75,18 @@
         
         <!-- LEFT: QR -->
         <div class="qr-section">
-          <div class="d-flex justify-content-between align-items-center w-100 mb-3 px-2">
-            <span class="fw-bold text-secondary">Mã chuyển khoản VietQR</span>
-            <button class="btn btn-sm btn-outline-primary fw-bold" @click="downloadQR" title="Tải mã QR xuống">
-              <i class="bi bi-download me-1"></i> Tải ảnh
-            </button>
+          <div class="d-flex justify-content-center align-items-center w-100 mb-2 px-2">
+            <span class="fw-bold text-secondary text-uppercase" style="letter-spacing: 0.5px; font-size: 0.85rem;">Mã chuyển khoản VietQR</span>
           </div>
           
-          <img :src="qrUrl" alt="QR Mã" class="qr-img">
+          <img :src="qrUrl" alt="QR Mã" class="qr-img mb-3">
           
           <div class="text-muted fw-medium small mb-1">Số tiền cần chuyển</div>
-          <div class="amount-large">{{ formatVND(detail.soTienThanhToan) }}</div>
+          <div class="amount-large mb-3">{{ formatVND(detail.soTienThanhToan) }}</div>
+          
+          <button class="btn btn-sm btn-outline-primary fw-bold px-4 py-2 w-100" style="border-radius: 10px;" @click="downloadQR" title="Tải mã QR xuống">
+            <i class="bi bi-download me-2"></i> Tải ảnh mã QR
+          </button>
         </div>
 
         <!-- RIGHT: INFO -->
