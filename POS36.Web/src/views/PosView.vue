@@ -874,7 +874,7 @@ const handleThanhToan = async () => {
         _diemTemp = diem;
         _discountTemp = discount;
 
-        const tienGiamDiem = Math.min(diem * 1000, soTien);
+        const tienGiamDiem = Math.min(diem * settings.value.Loyalty_TiLeDoiDiem, soTien);
         const soSauDiem = soTien - tienGiamDiem;
         const tienGiamDiscount = soSauDiem * discount / 100;
         const conLai = soSauDiem - tienGiamDiscount;
@@ -897,7 +897,7 @@ const handleThanhToan = async () => {
   });
 
   const diemSuDung = _diemTemp;
-  const soTienThucTe = soTien - Math.min(diemSuDung * 1000, soTien);
+  const soTienThucTe = soTien - Math.min(diemSuDung * settings.value.Loyalty_TiLeDoiDiem, soTien);
 
   // 1. NẾU TRẢ TIỀN MẶT
   if (result.isConfirmed) {
@@ -1004,6 +1004,7 @@ const settings = ref({
   POS_TuDongIn: true,
   Perm_ThuNgan_XoaHoaDon: true,
   POS_YeuCauMatKhauHuyBill: true,
+  Loyalty_TiLeDoiDiem: 1000,
 });
 
 const showQrModal = ref(false);
@@ -1052,7 +1053,7 @@ const loadingHistory = ref(false);
 
 const loadSettings = async () => {
   try {
-    const keys = "POS_ThuNganInNhieuBill,POS_ThuNganXemLichSu,POS_TuDongIn,Perm_ThuNgan_XoaHoaDon,POS_YeuCauMatKhauHuyBill";
+    const keys = "POS_ThuNganInNhieuBill,POS_ThuNganXemLichSu,POS_TuDongIn,Perm_ThuNgan_XoaHoaDon,POS_YeuCauMatKhauHuyBill,Loyalty_TiLeDoiDiem";
     const res = await axios.get("/api/ThietLap/batch", { params: { keys } });
     if (res.data) {
       settings.value.POS_ThuNganInNhieuBill = res.data.POS_ThuNganInNhieuBill === "true";
@@ -1060,6 +1061,9 @@ const loadSettings = async () => {
       settings.value.POS_TuDongIn = res.data.POS_TuDongIn !== "false";
       settings.value.Perm_ThuNgan_XoaHoaDon = res.data.Perm_ThuNgan_XoaHoaDon !== "false";
       settings.value.POS_YeuCauMatKhauHuyBill = res.data.POS_YeuCauMatKhauHuyBill !== "false";
+      if (res.data.Loyalty_TiLeDoiDiem && !isNaN(res.data.Loyalty_TiLeDoiDiem)) {
+          settings.value.Loyalty_TiLeDoiDiem = parseInt(res.data.Loyalty_TiLeDoiDiem);
+      }
     }
   } catch (e) {
     console.error("Lỗi load settings trong PosView", e);
