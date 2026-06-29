@@ -611,7 +611,10 @@ const load = async () => {
     Object.assign(info, si.data);
     const data = tl.data;
     for (const k of Object.keys(cfg)) if (data[k] !== undefined && data[k] !== '') cfg[k] = data[k];
-    for (const k of boolKeys) if (data[k] !== undefined) cfgBool[k] = data[k] === 'true';
+    for (const k of boolKeys) {
+      if (data[k] === 'true') cfgBool[k] = true;
+      else if (data[k] === 'false') cfgBool[k] = false;
+    }
   } catch (e) { console.error(e); }
 };
 
