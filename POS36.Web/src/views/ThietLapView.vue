@@ -101,6 +101,17 @@
                 </div>
               </div>
 
+              <!-- Switch Cho phép bán âm -->
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Cho phép bán hàng vượt quá số lượng tồn kho (Bán âm)</h6>
+                  <p class="text-muted mb-0 small">Bật chức năng này để Thu ngân và Order tiếp tục tính tiền/thêm món ngay cả khi hệ thống hết tồn kho thực tế.</p>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.Kho_ChoPhepBanAm" />
+                </div>
+              </div>
+
               <!-- Switch 3 -->
               <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
                 <div>
@@ -408,7 +419,7 @@
                 <label class="form-label fw-semibold text-secondary small">Giá trị sử dụng điểm quy đổi (1 Điểm → VNĐ)</label>
                 <div class="input-group input-group-lg">
                   <input type="number" v-model.number="cfg.Loyalty_TiLeDoiDiem" class="form-control bg-light border-0 text-dark" min="1" :disabled="!cfgBool.Loyalty_BatTat" />
-                  <span class="input-group-text bg-white border-0 text-muted small fw-bold">Điểm = 1.000đ trừ bill</span>
+                  <span class="input-group-text bg-white border-0 text-muted small fw-bold">VNĐ / 1 điểm</span>
                 </div>
               </div>
 
@@ -583,6 +594,7 @@ const cfgBool = reactive({
   POS_ThanhToanBatBuocChonMon: true,
   POS_ChoPhepHoanTraMon: true,
   POS_YeuCauMatKhauHuyBill: true,
+  Kho_ChoPhepBanAm: true,
 });
 
 const boolKeys = Object.keys(cfgBool);
