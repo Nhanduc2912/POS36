@@ -230,9 +230,9 @@
     </div>
 
     <!-- Onboarding Modal -->
-    <div v-if="showOnboarding" class="onboarding-overlay d-flex justify-content-center align-items-center" style="overflow-y: auto;">
-      <div class="onboarding-card card border-0 shadow-lg rounded-4 p-4 text-dark position-relative" style="width: 100%; max-width: 550px; max-height: 90vh; overflow-y: auto; overflow-x: hidden;">
-        <div class="decor-circle bg-danger opacity-10 position-absolute rounded-circle" style="width: 200px; height: 200px; top: -50px; right: -50px; pointer-events: none;"></div>
+    <div v-if="showOnboarding" class="onboarding-overlay py-5 px-3 d-flex">
+      <div class="onboarding-card card border-0 shadow-lg rounded-4 p-4 text-dark position-relative overflow-hidden m-auto" style="width: 100%; max-width: 550px;">
+        <div class="decor-circle bg-danger opacity-10 position-absolute rounded-circle" style="width: 200px; height: 200px; top: -50px; right: -50px;"></div>
         
         <div class="position-relative z-1">
           <!-- Step 1: Khảo sát Mô hình -->
@@ -557,6 +557,7 @@ const submitOnboarding = async (useSampleData) => {
           "Security_YeuCauPIN": String(form.value.securityYeuCauPIN),
           "Security_AdminPIN": String(form.value.adminPin || "1234"),
           "POS_HienQR": "true",
+          "Kho_ChoPhepBanAm": "true",
         }
       };
       
@@ -717,6 +718,7 @@ watch(
   background-color: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(8px);
   z-index: 9999;
+  overflow-y: auto;
 }
 .onboarding-card {
   background: rgba(255, 255, 255, 0.95);
