@@ -96,8 +96,15 @@ namespace POS36.Api.Controllers
                         .FromSqlRaw("SELECT * FROM TonKhos WITH (UPDLOCK, ROWLOCK) WHERE SanPhamId = {0} AND ChiNhanhId = {1}", mon.SanPhamId, hoaDon.ChiNhanhId)
                         .FirstOrDefaultAsync();
 
-                    if (tonKho != null && tonKho.SoLuong < mon.SoLuong)
-                        throw new Exception($"'{sanPham.TenSanPham}' chỉ còn {tonKho.SoLuong} trong kho, không đủ để gọi {mon.SoLuong}!");
+                    bool isChoPhepBanAm = await GetThietLapBoolAsync(cuaHangId, "Kho_ChoPhepBanAm", true);
+
+                    if (!isChoPhepBanAm)
+                    {
+                        if (tonKho != null && tonKho.SoLuong < mon.SoLuong)
+                            throw new Exception($"'{sanPham.TenSanPham}' chỉ còn {tonKho.SoLuong} trong kho, không đủ để gọi {mon.SoLuong}!");
+                        if (tonKho == null)
+                            throw new Exception($"'{sanPham.TenSanPham}' chưa có trong kho, không thể gọi món!");
+                    }
 
                     decimal currentGiaVon = await _context.ChiTietPhieuNhaps
                         .Where(ct => ct.SanPhamId == mon.SanPhamId && ct.PhieuNhap != null && ct.PhieuNhap.ChiNhanhId == hoaDon.ChiNhanhId && ct.PhieuNhap.TrangThai == "Hoàn thành")
@@ -540,22 +547,28 @@ namespace POS36.Api.Controllers
                             .FromSqlRaw("SELECT * FROM TonKhos WITH (UPDLOCK, ROWLOCK) WHERE SanPhamId = {0} AND ChiNhanhId = {1}", chiTiet.SanPhamId, hoaDon.ChiNhanhId)
                             .FirstOrDefaultAsync();
 
+                        bool isChoPhepBanAm = await GetThietLapBoolAsync(cuaHangId, "Kho_ChoPhepBanAm", true);
                         if (tonKho != null)
                         {
                             tonKho.SoLuong -= chiTiet.SoLuong;
-                            if (tonKho.SoLuong < 0)
+                            if (!isChoPhepBanAm && tonKho.SoLuong < 0)
                             {
-                                tonKho.SoLuong = 0; // Đảm bảo tồn kho không âm
+                                throw new Exception($"'{chiTiet.SanPham?.TenSanPham ?? "Món ăn"}' không đủ tồn kho để thanh toán!");
                             }
                         }
                         else
                         {
-                            // BUG-14 FIX: tạo tồn kho mặc định là 0 thay vì số âm
+                            if (!isChoPhepBanAm)
+                            {
+                                throw new Exception($"'{chiTiet.SanPham?.TenSanPham ?? "Món ăn"}' chưa có trong kho, không thể thanh toán!");
+                            }
+                            
+                            // Tạo tồn kho âm nếu được phép
                             _context.TonKhos.Add(new TonKho
                             {
                                 SanPhamId = chiTiet.SanPhamId,
                                 ChiNhanhId = hoaDon.ChiNhanhId,
-                                SoLuong = 0
+                                SoLuong = -chiTiet.SoLuong
                             });
                         }
                     }
