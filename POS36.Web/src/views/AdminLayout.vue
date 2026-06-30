@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, computed } from "vue";
+import { onMounted, onUnmounted, ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import axios from "axios";
 import { globalState } from "../store";
@@ -97,6 +97,14 @@ onMounted(() => {
 
   // SaaS: Load trạng thái gói dịch vụ
   loadSubscriptionStatus();
+
+  // FIX-SEC-5: Load cài đặt Auto-Logout và khởi động bộ đếm nếu được bật
+  loadAutoLogoutSettings();
+});
+
+onUnmounted(() => {
+  // Dọn dẹp timer khi thoát khỏi trang
+  stopInactivityWatcher();
 });
 
 const loadSubscriptionStatus = async () => {
@@ -107,6 +115,55 @@ const loadSubscriptionStatus = async () => {
     localStorage.setItem("pos36_storeTrangThai", res.data.trangThai);
   } catch (e) {
     // Ignore
+  }
+};
+
+// ==========================================
+// FIX-SEC-5: INACTIVITY TIMER AUTO-LOGOUT
+// ==========================================
+let inactivityTimer = null;
+const autoLogoutEnabled = ref(false);
+const autoLogoutMinutes = ref(30);
+
+const resetTimer = () => {
+  if (!autoLogoutEnabled.value) return;
+  clearTimeout(inactivityTimer);
+  inactivityTimer = setTimeout(async () => {
+    // Tự đăng xuất khi quá thời gian không tương tác
+    try { await axios.post("/api/Auth/logout"); } catch (e) { /* ignore */ }
+    localStorage.clear();
+    window.location.href = "/login";
+  }, autoLogoutMinutes.value * 60 * 1000);
+};
+
+const startInactivityWatcher = () => {
+  const events = ["mousemove", "keydown", "mousedown", "touchstart", "scroll", "click"];
+  events.forEach(evt => window.addEventListener(evt, resetTimer, { passive: true }));
+  resetTimer(); // Khởi động lần đầu
+};
+
+const stopInactivityWatcher = () => {
+  clearTimeout(inactivityTimer);
+  const events = ["mousemove", "keydown", "mousedown", "touchstart", "scroll", "click"];
+  events.forEach(evt => window.removeEventListener(evt, resetTimer));
+};
+
+const loadAutoLogoutSettings = async () => {
+  try {
+    const res = await axios.get("/api/ThietLap/batch", {
+      params: { keys: "Security_AutoLogout,Security_TimeoutPhut" }
+    });
+    if (res.data) {
+      autoLogoutEnabled.value = res.data.Security_AutoLogout === "true";
+      const phut = parseInt(res.data.Security_TimeoutPhut);
+      if (!isNaN(phut) && phut > 0) autoLogoutMinutes.value = phut;
+
+      if (autoLogoutEnabled.value) {
+        startInactivityWatcher();
+      }
+    }
+  } catch (e) {
+    console.error("Lỗi load cấu hình Auto-Logout", e);
   }
 };
 

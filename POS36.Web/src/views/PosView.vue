@@ -682,28 +682,40 @@ const handleCancelItem = async (item, index) => {
     try {
       let passcode = null;
       const isLastItem = (formValues.qty >= item.qty && ordersByTable.value[activeTable.value.id].length === 1);
-      
-      // Nếu hủy món cuối và vai trò là ThuNgan và quyền xóa hóa đơn bị tắt, hoặc cấu hình yêu cầu PIN khi hủy bill đang bật
       const isThuNgan = userRole === "ThuNgan";
-      const needsPasscode = isLastItem && isThuNgan && (!settings.value.Perm_ThuNgan_XoaHoaDon || settings.value.POS_YeuCauMatKhauHuyBill);
+
+      // FIX-SEC-3a: Hủy món cuối (sẽ xóa hóa đơn) - cần PIN nếu không có quyền HOẶC cấu hình bắt buộc PIN
+      const needsPincodeForDelete = isLastItem && isThuNgan &&
+        (!settings.value.Perm_ThuNgan_XoaHoaDon || settings.value.POS_YeuCauMatKhauHuyBill);
+
+      // FIX-SEC-3b: Hủy món đã gửi bếp (chưa hủy hết) - cần PIN nếu không có quyền
+      const isSentToKitchen = item.isSent;
+      const needsPincodeForSentItem = !isLastItem && isThuNgan && isSentToKitchen && !settings.value.Perm_ThuNgan_HuyMonDaGui;
+
+      const needsPasscode = needsPincodeForDelete || needsPincodeForSentItem;
 
       if (needsPasscode) {
+        const pinTitle = needsPincodeForDelete
+          ? "Xác thực để Hủy Hóa đơn"
+          : "Xác thực để Hủy Món đã gửi Bếp";
+        const pinText = needsPincodeForDelete
+          ? "Hành động này sẽ hủy toàn bộ hóa đơn/xóa bàn trống. Vui lòng nhập mã PIN của Chủ cửa hàng:"
+          : `Món "${item.name}" đã được gửi xuống Bếp/Bar. Vui lòng nhập mã PIN của Chủ cửa hàng để xác thực:`;
+
         const { value: typedPasscode } = await swal.fire({
-          title: "Yêu cầu Xác thực của Quản lý",
-          text: "Hành động này sẽ hủy toàn bộ hóa đơn/xóa bàn trống. Vui lòng nhập mã PIN hoặc mật khẩu của Chủ cửa hàng:",
+          title: pinTitle,
+          text: pinText,
           input: "password",
           inputPlaceholder: "Nhập mã PIN hoặc mật khẩu",
           showCancelButton: true,
           confirmButtonText: "Xác thực",
           confirmButtonColor: "#dc3545",
           inputValidator: (value) => {
-            if (!value) {
-              return "Mật khẩu xác thực không được để trống!";
-            }
+            if (!value) return "Mật khẩu xác thực không được để trống!";
           }
         });
 
-        if (!typedPasscode) return; // Người dùng nhấn Hủy/đóng pop-up
+        if (!typedPasscode) return;
         passcode = typedPasscode;
       }
 
@@ -1003,7 +1015,8 @@ const settings = ref({
   POS_ThuNganXemLichSu: true,
   POS_TuDongIn: true,
   Perm_ThuNgan_XoaHoaDon: true,
-  POS_YeuCauMatKhauHuyBill: true,
+  Perm_ThuNgan_HuyMonDaGui: false,
+  POS_YeuCauMatKhauHuyBill: false,
   Loyalty_TiLeDoiDiem: 1000,
 });
 
@@ -1053,14 +1066,17 @@ const loadingHistory = ref(false);
 
 const loadSettings = async () => {
   try {
-    const keys = "POS_ThuNganInNhieuBill,POS_ThuNganXemLichSu,POS_TuDongIn,Perm_ThuNgan_XoaHoaDon,POS_YeuCauMatKhauHuyBill,Loyalty_TiLeDoiDiem";
+    const keys = "POS_ThuNganInNhieuBill,POS_ThuNganXemLichSu,POS_TuDongIn,Perm_ThuNgan_XoaHoaDon,Perm_ThuNgan_HuyMonDaGui,POS_YeuCauMatKhauHuyBill,Loyalty_TiLeDoiDiem";
     const res = await axios.get("/api/ThietLap/batch", { params: { keys } });
     if (res.data) {
       settings.value.POS_ThuNganInNhieuBill = res.data.POS_ThuNganInNhieuBill === "true";
       settings.value.POS_ThuNganXemLichSu = res.data.POS_ThuNganXemLichSu === "true";
       settings.value.POS_TuDongIn = res.data.POS_TuDongIn !== "false";
       settings.value.Perm_ThuNgan_XoaHoaDon = res.data.Perm_ThuNgan_XoaHoaDon !== "false";
-      settings.value.POS_YeuCauMatKhauHuyBill = res.data.POS_YeuCauMatKhauHuyBill !== "false";
+      // FIX-SEC-4: Load thêm quyền hủy món đã gửi bếp (mặc định: false = không cho phép)
+      settings.value.Perm_ThuNgan_HuyMonDaGui = res.data.Perm_ThuNgan_HuyMonDaGui === "true";
+      // FIX-SEC-4: Yêu cầu PIN hủy bill mặc định false khi chưa cài (khớp với backend)
+      settings.value.POS_YeuCauMatKhauHuyBill = res.data.POS_YeuCauMatKhauHuyBill === "true";
       if (res.data.Loyalty_TiLeDoiDiem && !isNaN(res.data.Loyalty_TiLeDoiDiem)) {
           settings.value.Loyalty_TiLeDoiDiem = parseInt(res.data.Loyalty_TiLeDoiDiem);
       }

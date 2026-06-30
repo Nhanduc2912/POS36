@@ -902,15 +902,23 @@ namespace POS36.Api.Controllers
 
                     if (!conMonNaoKhong)
                     {
-                        // BUG-11/Perm check: Thu ngân hủy hóa đơn (cho phép bypass nếu nhập đúng Passcode/PIN của chủ)
+                        // FIX-SEC-1: Thu ngân hủy hóa đơn - kiểm tra quyền VÀ kiểm tra bắt buộc PIN nếu cấu hình yêu cầu
                         if (role == "ThuNgan")
                         {
                             var isPermitted = await GetThietLapBoolAsync(cuaHangId, "Perm_ThuNgan_XoaHoaDon", true);
-                            if (!isPermitted)
+                            var requirePin = await GetThietLapBoolAsync(cuaHangId, "POS_YeuCauMatKhauHuyBill", false);
+
+                            // Cần xác thực nếu: HOẶC không có quyền, HOẶC chủ quán bật yêu cầu PIN bắt buộc
+                            bool needAuth = !isPermitted || requirePin;
+
+                            if (needAuth)
                             {
                                 if (string.IsNullOrEmpty(request.Passcode))
                                 {
-                                    return StatusCode(403, "Thu ngân không được cấp quyền hủy/xóa hóa đơn! Vui lòng nhập mã PIN hoặc mật khẩu của Chủ cửa hàng.");
+                                    string msg = !isPermitted
+                                        ? "Thu ngân không được cấp quyền hủy/xóa hóa đơn! Vui lòng nhập mã PIN của Chủ cửa hàng."
+                                        : "Cấu hình yêu cầu nhập mã PIN để xóa bill. Vui lòng nhập mã PIN của Chủ cửa hàng.";
+                                    return StatusCode(403, msg);
                                 }
 
                                 // 1. Kiểm tra mã PIN nhanh (Security_AdminPIN)
@@ -948,6 +956,34 @@ namespace POS36.Api.Controllers
                 }
                 else
                 {
+                    // FIX-SEC-2: Kiểm tra quyền 'Perm_ThuNgan_HuyMonDaGui' khi hủy 1 phần món đã gửi bếp
+                    if (role == "ThuNgan" && chiTiet.TrangThaiMon == "Đã Gửi Bếp")
+                    {
+                        var canCancelSent = await GetThietLapBoolAsync(cuaHangId, "Perm_ThuNgan_HuyMonDaGui", false);
+                        if (!canCancelSent)
+                        {
+                            // Yêu cầu xác thực PIN để hủy món đã gửi bếp
+                            if (string.IsNullOrEmpty(request.Passcode))
+                                return StatusCode(403, "Thu ngân không được cấp quyền hủy món đã gửi bếp! Vui lòng nhập mã PIN của Chủ cửa hàng.");
+
+                            var adminPinSent = await _context.ThietLaps
+                                .FirstOrDefaultAsync(t => t.CuaHangId == cuaHangId && t.MaThietLap == "Security_AdminPIN");
+                            string pinCheckSent = adminPinSent?.DuLieu ?? "1234";
+
+                            bool verifiedSent = (request.Passcode == pinCheckSent);
+                            if (!verifiedSent)
+                            {
+                                var chuQuanSent = await _context.TaiKhoans
+                                    .FirstOrDefaultAsync(t => t.CuaHangId == cuaHangId && t.VaiTro == "ChuCuaHang" && t.IsActive);
+                                if (chuQuanSent != null && BCrypt.Net.BCrypt.Verify(request.Passcode, chuQuanSent.MatKhauHash))
+                                    verifiedSent = true;
+                            }
+
+                            if (!verifiedSent)
+                                return StatusCode(403, "Mã PIN xác thực không đúng! Không thể hủy món đã gửi bếp.");
+                        }
+                    }
+
                     chiTiet.SoLuong -= request.SoLuongHuy;
                     await _context.SaveChangesAsync();
                 }
