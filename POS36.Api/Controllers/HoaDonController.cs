@@ -821,6 +821,8 @@ namespace POS36.Api.Controllers
                         TrangThai = h.TrangThai,
                         ChiTiets = h.ChiTietHoaDons!.Select(ct => new
                         {
+                            ChiTietId = ct.Id,
+                            SanPhamId = ct.SanPhamId,
                             TenSanPham = ct.SanPham != null ? ct.SanPham.TenSanPham : "SP đã xóa",
                             SoLuong = ct.SoLuong,
                             DonGia = ct.DonGia,
@@ -1041,6 +1043,218 @@ namespace POS36.Api.Controllers
             return Ok(new { success = true });
         }
 
+        [HttpPost("hoan-tra")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan")]
+        public async Task<IActionResult> HoanTraHoaDon([FromBody] HoanTraDto request)
+        {
+            int cuaHangId = GetCuaHangId();
+            var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? User.FindFirst("VaiTro")?.Value;
+
+            // 1. Kiểm tra cấu hình hoàn trả có được bật không
+            bool choPhepHoanTra = await GetThietLapBoolAsync(cuaHangId, "POS_ChoPhepHoanTraMon", true);
+            if (!choPhepHoanTra)
+            {
+                return BadRequest("Chức năng hoàn trả món sau khi thanh toán chưa được kích hoạt!");
+            }
+
+            if (request.ChiTiets == null || !request.ChiTiets.Any())
+            {
+                return BadRequest("Danh sách món hoàn trả trống!");
+            }
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // 2. Tìm hóa đơn đã thanh toán
+                var hoaDon = await _context.HoaDons
+                    .Include(h => h.ChiTietHoaDons!)
+                    .ThenInclude(ct => ct.SanPham)
+                    .Include(h => h.KhachHang)
+                    .Include(h => h.Ban)
+                    .FirstOrDefaultAsync(h => h.Id == request.HoaDonId && h.CuaHangId == cuaHangId);
+
+                if (hoaDon == null)
+                {
+                    return BadRequest("Không tìm thấy hóa đơn cần hoàn trả!");
+                }
+
+                if (hoaDon.TrangThai != "Đã thanh toán" && hoaDon.TrangThai != "Đã hoàn trả một phần")
+                {
+                    return BadRequest("Chỉ có thể hoàn trả món cho hóa đơn đã thanh toán!");
+                }
+
+                // 3. Kiểm tra bảo mật mã PIN nếu được yêu cầu (hoặc nếu là ThuNgan và cấu hình yêu cầu PIN khi hủy bill đang bật)
+                var requirePin = await GetThietLapBoolAsync(cuaHangId, "POS_YeuCauMatKhauHuyBill", false);
+                if (requirePin && role == "ThuNgan")
+                {
+                    if (string.IsNullOrEmpty(request.Passcode))
+                    {
+                        return StatusCode(403, "Yêu cầu nhập mã PIN của Chủ cửa hàng/Quản lý để thực hiện hoàn trả!");
+                    }
+
+                    var adminPin = await _context.ThietLaps
+                        .FirstOrDefaultAsync(t => t.CuaHangId == cuaHangId && t.MaThietLap == "Security_AdminPIN");
+                    string pinCheck = adminPin?.DuLieu ?? "1234";
+
+                    bool verified = (request.Passcode == pinCheck);
+                    if (!verified)
+                    {
+                        var chuQuan = await _context.TaiKhoans
+                            .FirstOrDefaultAsync(t => t.CuaHangId == cuaHangId && t.VaiTro == "ChuCuaHang" && t.IsActive);
+                        if (chuQuan != null && BCrypt.Net.BCrypt.Verify(request.Passcode, chuQuan.MatKhauHash))
+                        {
+                            verified = true;
+                        }
+                    }
+
+                    if (!verified)
+                    {
+                        return StatusCode(403, "Mã PIN hoặc mật khẩu xác thực không đúng!");
+                    }
+                }
+
+                // Tính toán tỷ lệ thanh toán ban đầu (nếu có chiết khấu hoặc dùng điểm)
+                // Cần tính tổng cộng nguyên bản của các chi tiết hóa đơn (trước đợt trả này)
+                decimal originalTongCong = hoaDon.ChiTietHoaDons!.Sum(ct => ct.SoLuong * ct.DonGia);
+                if (originalTongCong <= 0)
+                {
+                    return BadRequest("Không thể hoàn trả hóa đơn có giá trị bằng 0!");
+                }
+
+                // Ti le thanh toan thuc te (sau khi tru chiet khau, dung diem, giam gia)
+                decimal tiLeThanhToan = hoaDon.TongTien / originalTongCong;
+
+                decimal tongTienHoanTraThucTe = 0;
+                string detailsLog = "";
+
+                foreach (var reqCt in request.ChiTiets)
+                {
+                    if (reqCt.SoLuongTra <= 0) continue;
+
+                    var chiTiet = hoaDon.ChiTietHoaDons.FirstOrDefault(ct => ct.Id == reqCt.ChiTietId);
+                    if (chiTiet == null)
+                    {
+                        return BadRequest($"Không tìm thấy món ăn có mã chi tiết {reqCt.ChiTietId} trong hóa đơn!");
+                    }
+
+                    if (reqCt.SoLuongTra > chiTiet.SoLuong)
+                    {
+                        return BadRequest($"Số lượng hoàn trả cho món '{chiTiet.SanPham?.TenSanPham}' vượt quá số lượng hiện tại ({chiTiet.SoLuong})!");
+                    }
+
+                    // Hoàn lại kho hàng
+                    var tonKho = await _context.TonKhos
+                        .FromSqlRaw("SELECT * FROM TonKhos WITH (UPDLOCK, ROWLOCK) WHERE SanPhamId = {0} AND ChiNhanhId = {1}", chiTiet.SanPhamId, hoaDon.ChiNhanhId)
+                        .FirstOrDefaultAsync();
+
+                    if (tonKho != null)
+                    {
+                        tonKho.SoLuong += reqCt.SoLuongTra;
+                    }
+                    else
+                    {
+                        _context.TonKhos.Add(new TonKho
+                        {
+                            SanPhamId = chiTiet.SanPhamId,
+                            ChiNhanhId = hoaDon.ChiNhanhId,
+                            SoLuong = reqCt.SoLuongTra
+                        });
+                    }
+
+                    // Tính tiền món trả trước chiết khấu
+                    decimal tienMonTra = chiTiet.DonGia * reqCt.SoLuongTra;
+                    // Tính tiền thực tế hoàn trả (sau khi nhân tỷ lệ giảm giá/điểm)
+                    decimal tienHoanTraMonThucTe = tienMonTra * tiLeThanhToan;
+                    tongTienHoanTraThucTe += tienHoanTraMonThucTe;
+
+                    // Giảm số lượng trên hóa đơn
+                    chiTiet.SoLuong -= reqCt.SoLuongTra;
+
+                    detailsLog += $"{reqCt.SoLuongTra}x {chiTiet.SanPham?.TenSanPham}, ";
+                }
+
+                if (tongTienHoanTraThucTe <= 0)
+                {
+                    return BadRequest("Không có món nào được hoàn trả!");
+                }
+
+                // Cập nhật lại tổng tiền hóa đơn sau hoàn trả
+                decimal newTongTien = hoaDon.TongTien - tongTienHoanTraThucTe;
+                if (newTongTien < 0) newTongTien = 0;
+                hoaDon.TongTien = newTongTien;
+
+                // Xử lý điểm tích lũy của khách hàng (nếu có)
+                int diemKhauTru = 0;
+                if (hoaDon.KhachHangId.HasValue && hoaDon.KhachHang != null)
+                {
+                    decimal tyLeTichDiem = 20000m;
+                    var tlTichDiem = await _context.ThietLaps
+                        .FirstOrDefaultAsync(t => t.CuaHangId == cuaHangId && t.MaThietLap == "Loyalty_TiLeKiem");
+                    if (tlTichDiem != null && decimal.TryParse(tlTichDiem.DuLieu, out decimal parsedTichDiem) && parsedTichDiem > 0)
+                    {
+                        tyLeTichDiem = parsedTichDiem;
+                    }
+
+                    // Điểm cộng ban đầu trên phần tiền trả lại
+                    diemKhauTru = (int)(tongTienHoanTraThucTe / tyLeTichDiem);
+                    if (diemKhauTru > 0)
+                    {
+                        hoaDon.KhachHang.DiemHienTai -= diemKhauTru;
+                        if (hoaDon.KhachHang.DiemHienTai < 0) hoaDon.KhachHang.DiemHienTai = 0;
+
+                        hoaDon.KhachHang.TongDiemTichLuy -= diemKhauTru;
+                        if (hoaDon.KhachHang.TongDiemTichLuy < 0) hoaDon.KhachHang.TongDiemTichLuy = 0;
+                    }
+                }
+
+                // Tạo phiếu chi hoàn trả tiền cho khách hàng
+                var phieuChi = new PhieuThuChi
+                {
+                    CuaHangId = hoaDon.CuaHangId,
+                    ChiNhanhId = hoaDon.ChiNhanhId,
+                    MaChungTu = $"PC{DateTime.Now:ddMMyy}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}",
+                    LoaiPhieu = "Chi",
+                    PhuongThuc = hoaDon.PhuongThucThanhToan,
+                    NguoiNopNhan = hoaDon.KhachHang != null ? hoaDon.KhachHang.TenKhachHang : "Khách lẻ",
+                    HangMuc = "Hoàn trả hàng",
+                    LyDo = $"Hoàn tiền khách trả món từ HD {hoaDon.Id} ({request.LyDo})",
+                    GiaTri = (double)tongTienHoanTraThucTe,
+                    NgayGiaoDich = DateTime.Now,
+                    NguoiTao = User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name")?.Value ?? "Thu ngân"
+                };
+                _context.PhieuThuChis.Add(phieuChi);
+
+                // Cập nhật trạng thái hóa đơn
+                bool conMonNaoKhong = hoaDon.ChiTietHoaDons.Any(ct => ct.SoLuong > 0);
+                if (!conMonNaoKhong)
+                {
+                    hoaDon.TrangThai = "Đã trả hàng"; // Trả hàng toàn bộ
+                }
+                else
+                {
+                    hoaDon.TrangThai = "Đã hoàn trả một phần"; // Trả hàng một phần
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                // Ghi nhật ký hoạt động
+                await _context.LogHoatDongAsync(hoaDon.ChiNhanhId, "Hoàn trả hàng", $"Hoàn trả món hóa đơn HD {hoaDon.Id}. Danh sách trả: {detailsLog.TrimEnd(',', ' ')}. Lý do: {request.LyDo}. Số tiền hoàn: {tongTienHoanTraThucTe:N0}đ");
+
+                if (_hubContext != null)
+                {
+                    await _hubContext.Clients.Group($"store_{cuaHangId}").SendAsync("CapNhatBan", new { message = "Đã hoàn trả món" });
+                }
+
+                return Ok(new { message = "Hoàn trả món thành công!", tongTienHoanTra = tongTienHoanTraThucTe, diemKhauTru });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, "Lỗi server: " + ex.Message);
+            }
+        }
+
         private async Task<bool> GetThietLapBoolAsync(int cuaHangId, string key, bool defaultValue)
         {
             var tl = await _context.ThietLaps
@@ -1058,5 +1272,19 @@ namespace POS36.Api.Controllers
         public string? MaChungTu { get; set; }
         public string? LoaiIn { get; set; }
         public decimal TongTien { get; set; }
+    }
+
+    public class HoanTraDto
+    {
+        public int HoaDonId { get; set; }
+        public List<HoanTraChiTietDto> ChiTiets { get; set; } = new();
+        public string LyDo { get; set; } = "";
+        public string? Passcode { get; set; }
+    }
+
+    public class HoanTraChiTietDto
+    {
+        public int ChiTietId { get; set; }
+        public int SoLuongTra { get; set; }
     }
 }

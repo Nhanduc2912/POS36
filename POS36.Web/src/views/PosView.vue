@@ -1017,6 +1017,7 @@ const settings = ref({
   Perm_ThuNgan_XoaHoaDon: true,
   Perm_ThuNgan_HuyMonDaGui: false,
   POS_YeuCauMatKhauHuyBill: false,
+  POS_ChoPhepHoanTraMon: false, // Thêm key này
   Loyalty_TiLeDoiDiem: 1000,
 });
 
@@ -1066,17 +1067,16 @@ const loadingHistory = ref(false);
 
 const loadSettings = async () => {
   try {
-    const keys = "POS_ThuNganInNhieuBill,POS_ThuNganXemLichSu,POS_TuDongIn,Perm_ThuNgan_XoaHoaDon,Perm_ThuNgan_HuyMonDaGui,POS_YeuCauMatKhauHuyBill,Loyalty_TiLeDoiDiem";
+    const keys = "POS_ThuNganInNhieuBill,POS_ThuNganXemLichSu,POS_TuDongIn,Perm_ThuNgan_XoaHoaDon,Perm_ThuNgan_HuyMonDaGui,POS_YeuCauMatKhauHuyBill,POS_ChoPhepHoanTraMon,Loyalty_TiLeDoiDiem";
     const res = await axios.get("/api/ThietLap/batch", { params: { keys } });
     if (res.data) {
       settings.value.POS_ThuNganInNhieuBill = res.data.POS_ThuNganInNhieuBill === "true";
       settings.value.POS_ThuNganXemLichSu = res.data.POS_ThuNganXemLichSu === "true";
       settings.value.POS_TuDongIn = res.data.POS_TuDongIn !== "false";
       settings.value.Perm_ThuNgan_XoaHoaDon = res.data.Perm_ThuNgan_XoaHoaDon !== "false";
-      // FIX-SEC-4: Load thêm quyền hủy món đã gửi bếp (mặc định: false = không cho phép)
       settings.value.Perm_ThuNgan_HuyMonDaGui = res.data.Perm_ThuNgan_HuyMonDaGui === "true";
-      // FIX-SEC-4: Yêu cầu PIN hủy bill mặc định false khi chưa cài (khớp với backend)
       settings.value.POS_YeuCauMatKhauHuyBill = res.data.POS_YeuCauMatKhauHuyBill === "true";
+      settings.value.POS_ChoPhepHoanTraMon = res.data.POS_ChoPhepHoanTraMon === "true"; // Đọc cấu hình hoàn trả
       if (res.data.Loyalty_TiLeDoiDiem && !isNaN(res.data.Loyalty_TiLeDoiDiem)) {
           settings.value.Loyalty_TiLeDoiDiem = parseInt(res.data.Loyalty_TiLeDoiDiem);
       }
@@ -1149,6 +1149,157 @@ const reprintInvoice = (invoice) => {
     });
   } catch (err) {
     swal.fire("Lỗi", "Không thể in lại hóa đơn", "error");
+  }
+};
+
+const handleReturnInvoice = async (invoice) => {
+  // 1. Tạo HTML cho danh sách các món cần hoàn trả
+  let itemsHtml = `
+    <div class="text-start mb-3" style="max-height: 250px; overflow-y: auto;">
+      <table class="table table-sm table-borderless" style="font-size:0.85rem; width:100%;">
+        <thead>
+          <tr class="border-bottom text-muted">
+            <th>Tên món</th>
+            <th class="text-center" style="width: 80px;">Đã mua</th>
+            <th class="text-center" style="width: 100px;">Trả lại</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  let hasItemsToReturn = false;
+  (invoice.chiTiets || []).forEach((ct) => {
+    if (ct.soLuong > 0) {
+      hasItemsToReturn = true;
+      itemsHtml += `
+        <tr class="align-middle border-bottom border-light">
+          <td class="fw-semibold text-dark text-start">${ct.tenSanPham}</td>
+          <td class="text-center font-monospace">${ct.soLuong}</td>
+          <td>
+            <input 
+              type="number" 
+              class="form-control form-control-sm text-center return-qty-input font-monospace fw-bold" 
+              style="border-color:#cbd5e1"
+              data-chi-tiet-id="${ct.chiTietId}"
+              data-max-qty="${ct.soLuong}"
+              data-item-name="${ct.tenSanPham}"
+              value="0" 
+              min="0" 
+              max="${ct.soLuong}"
+              onfocus="this.select()"
+            >
+          </td>
+        </tr>
+      `;
+    }
+  });
+
+  if (!hasItemsToReturn) {
+    swal.fire("Thông báo", "Hóa đơn này không có món nào khả dụng để hoàn trả!", "warning");
+    return;
+  }
+
+  itemsHtml += `
+        </tbody>
+      </table>
+    </div>
+    <div class="text-start mt-2">
+      <label class="form-label fw-bold text-secondary small mb-1">Lý do hoàn trả:</label>
+      <input type="text" id="return-reason" class="form-control form-control-sm" placeholder="Nhập lý do khách trả đồ..." value="Khách đổi ý">
+    </div>
+  `;
+
+  // Hiển thị Swal
+  const { value: formValues } = await swal.fire({
+    title: "Yêu cầu hoàn trả món",
+    html: itemsHtml,
+    showCancelButton: true,
+    confirmButtonText: "Tiếp tục",
+    confirmButtonColor: "#dc3545",
+    preConfirm: () => {
+      const inputs = document.querySelectorAll(".return-qty-input");
+      const listToReturn = [];
+      let totalQty = 0;
+
+      inputs.forEach((input) => {
+        const chiTietId = parseInt(input.getAttribute("data-chi-tiet-id"));
+        const maxQty = parseInt(input.getAttribute("data-max-qty"));
+        const itemName = input.getAttribute("data-item-name");
+        const qty = parseInt(input.value) || 0;
+
+        if (qty < 0) {
+          swal.showValidationMessage(`Số lượng trả món ${itemName} không được âm!`);
+          return false;
+        }
+        if (qty > maxQty) {
+          swal.showValidationMessage(`Số lượng trả món ${itemName} vượt quá số lượng đã mua!`);
+          return false;
+        }
+
+        if (qty > 0) {
+          listToReturn.push({ chiTietId, soLuongTra: qty });
+          totalQty += qty;
+        }
+      });
+
+      if (totalQty === 0) {
+        swal.showValidationMessage("Vui lòng chọn ít nhất 1 món để trả!");
+        return false;
+      }
+
+      const reason = document.getElementById("return-reason").value.trim();
+      if (!reason) {
+        swal.showValidationMessage("Vui lòng nhập lý do hoàn trả!");
+        return false;
+      }
+
+      return { chiTiets: listToReturn, lyDo: reason };
+    }
+  });
+
+  if (!formValues) return;
+
+  // 2. Yêu cầu nhập mã PIN nếu settings.POS_YeuCauMatKhauHuyBill được bật và là Thu ngân
+  let passcode = null;
+  const isThuNgan = userRole === "ThuNgan";
+  if (settings.value.POS_YeuCauMatKhauHuyBill && isThuNgan) {
+    const { value: typedPasscode } = await swal.fire({
+      title: "Xác thực Quản lý",
+      text: "Nhập mã PIN của Chủ cửa hàng/Quản lý để phê duyệt phiếu hoàn trả:",
+      input: "password",
+      inputPlaceholder: "Nhập mã PIN xác nhận...",
+      showCancelButton: true,
+      confirmButtonText: "Phê duyệt",
+      confirmButtonColor: "#dc3545",
+      inputValidator: (value) => {
+        if (!value) return "Mã PIN xác thực không được để trống!";
+      }
+    });
+
+    if (!typedPasscode) return; // Hủy bỏ
+    passcode = typedPasscode;
+  }
+
+  // 3. Gọi API hoàn trả
+  try {
+    const res = await axios.post("/api/HoaDon/hoan-tra", {
+      hoaDonId: invoice.id,
+      chiTiets: formValues.chiTiets,
+      lyDo: formValues.lyDo,
+      passcode: passcode
+    });
+
+    // Cập nhật lại lịch sử hóa đơn
+    fetchInvoiceHistory();
+
+    swal.fire({
+      icon: "success",
+      title: "Hoàn trả món thành công!",
+      html: `Đã hoàn trả số tiền: <strong class="text-danger">${formatPrice(res.data.tongTienHoanTra)}</strong> cho khách hàng.`,
+      confirmButtonColor: "#28a745"
+    });
+  } catch (e) {
+    swal.fire("Lỗi hoàn trả", e.response?.data || "Không thể thực hiện hoàn trả món ăn này!", "error");
   }
 };
 
@@ -1672,12 +1823,23 @@ watch(activeRightTab, (newTab) => {
                   
                   <div class="d-flex justify-content-between align-items-center">
                     <span class="small text-muted"><i class="bi bi-person-fill text-muted me-1"></i>{{ invoice.khachHang || 'Khách lẻ' }}</span>
-                    <button
-                      @click="reprintInvoice(invoice)"
-                      class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3 shadow-sm d-flex align-items-center gap-1 hover-reprint-btn"
-                    >
-                      <i class="bi bi-printer-fill fs-7"></i> IN LẠI HÓA ĐƠN
-                    </button>
+                    <div class="d-flex gap-2">
+                      <button
+                        @click="reprintInvoice(invoice)"
+                        class="btn btn-sm btn-warning text-dark fw-bold rounded-pill px-3 shadow-sm d-flex align-items-center gap-1 hover-reprint-btn"
+                        style="font-size: 0.75rem;"
+                      >
+                        <i class="bi bi-printer-fill fs-7"></i> IN LẠI
+                      </button>
+                      <button
+                        v-if="settings.POS_ChoPhepHoanTraMon && invoice.trangThai !== 'Đã trả hàng'"
+                        @click="handleReturnInvoice(invoice)"
+                        class="btn btn-sm btn-outline-danger fw-bold rounded-pill px-3 shadow-sm d-flex align-items-center gap-1"
+                        style="font-size: 0.75rem;"
+                      >
+                        <i class="bi bi-arrow-counterclockwise fs-7"></i> HOÀN TRẢ
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
