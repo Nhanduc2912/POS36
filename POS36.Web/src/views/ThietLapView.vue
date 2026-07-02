@@ -669,7 +669,8 @@ const saveAll = async () => {
   if (!validateLoyalty()) return;
   saving.value = true;
   try {
-    const batch = { ...cfg };
+    const batch = {};
+    for (const k of Object.keys(cfg)) batch[k] = String(cfg[k] || '');
     for (const k of boolKeys) batch[k] = String(cfgBool[k]);
 
     await Promise.all([
@@ -679,8 +680,16 @@ const saveAll = async () => {
     swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã lưu thiết lập thành công!', timer: 2000, showConfirmButton: false });
   } catch (e) {
     console.error("Lỗi lưu thiết lập:", e);
-    const errorMsg = e.response?.data?.message || e.response?.data || e.message || 'Lưu thiết lập thất bại!';
-    swal.fire('Lỗi lưu thiết lập', String(errorMsg), 'error');
+    let errorMsg = 'Lưu thiết lập thất bại!';
+    if (e.response?.data) {
+      if (typeof e.response.data === 'string') errorMsg = e.response.data;
+      else if (e.response.data.message) errorMsg = e.response.data.message;
+      else if (e.response.data.title) errorMsg = e.response.data.title;
+      else errorMsg = JSON.stringify(e.response.data);
+    } else if (e.message) {
+      errorMsg = e.message;
+    }
+    swal.fire('Lỗi lưu thiết lập', errorMsg, 'error');
   } finally { saving.value = false; }
 };
 
