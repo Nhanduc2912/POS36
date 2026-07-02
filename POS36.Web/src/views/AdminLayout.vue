@@ -4,6 +4,9 @@ import { useRouter } from "vue-router";
 import axios from "axios";
 import { globalState } from "../store";
 import AiCopilot from "../components/AiCopilot.vue";
+import { useSignalR } from "../composables/useSignalR";
+
+const { startConnection } = useSignalR();
 
 const storeTrangThai = ref(localStorage.getItem("pos36_storeTrangThai") || "HoatDong");
 const soNgayConLai = ref(999);
@@ -97,6 +100,9 @@ onMounted(() => {
 
   // SaaS: Load trạng thái gói dịch vụ
   loadSubscriptionStatus();
+
+  // Khởi động kết nối SignalR để lắng nghe thông báo từ SuperAdmin
+  startConnection();
 
   // FIX-SEC-5: Load cài đặt Auto-Logout và khởi động bộ đếm nếu được bật
   loadAutoLogoutSettings();

@@ -8,6 +8,7 @@
 
 import * as signalR from "@microsoft/signalr";
 import { ref } from "vue";
+import Swal from 'sweetalert2';
 
 let rawBackendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5098";
 
@@ -49,6 +50,29 @@ connection.onreconnected(() => {
 });
 connection.onclose(() => {
   connectionStatus.value = "disconnected";
+});
+
+// Lắng nghe Thông báo Hệ thống từ Super Admin
+connection.on("NhanThongBaoHeThong", (tieuDe, noiDung, loaiThongBao) => {
+  let icon = 'info';
+  if (loaiThongBao === 'CanhBao') icon = 'warning';
+  if (loaiThongBao === 'KhanCap') icon = 'error';
+  if (loaiThongBao === 'CapNhat') icon = 'success';
+  
+  Swal.fire({
+    title: tieuDe,
+    text: noiDung,
+    icon: icon,
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 8000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.addEventListener('mouseenter', Swal.stopTimer);
+      toast.addEventListener('mouseleave', Swal.resumeTimer);
+    }
+  });
 });
 
 // Track xem đã start chưa để tránh start nhiều lần

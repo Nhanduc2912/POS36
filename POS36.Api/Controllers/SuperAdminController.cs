@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using POS36.Api.Data;
+using POS36.Api.Hubs;
 using Serilog;
 
 namespace POS36.Api.Controllers
@@ -12,10 +14,12 @@ namespace POS36.Api.Controllers
     public class SuperAdminController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IHubContext<KitchenHub> _hubContext;
 
-        public SuperAdminController(AppDbContext context)
+        public SuperAdminController(AppDbContext context, IHubContext<KitchenHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
         }
 
         // ==========================================
@@ -362,6 +366,18 @@ namespace POS36.Api.Controllers
 
             _context.ThongBaoHeThongs.Add(thongBao);
             await _context.SaveChangesAsync();
+
+            // Phát thông báo Real-time xuống các cửa hàng qua SignalR
+            if (dto.CuaHangId.HasValue)
+            {
+                await _hubContext.Clients.Group($"store_{dto.CuaHangId.Value}")
+                    .SendAsync("NhanThongBaoHeThong", thongBao.TieuDe, thongBao.NoiDung, thongBao.LoaiThongBao);
+            }
+            else
+            {
+                await _hubContext.Clients.All
+                    .SendAsync("NhanThongBaoHeThong", thongBao.TieuDe, thongBao.NoiDung, thongBao.LoaiThongBao);
+            }
 
             string target = dto.CuaHangId.HasValue ? $"cửa hàng [{dto.CuaHangId}]" : "TẤT CẢ cửa hàng";
             Log.Information("📧 SuperAdmin gửi thông báo [{LoaiThongBao}] đến {Target}: {TieuDe}",
