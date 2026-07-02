@@ -447,9 +447,24 @@
                       <div class="fw-bold mb-2"><i class="bi bi-trophy-fill me-1"></i>Hạng Vàng</div>
                       <input type="number" v-model.number="cfg.Loyalty_NguongVang" class="form-control form-control-sm text-center border-0 bg-white" min="0" placeholder="2000" :disabled="!cfgBool.Loyalty_BatTat" />
                     </div>
-                  </div>
                 </div>
               </div>
+            </div>
+
+            <!-- Hướng dẫn & Quy tắc tích điểm -->
+            <div class="alert alert-info border-0 rounded-3 p-3 mt-4 shadow-sm" style="background-color: rgba(13, 202, 240, 0.06); border-left: 4px solid #0dcaf0 !important;">
+              <h6 class="fw-bold text-dark mb-2"><i class="bi bi-info-circle-fill text-info me-1"></i> Hướng Dẫn & Quy Tắc Tính Điểm</h6>
+              <ul class="mb-0 small text-secondary ps-3" style="line-height: 1.6;">
+                <li><strong>Cách tích lũy điểm</strong>: Khi khách hàng thanh toán hóa đơn, số điểm được cộng thêm sẽ là:
+                  <div class="my-1 text-dark font-monospace fw-bold" style="font-size: 0.85rem;">Điểm tích lũy = Phần nguyên của (Số tiền thực tế thanh toán / Tỉ lệ quy đổi chi tiêu)</div>
+                  VD: Thiết lập <strong>10.000 VNĐ = 1 Điểm</strong>. Hóa đơn thanh toán <strong>250.000 VNĐ</strong> sẽ tích được <strong>25 điểm</strong>.
+                </li>
+                <li class="mt-2"><strong>Cách sử dụng điểm (Quy đổi tiền)</strong>: Khi thanh toán tại quầy thu ngân, khách hàng có thể quy đổi điểm thành tiền giảm trực tiếp vào hóa đơn:
+                  <div class="my-1 text-dark font-monospace fw-bold" style="font-size: 0.85rem;">Số tiền giảm trừ = Số điểm sử dụng * Giá trị quy đổi của 1 điểm</div>
+                  VD: Thiết lập <strong>100 VNĐ / 1 điểm</strong>. Khách sử dụng <strong>100 điểm</strong> sẽ được giảm trực tiếp <strong>10.000 VNĐ</strong>.
+                </li>
+                <li class="mt-2"><strong>Ngưỡng thăng hạng</strong>: Hạng thành viên (Đồng, Bạc, Vàng) của khách hàng sẽ được nâng cấp tự động dựa trên tổng số điểm tích lũy từ trước tới nay. Hãy đảm bảo <strong>Ngưỡng Vàng &gt; Ngưỡng Bạc &gt; Ngưỡng Đồng</strong>.</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -618,7 +633,39 @@ const load = async () => {
   } catch (e) { console.error(e); }
 };
 
+const validateLoyalty = () => {
+  if (cfgBool.Loyalty_BatTat) {
+    if (!cfg.Loyalty_TiLeKiem || parseFloat(cfg.Loyalty_TiLeKiem) < 1000) {
+      swal.fire('Lỗi cấu hình', 'Tỉ lệ quy đổi chi tiêu (VNĐ → 1 Điểm) phải tối thiểu là 1.000 VNĐ!', 'warning');
+      return false;
+    }
+    if (!cfg.Loyalty_TiLeDoiDiem || parseFloat(cfg.Loyalty_TiLeDoiDiem) < 1) {
+      swal.fire('Lỗi cấu hình', 'Giá trị sử dụng điểm quy đổi (1 Điểm → VNĐ) phải tối thiểu là 1 VNĐ!', 'warning');
+      return false;
+    }
+    
+    const dong = parseInt(cfg.Loyalty_NguongDong) || 0;
+    const bac = parseInt(cfg.Loyalty_NguongBac) || 0;
+    const vang = parseInt(cfg.Loyalty_NguongVang) || 0;
+    
+    if (dong < 0 || bac < 0 || vang < 0) {
+      swal.fire('Lỗi cấu hình', 'Ngưỡng tích lũy các hạng thành viên không được là số âm!', 'warning');
+      return false;
+    }
+    if (bac < dong) {
+      swal.fire('Lỗi cấu hình', 'Ngưỡng hạng Bạc không được nhỏ hơn ngưỡng hạng Đồng!', 'warning');
+      return false;
+    }
+    if (vang < bac) {
+      swal.fire('Lỗi cấu hình', 'Ngưỡng hạng Vàng không được nhỏ hơn ngưỡng hạng Bạc!', 'warning');
+      return false;
+    }
+  }
+  return true;
+};
+
 const saveAll = async () => {
+  if (!validateLoyalty()) return;
   saving.value = true;
   try {
     const batch = { ...cfg };
@@ -630,7 +677,9 @@ const saveAll = async () => {
     ]);
     swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã lưu thiết lập thành công!', timer: 2000, showConfirmButton: false });
   } catch (e) {
-    swal.fire('Lỗi', 'Lưu thiết lập thất bại!', 'error');
+    console.error("Lỗi lưu thiết lập:", e);
+    const errorMsg = e.response?.data?.message || e.response?.data || e.message || 'Lưu thiết lập thất bại!';
+    swal.fire('Lỗi lưu thiết lập', String(errorMsg), 'error');
   } finally { saving.value = false; }
 };
 
