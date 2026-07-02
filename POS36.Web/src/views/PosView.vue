@@ -374,10 +374,12 @@ const openTable = async (ban) => {
         name: mon.tenSanPham,
         price: mon.donGia,
         qty: mon.soLuong,
+        ghiChu: mon.ghiChu || "",
         isSent: true,
       }));
 
       activeTable.value.tamTinh = data.tongTien;
+      activeTable.value.ghiChu = data.ghiChu || "";
     } catch (e) {
       console.error("Lỗi tải hóa đơn cũ:", e);
     }
@@ -391,6 +393,24 @@ const totalAmount = computed(() =>
   currentOrder.value.reduce((sum, item) => sum + item.price * item.qty, 0),
 );
 
+const activeTableGhiChu = computed({
+  get: () => activeTable.value ? activeTable.value.ghiChu || "" : "",
+  set: (val) => {
+    if (activeTable.value) activeTable.value.ghiChu = val;
+  }
+});
+
+const updateTableGhiChu = async () => {
+  if (!activeTable.value || activeTable.value.trangThai === "Trống") return;
+  try {
+    await axios.post(`/api/HoaDon/capnhat-ghichu/${activeTable.value.id}`, {
+      ghiChu: activeTable.value.ghiChu || ""
+    });
+  } catch (e) {
+    console.error("Lỗi cập nhật ghi chú hóa đơn:", e);
+  }
+};
+
 const saveNewOrdersToDatabase = async () => {
   if (!activeTable.value || currentOrder.value.length === 0) return false;
   const unsentItems = currentOrder.value.filter((item) => !item.isSent);
@@ -401,8 +421,9 @@ const saveNewOrdersToDatabase = async () => {
     danhSachMon: unsentItems.map((item) => ({
       sanPhamId: item.id,
       soLuong: item.qty,
-      ghiChu: "",
+      ghiChu: item.ghiChu || "",
     })),
+    ghiChuDot: activeTable.value._pendingBatchNote || "",
   };
 
   try {
@@ -412,6 +433,25 @@ const saveNewOrdersToDatabase = async () => {
   } catch (e) {
     swal.fire("Lỗi", e.response?.data || "Không thể lưu Order", "error");
     return false;
+  }
+};
+
+// === GHI CHÚ TỪNG MÓN ===
+const handleEditGhiChu = async (item) => {
+  const { value: ghiChuMoi } = await swal.fire({
+    title: `✏️ Ghi chú cho: ${item.name}`,
+    input: "textarea",
+    inputLabel: "Nhập ghi chú (Ít đá, không hành, thêm sốt...)",
+    inputValue: item.ghiChu || "",
+    inputPlaceholder: "VD: Ít đá, không hành, thêm chanh...",
+    inputAttributes: { rows: 3 },
+    showCancelButton: true,
+    confirmButtonText: "Lưu ghi chú",
+    cancelButtonText: "Hủy",
+    confirmButtonColor: "#f37021",
+  });
+  if (ghiChuMoi !== undefined) {
+    item.ghiChu = ghiChuMoi.trim();
   }
 };
 
@@ -432,6 +472,7 @@ const addItem = async (prod) => {
       name: prod.tenSanPham,
       price: prod.giaBan,
       qty: 1,
+      ghiChu: "",
       isSent: false,
     });
   }
@@ -466,17 +507,30 @@ const handleBaoCheBien = async () => {
       timer: 1500,
     });
 
+  // Hỏi ghi chú đợt (tùy chọn)
   const result = await swal.fire({
     title: `🔔 Báo bếp chế biến`,
-    html: `<p class="mb-1">Xác nhận gửi <strong>${unsentCount} món mới</strong> xuống bếp?</p><p class="text-muted small">Bàn: <strong>${activeTable.value.tenBan}</strong></p>`,
-    icon: "question",
+    html: `
+      <p class="mb-1">Xác nhận gửi <strong>${unsentCount} món mới</strong> xuống bếp?</p>
+      <p class="text-muted small mb-2">Bàn: <strong>${activeTable.value.tenBan}</strong></p>
+      <div class="text-start">
+        <label class="form-label small fw-semibold text-secondary mb-1"><i class="bi bi-chat-left-text me-1"></i>Ghi chú cho đợt này (tuỳ chọn):</label>
+        <textarea id="swal-batch-note" class="form-control form-control-sm" rows="2"
+          placeholder="VD: Phục vụ trước Bàn 5 trước, ưu tiên đồ uống...">${activeTable.value._pendingBatchNote || ""}</textarea>
+      </div>
+    `,
     showCancelButton: true,
     confirmButtonText: "Gửi bếp ngay",
     cancelButtonText: "Hủy",
     confirmButtonColor: "#f37021",
+    preConfirm: () => {
+      return document.getElementById("swal-batch-note")?.value?.trim() || "";
+    },
   });
 
   if (!result.isConfirmed) return;
+  // Lưu batch note vào activeTable để saveNewOrdersToDatabase lấy
+  activeTable.value._pendingBatchNote = result.value || "";
 
   const success = await saveNewOrdersToDatabase();
 
@@ -486,6 +540,7 @@ const handleBaoCheBien = async () => {
       activeTable.value.timeOpen = new Date().toISOString();
     }
     activeTable.value.tamTinh = totalAmount.value;
+    activeTable.value._pendingBatchNote = "";
     tables.value = [...tables.value];
 
     swal.fire({
@@ -1117,6 +1172,7 @@ const reprintInvoice = (invoice) => {
     name: ct.tenSanPham,
     price: ct.donGia,
     qty: ct.soLuong,
+    ghiChu: ct.ghiChu || ""
   }));
 
   const orderToPrint = {
@@ -1310,6 +1366,7 @@ const handleManualPrint = () => {
     name: item.name,
     price: item.price,
     qty: item.qty,
+    ghiChu: item.ghiChu || ""
   }));
 
   const orderToPrint = {
@@ -1533,10 +1590,10 @@ watch(activeRightTab, (newTab) => {
 
         <div class="d-flex text-muted small fw-bold border-bottom p-2 bg-light">
           <div style="width: 5%">#</div>
-          <div style="width: 45%">TÊN HÀNG HÓA</div>
+          <div style="width: 42%">TÊN HÀNG HÓA</div>
           <div style="width: 15%" class="text-center">SL</div>
           <div style="width: 15%" class="text-end">ĐƠN GIÁ</div>
-          <div style="width: 20%" class="text-end">THÀNH TIỀN</div>
+          <div style="width: 23%" class="text-end">THÀNH TIỀN</div>
         </div>
 
         <div class="flex-grow-1 overflow-auto p-0">
@@ -1553,42 +1610,63 @@ watch(activeRightTab, (newTab) => {
             v-else
             v-for="(item, index) in currentOrder"
             :key="index"
-            class="d-flex align-items-center p-2 border-bottom"
+            class="border-bottom"
+            :class="item.isSent ? 'bg-light' : ''"
           >
-            <div style="width: 5%" class="text-muted small">
-              {{ index + 1 }}
+            <!-- Dòng chính -->
+            <div class="d-flex align-items-center px-2 pt-2 pb-1">
+              <div style="width: 5%" class="text-muted small">
+                {{ index + 1 }}
+              </div>
+              <div style="width: 42%" class="fw-bold text-dark">
+                {{ item.name }}
+                <span v-if="item.isSent" class="badge bg-success bg-opacity-75 ms-1" style="font-size:0.58rem">✓ Bếp</span>
+              </div>
+              <div style="width: 15%" class="d-flex justify-content-center align-items-center">
+                <span class="fw-bold px-2 py-1 bg-light border rounded">{{ item.qty }}</span>
+              </div>
+              <div style="width: 15%" class="text-end text-muted small">
+                {{ item.price.toLocaleString() }}
+              </div>
+              <div style="width: 23%" class="text-end d-flex justify-content-end align-items-center gap-1">
+                <span class="fw-bold">{{ (item.price * item.qty).toLocaleString() }}</span>
+                <!-- Nút bút chì ghi chú (chỉ hiện khi chưa gửi bếp) -->
+                <i
+                  v-if="!item.isSent"
+                  @click="handleEditGhiChu(item)"
+                  class="bi bi-pencil-square"
+                  :class="item.ghiChu ? 'text-warning' : 'text-muted opacity-50'"
+                  style="cursor: pointer; font-size: 0.9rem"
+                  :title="item.ghiChu ? 'Ghi chú: ' + item.ghiChu : 'Thêm ghi chú cho món'"
+                ></i>
+                <i
+                  @click="handleCancelItem(item, index)"
+                  class="bi bi-trash text-danger"
+                  style="cursor: pointer; font-size: 0.9rem"
+                ></i>
+              </div>
             </div>
-            <div style="width: 45%" class="fw-bold text-dark text-truncate">
-              {{ item.name }}
-            </div>
-            <div
-              style="width: 15%"
-              class="d-flex justify-content-center align-items-center"
-            >
-              <span class="fw-bold px-2 py-1 bg-light border rounded">{{
-                item.qty
-              }}</span>
-            </div>
-            <div style="width: 15%" class="text-end text-muted small">
-              {{ item.price.toLocaleString() }}
-            </div>
-            <div
-              style="width: 20%"
-              class="text-end d-flex justify-content-end align-items-center gap-2"
-            >
-              <span class="fw-bold">{{
-                (item.price * item.qty).toLocaleString()
-              }}</span>
-              <i
-                @click="handleCancelItem(item, index)"
-                class="bi bi-trash text-danger"
-                style="cursor: pointer"
-              ></i>
+            <!-- Badge ghi chú bên dưới (nếu có) -->
+            <div v-if="item.ghiChu" class="px-2 pb-2">
+              <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 rounded-pill px-2 py-1"
+                    style="font-size:0.68rem; font-style:italic;">
+                <i class="bi bi-chat-left-text me-1"></i>{{ item.ghiChu }}
+              </span>
             </div>
           </div>
         </div>
 
         <div class="bg-light border-top">
+          <div v-if="activeTable && activeTable.trangThai !== 'Trống'" class="p-2 border-bottom bg-white d-flex align-items-center gap-2">
+            <span class="text-muted small fw-bold text-nowrap"><i class="bi bi-journal-text text-primary"></i> Ghi chú HD:</span>
+            <input
+              type="text"
+              class="form-control form-control-sm border-0 bg-light rounded-pill px-3"
+              placeholder="Ghi chú chung cho hóa đơn..."
+              v-model="activeTableGhiChu"
+              @change="updateTableGhiChu"
+            />
+          </div>
           <div
             class="p-2 d-flex justify-content-between align-items-center border-bottom"
           >
@@ -1786,6 +1864,9 @@ watch(activeRightTab, (newTab) => {
                       <i class="bi bi-circle-fill text-success" style="font-size: 0.55rem"></i>
                       {{ invoice.tenBan }}
                     </h5>
+                    <div v-if="invoice.ghiChu" class="text-muted small mt-1 fst-italic" style="font-size:0.75rem">
+                      <i class="bi bi-journal-text text-primary me-1"></i>Ghi chú: {{ invoice.ghiChu }}
+                    </div>
                   </div>
                   <div class="text-end">
                     <span class="text-muted small d-block" style="font-size:0.75rem">
@@ -1800,11 +1881,19 @@ watch(activeRightTab, (newTab) => {
                 <!-- Items Breakdown -->
                 <div class="card-body pt-1 pb-3 px-3">
                   <div class="p-2 rounded-3 mb-2 bg-white" style="border: 1px dashed #e2e8f0;">
-                    <div v-for="(ct, idx) in invoice.chiTiets" :key="idx" class="d-flex justify-content-between align-items-center py-1 border-bottom border-light" style="font-size: 0.85rem">
-                      <span class="text-secondary fw-semibold">{{ ct.tenSanPham }}</span>
-                      <div class="d-flex align-items-center gap-4">
-                        <span class="text-muted font-monospace">x{{ ct.soLuong }}</span>
-                        <span class="fw-bold text-dark font-monospace" style="width: 80px; text-align: right;">{{ formatPrice(ct.thanhTien) }}</span>
+                    <div v-for="(ct, idx) in invoice.chiTiets" :key="idx" class="py-1 border-bottom border-light" style="font-size: 0.85rem">
+                      <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-secondary fw-semibold">{{ ct.tenSanPham }}</span>
+                        <div class="d-flex align-items-center gap-4">
+                          <span class="text-muted font-monospace">x{{ ct.soLuong }}</span>
+                          <span class="fw-bold text-dark font-monospace" style="width: 80px; text-align: right;">{{ formatPrice(ct.thanhTien) }}</span>
+                        </div>
+                      </div>
+                      <!-- Ghi chú từng món trong lịch sử -->
+                      <div v-if="ct.ghiChu" class="mt-1">
+                        <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 rounded-pill px-2" style="font-size:0.68rem; font-style:italic;">
+                          <i class="bi bi-chat-left-text me-1"></i>{{ ct.ghiChu }}
+                        </span>
                       </div>
                     </div>
                   </div>

@@ -33,6 +33,7 @@ export const printReceipt = (orderData, branchInfo) => {
         <div><b>Bàn:</b> {TEN_BAN}</div>
         <div><b>Thu ngân:</b> {THU_NGAN}</div>
     </div>
+    {GHI_CHU}
     <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 15px;">
         <thead style="border-bottom: 1px solid #000;">
             <tr>
@@ -64,7 +65,12 @@ export const printReceipt = (orderData, branchInfo) => {
     .map(
       (item) => `
         <tr>
-            <td style="padding: 5px 0; border-bottom: 1px dotted #ccc; text-align: left;">${item.name} <br> <small style="color:#666">${formatPrice(item.price)}</small></td>
+            <td style="padding: 5px 0; border-bottom: 1px dotted #ccc; text-align: left;">
+              ${item.name} 
+              <br> 
+              <small style="color:#666">${formatPrice(item.price)}</small>
+              ${item.ghiChu ? `<br><small style="color:#e67e22; font-style:italic;">*Ghi chú: ${item.ghiChu}</small>` : ''}
+            </td>
             <td style="text-align: center; padding: 5px 0; border-bottom: 1px dotted #ccc;">${item.qty}</td>
             <td style="text-align: right; padding: 5px 0; border-bottom: 1px dotted #ccc; font-weight: bold;">${formatPrice(item.price * item.qty)}</td>
         </tr>
@@ -87,7 +93,7 @@ export const printReceipt = (orderData, branchInfo) => {
     .replace(/{THU_NGAN}/g, localStorage.getItem("tenNhanVien") || "Admin")
     .replace(/{TONG_CONG}/g, formatPrice(orderData.tongTien))
     .replace(/{KHACH_CAN_TRA}/g, formatPrice(orderData.tongTien))
-    .replace(/{GHI_CHU}/g, "");
+    .replace(/{GHI_CHU}/g, orderData.ghiChu ? `<div style="font-size: 12px; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 10px; font-style: italic; color: #333;"><b>Ghi chú HD:</b> ${orderData.ghiChu}</div>` : "");
 
   // THUẬT TOÁN THAY THẾ DANH SÁCH MÓN ĂN THÔNG MINH
   const rowRegex =

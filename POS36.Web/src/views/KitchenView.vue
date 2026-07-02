@@ -89,12 +89,19 @@
             <div class="table-group-card rounded-3 overflow-hidden shadow-lg">
               <!-- Header bàn -->
               <div class="d-flex justify-content-between align-items-center px-3 py-2 table-header">
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
                   <i class="bi bi-table fs-5 text-warning"></i>
                   <span class="fw-bold fs-5 text-warning">{{ group.tenBan }}</span>
+                  <span v-if="group.items.some(i => i.ghiChu) || group.ghiChuHoaDon" class="badge bg-warning text-dark pulse-warning fw-bold px-2 py-1 shadow-sm" style="font-size: 0.7rem;">
+                    <i class="bi bi-exclamation-circle-fill me-1"></i>YÊU CẦU
+                  </span>
                   <span class="badge bg-danger rounded-pill">{{ group.items.length }} món</span>
                   <span class="badge" :class="group.maxWait > 15 ? 'bg-danger pulse' : 'bg-info text-dark'">
                     <i class="bi bi-clock me-1"></i>{{ group.maxWait }} phút
+                  </span>
+                  <!-- Hiển thị ghi chú hóa đơn trên List Mode -->
+                  <span v-if="group.ghiChuHoaDon" class="text-info small ms-2 fst-italic" style="font-size: 0.82rem;" :title="'Ghi chú hóa đơn: ' + group.ghiChuHoaDon">
+                    <i class="bi bi-journal-text me-1"></i>[HD: {{ group.ghiChuHoaDon }}]
                   </span>
                 </div>
                 <!-- Nút hoàn thành cả bàn (chỉ khi mode = per-table) -->
@@ -162,7 +169,10 @@
         <div v-else-if="displayMode === 'grid'" class="row g-3 fade-in">
           <div v-for="ban in allTablesForGrid" :key="ban.id" class="col-xl-3 col-lg-4 col-md-6">
             <div class="card border-0 shadow-lg h-100 rounded-3 overflow-hidden"
-              :class="ban.hasItems ? 'bg-secondary' : 'bg-dark border border-secondary'">
+              :class="[
+                ban.hasItems ? 'bg-secondary' : 'bg-dark border border-secondary',
+                ban.hasItems && (ban.items.some(i => i.ghiChu) || ban.ghiChuHoaDon) ? 'border-warning-glow' : ''
+              ]">
 
               <!-- Header bàn -->
               <div class="card-header d-flex justify-content-between align-items-center py-2 border-0"
@@ -170,6 +180,9 @@
                 <div class="d-flex align-items-center gap-2">
                   <span class="fw-bold" :class="ban.hasItems ? 'text-warning fs-6' : 'text-muted'">
                     {{ ban.tenBan }}
+                  </span>
+                  <span v-if="ban.hasItems && (ban.items.some(i => i.ghiChu) || ban.ghiChuHoaDon)" class="badge bg-warning text-dark px-1.5 py-0.5 rounded-pill" style="font-size: 0.65rem;" :title="'Yêu cầu: ' + (ban.ghiChuHoaDon || 'Món có ghi chú')">
+                    <i class="bi bi-exclamation-circle-fill"></i>
                   </span>
                   <span v-if="ban.hasItems" class="badge bg-danger rounded-pill">{{ ban.items.length }}</span>
                 </div>
@@ -186,28 +199,37 @@
 
               <!-- Danh sách món trong bàn khi có items -->
               <div v-else class="card-body p-2">
+                <!-- Ghi chú chung của hóa đơn ở đầu danh sách món (Grid Mode) -->
+                <div v-if="ban.ghiChuHoaDon" class="alert py-1 px-2 mb-2 small fst-italic" style="font-size: 0.72rem; line-height: 1.2; border-radius: 4px; background: rgba(13, 202, 240, 0.12); border: 1px solid rgba(13, 202, 240, 0.25); color: #0dcaf0;">
+                  <i class="bi bi-journal-text me-1"></i>HD: {{ ban.ghiChuHoaDon }}
+                </div>
                 <div v-for="item in ban.items" :key="item.chiTietId"
-                  class="d-flex align-items-center gap-2 py-1 border-bottom border-dark"
+                  class="py-1 border-bottom border-dark"
                   :class="{ 'text-muted': isChecked(item.chiTietId) }">
+                  <div class="d-flex align-items-center gap-2">
+                    <!-- Checkbox (per-item mode) -->
+                    <input v-if="completionMode === 'item'" type="checkbox"
+                      :id="`g-chk-${item.chiTietId}`" class="form-check-input kitchen-check"
+                      :checked="isChecked(item.chiTietId)"
+                      @change="toggleCheck(item.chiTietId)" />
 
-                  <!-- Checkbox (per-item mode) -->
-                  <input v-if="completionMode === 'item'" type="checkbox"
-                    :id="`g-chk-${item.chiTietId}`" class="form-check-input kitchen-check"
-                    :checked="isChecked(item.chiTietId)"
-                    @change="toggleCheck(item.chiTietId)" />
+                    <span class="badge rounded-pill fw-bold"
+                      :class="item.thoiGianCho > 15 ? 'bg-danger' : 'bg-warning text-dark'">
+                      {{ item.soLuong }}
+                    </span>
+                    <span class="fw-bold small flex-grow-1 text-truncate" style="max-width:120px">{{ item.tenMon }}</span>
 
-                  <span class="badge rounded-pill fw-bold"
-                    :class="item.thoiGianCho > 15 ? 'bg-danger' : 'bg-warning text-dark'">
-                    {{ item.soLuong }}
-                  </span>
-                  <span class="fw-bold small flex-grow-1 text-truncate" style="max-width:120px">{{ item.tenMon }}</span>
-
-                  <!-- Nút xong (per-table mode) -->
-                  <button v-if="completionMode === 'table'"
-                    @click="markItemDone(item)"
-                    class="btn btn-outline-success btn-sm py-0 px-1" title="Xong">
-                    <i class="bi bi-check2"></i>
-                  </button>
+                    <!-- Nút xong (per-table mode) -->
+                    <button v-if="completionMode === 'table'"
+                      @click="markItemDone(item)"
+                      class="btn btn-outline-success btn-sm py-0 px-1" title="Xong">
+                      <i class="bi bi-check2"></i>
+                    </button>
+                  </div>
+                  <!-- Hiển thị ghi chú món (nếu có) trên Grid -->
+                  <div v-if="item.ghiChu" class="text-warning small fst-italic ms-4" style="font-size: 0.72rem; line-height: 1.1;">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ item.ghiChu }}
+                  </div>
                 </div>
               </div>
 
@@ -388,6 +410,7 @@ const groupedByTable = computed(() => {
         tenBan: item.tenBan,
         items: [],
         maxWait: 0,
+        ghiChuHoaDon: item.ghiChuHoaDon || "",
       };
     }
     map[item.banId].items.push(item);
@@ -411,6 +434,7 @@ const allTablesForGrid = computed(() => {
         hasItems: true,
         items: [],
         maxWait: 0,
+        ghiChuHoaDon: item.ghiChuHoaDon || "",
       };
     }
     map[item.banId].items.push(item);
@@ -422,7 +446,7 @@ const allTablesForGrid = computed(() => {
   // Merge với danh sách tất cả bàn
   const result = allTables.value.map((ban) => {
     if (map[ban.id]) return map[ban.id];
-    return { ...ban, banId: ban.id, hasItems: false, items: [], maxWait: 0 };
+    return { ...ban, banId: ban.id, hasItems: false, items: [], maxWait: 0, ghiChuHoaDon: "" };
   });
 
   // Sắp xếp: bàn có món lên trước
@@ -709,5 +733,17 @@ onUnmounted(() => {
 @keyframes pulse-amber {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
+}
+.border-warning-glow {
+  border: 2px solid #ffc107 !important;
+  box-shadow: 0 0 10px rgba(255, 193, 7, 0.4) !important;
+}
+.pulse-warning {
+  animation: pulse-yellow 1.5s infinite;
+}
+@keyframes pulse-yellow {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+  70% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(255, 193, 7, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
 }
 </style>

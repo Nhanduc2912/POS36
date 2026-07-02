@@ -126,6 +126,13 @@ namespace POS36.Api.Controllers
                     tongTienCongThem += (chiTiet.SoLuong * chiTiet.DonGia);
                 }
 
+                if (!string.IsNullOrWhiteSpace(request.GhiChuDot))
+                {
+                    hoaDon.GhiChu = string.IsNullOrWhiteSpace(hoaDon.GhiChu)
+                        ? request.GhiChuDot
+                        : hoaDon.GhiChu + " | " + request.GhiChuDot;
+                }
+
                 hoaDon.TongTien += tongTienCongThem;
 
                 await _context.SaveChangesAsync();
@@ -190,6 +197,7 @@ namespace POS36.Api.Controllers
                 BanId = hoaDon.BanId,
                 ThoiGianNgoiNghut = (int)(DateTime.Now - hoaDon.NgayTao).TotalMinutes,
                 TongTien = hoaDon.TongTien,
+                GhiChu = hoaDon.GhiChu,
                 DanhSachMon = hoaDon.ChiTietHoaDons!.Select(ct => new
                 {
                     ChiTietId = ct.Id,
@@ -702,7 +710,8 @@ namespace POS36.Api.Controllers
                         TenMon = c.SanPham != null ? c.SanPham.TenSanPham : "Món đã bị xóa",
                         SoLuong = c.SoLuong,
                         GhiChu = c.GhiChu,
-                        NgayTao = c.HoaDon.NgayTao
+                        NgayTao = c.HoaDon.NgayTao,
+                        GhiChuHoaDon = c.HoaDon.GhiChu
                     })
                     .ToListAsync();
 
@@ -714,6 +723,7 @@ namespace POS36.Api.Controllers
                     c.TenMon,
                     c.SoLuong,
                     c.GhiChu,
+                    c.GhiChuHoaDon,
                     ThoiGianCho = (int)(DateTime.Now - c.NgayTao).TotalMinutes
                 })
                 .OrderByDescending(c => c.ThoiGianCho)
@@ -819,6 +829,7 @@ namespace POS36.Api.Controllers
                         TongThanhToan = h.TongTien,
                         TienGiam = Math.Max(0, (h.ChiTietHoaDons!.Any() ? h.ChiTietHoaDons!.Sum(ct => ct.SoLuong * ct.DonGia) : 0) - h.TongTien),
                         TrangThai = h.TrangThai,
+                        GhiChu = h.GhiChu,
                         ChiTiets = h.ChiTietHoaDons!.Select(ct => new
                         {
                             ChiTietId = ct.Id,
@@ -826,7 +837,8 @@ namespace POS36.Api.Controllers
                             TenSanPham = ct.SanPham != null ? ct.SanPham.TenSanPham : "SP đã xóa",
                             SoLuong = ct.SoLuong,
                             DonGia = ct.DonGia,
-                            ThanhTien = ct.SoLuong * ct.DonGia
+                            ThanhTien = ct.SoLuong * ct.DonGia,
+                            GhiChu = ct.GhiChu
                         }).ToList()
                     })
                     .ToListAsync();
@@ -1255,6 +1267,27 @@ namespace POS36.Api.Controllers
             }
         }
 
+        [HttpPost("capnhat-ghichu/{banId}")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan,Order")]
+        public async Task<IActionResult> CapNhatGhiChu(int banId, [FromBody] CapNhatGhiChuDto request)
+        {
+            int cuaHangId = GetCuaHangId();
+            var hoaDon = await _context.HoaDons
+                .FirstOrDefaultAsync(h => h.BanId == banId && h.TrangThai == "Đang phục vụ" && h.CuaHangId == cuaHangId);
+
+            if (hoaDon == null) return NotFound("Bàn này chưa có hóa đơn mở!");
+
+            hoaDon.GhiChu = request.GhiChu ?? "";
+            await _context.SaveChangesAsync();
+
+            if (_hubContext != null)
+            {
+                await _hubContext.Clients.Group($"store_{cuaHangId}").SendAsync("CapNhatBan", new { message = "Cập nhật ghi chú hóa đơn" });
+            }
+
+            return Ok(new { message = "Đã cập nhật ghi chú hóa đơn thành công!" });
+        }
+
         private async Task<bool> GetThietLapBoolAsync(int cuaHangId, string key, bool defaultValue)
         {
             var tl = await _context.ThietLaps
@@ -1262,6 +1295,11 @@ namespace POS36.Api.Controllers
             if (tl == null || string.IsNullOrEmpty(tl.DuLieu)) return defaultValue;
             return tl.DuLieu.Equals("true", StringComparison.OrdinalIgnoreCase);
         }
+    }
+
+    public class CapNhatGhiChuDto
+    {
+        public string GhiChu { get; set; } = string.Empty;
     }
 
     public class LogInBillRequest

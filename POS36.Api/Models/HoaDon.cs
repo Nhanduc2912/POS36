@@ -18,6 +18,7 @@ namespace POS36.Api.Models
         public DateTime? NgayThanhToan { get; set; }
         public decimal TongTien { get; set; }
         public string TrangThai { get; set; } = "Đang phục vụ"; // Đang phục vụ, Đã thanh toán, Hủy
+        public string GhiChu { get; set; } = string.Empty; // Ghi chú chung của hóa đơn
 
         public Ban? Ban { get; set; }
         public ICollection<ChiTietHoaDon>? ChiTietHoaDons { get; set; }

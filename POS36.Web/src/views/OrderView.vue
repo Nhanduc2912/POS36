@@ -481,9 +481,27 @@
                       +
                     </button>
                   </div>
+                  <div class="flex-grow-1 ms-2">
+                    <input
+                      type="text"
+                      class="form-control form-control-sm border-light-subtle rounded-3"
+                      placeholder="Ghi chú món ăn..."
+                      v-model="cartItem.ghiChu"
+                    />
+                  </div>
                 </div>
               </li>
             </ul>
+          </div>
+
+          <!-- Ghi chú cho cả đợt gọi món -->
+          <div v-show="cart.length > 0" class="px-3 pt-2 bg-white">
+            <input
+              type="text"
+              class="form-control form-control-sm rounded-pill text-center border-light-subtle bg-light"
+              placeholder="📝 Ghi chú chung cả đợt (VD: làm nhanh, không ớt...)"
+              v-model="batchNote"
+            />
           </div>
 
           <div class="p-3 bg-white border-top">
@@ -567,6 +585,7 @@ const notificationList = ref([]);
 const products = ref([]);
 const selectedTable = ref(null);
 const cart = ref([]);
+const batchNote = ref("");
 const searchQuery = ref("");
 const loadingTables = ref(true);
 const ordering = ref(false);
@@ -737,6 +756,7 @@ const addToCart = (product) => {
       tenSanPham: product.tenSanPham,
       giaBan: product.giaBan,
       soLuong: 1,
+      ghiChu: "",
     });
   }
 };
@@ -755,8 +775,9 @@ const submitOrder = async () => {
       danhSachMon: cart.value.map((item) => ({
         sanPhamId: item.sanPhamId,
         soLuong: item.soLuong,
-        ghiChu: "",
+        ghiChu: item.ghiChu || "",
       })),
+      ghiChuDot: batchNote.value || "",
     };
     await axios.post("/api/HoaDon/goimon", payload);
 
@@ -769,6 +790,7 @@ const submitOrder = async () => {
       showConfirmButton: false,
     });
     cart.value = [];
+    batchNote.value = "";
     menuOffcanvas.hide();
     fetchStructure(globalState.value.activeBranchId);
   } catch (err) {
@@ -1107,6 +1129,7 @@ const handleOrderThanhToanNgay = async () => {
       name: item.tenSanPham,
       price: item.donGia,
       qty: item.soLuong,
+      ghiChu: item.ghiChu || ""
     }));
     let storeName = "POS36";
     let storeAddr = "Đà Nẵng";
@@ -1172,6 +1195,7 @@ const handleOrderThanhToanQR = async () => {
         name: item.tenSanPham,
         price: item.donGia,
         qty: item.soLuong,
+        ghiChu: item.ghiChu || ""
       }));
       let storeName = "POS36";
       let storeAddr = "Đà Nẵng";
@@ -1227,6 +1251,7 @@ const handleOrderInBill = async () => {
     name: item.tenSanPham,
     price: item.donGia,
     qty: item.soLuong,
+    ghiChu: item.ghiChu || ""
   }));
 
   if (billItems.length === 0) {

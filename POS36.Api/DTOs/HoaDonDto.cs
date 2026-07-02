@@ -8,6 +8,7 @@ namespace POS36.Api.DTOs
 
         // Danh sách các món khách gọi
         [Required] public List<ChiTietOrderDto> DanhSachMon { get; set; } = new List<ChiTietOrderDto>();
+        public string GhiChuDot { get; set; } = string.Empty; // Ghi chú chung cho đợt gọi món này
     }
 
     public class ChiTietOrderDto

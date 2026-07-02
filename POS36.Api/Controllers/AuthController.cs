@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using POS36.Api.Data;
-using POS36.Api.DTOs; // Import thư mục DTO của sếp vào đây
+using POS36.Api.DTOs;
 using POS36.Api.Models;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -470,4 +470,4 @@ namespace POS36.Api.Controllers
             }
         }
     }
-}
+}
