@@ -398,7 +398,7 @@ const openTable = async (ban) => {
   activeRightTab.value = "menu";
 
   if (ban.trangThai === "Trống") {
-    if (!ordersByTable.value[ban.id]) ordersByTable.value[ban.id] = [];
+    ordersByTable.value[ban.id] = [];
   } else {
     try {
       const res = await axios.get(`/api/HoaDon/ban/${ban.id}`);
