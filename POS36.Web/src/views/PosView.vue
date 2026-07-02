@@ -216,6 +216,41 @@ onMounted(async () => {
     }
   });
 
+  // Lắng nghe yêu cầu mở QR từ thiết bị khác hoặc chính thiết bị này
+  connection.on("NhanYeuCauMoQR", (banId, soTien, maChungTu) => {
+    const ban = tables.value.find(b => b.id === banId);
+    const tenBan = ban ? ban.tenBan : `Bàn #${banId}`;
+
+    if (!pendingPayments.value.some((p) => p.banId === banId)) {
+      pendingPayments.value.push({
+        banId: banId,
+        tenBan: tenBan,
+        soTien: soTien,
+        diemSuDung: 0,
+        discountPercent: 0
+      });
+    }
+
+    if (activeTable.value && activeTable.value.id === banId) {
+      const bankConfig = JSON.parse(
+        localStorage.getItem("pos36_bank_config") || "{}"
+      );
+      if (bankConfig.bankId) {
+        const accountName = encodeURIComponent(bankConfig.accountName);
+        const url = `https://img.vietqr.io/image/${bankConfig.bankId}-${bankConfig.accountNo}-${bankConfig.template}.png?amount=${soTien}&addInfo=${maChungTu}&accountName=${accountName}`;
+        
+        qrModalData.value = {
+          banId: banId,
+          tenBan: tenBan,
+          soTien: soTien,
+          diemSuDung: 0,
+          qrUrl: url,
+        };
+        showQrModal.value = true;
+      }
+    }
+  });
+
   // Lắng nghe Webhook báo Tiền về thành công
   connection.on("ThanhToanQRThanhCong", (banId) => {
     swal.close();
@@ -378,8 +413,12 @@ const openTable = async (ban) => {
         isSent: true,
       }));
 
-      activeTable.value.tamTinh = data.tongTien;
-      activeTable.value.ghiChu = data.ghiChu || "";
+      ban.tamTinh = data.tongTien;
+      ban.ghiChu = data.ghiChu || "";
+      if (activeTable.value && activeTable.value.id === ban.id) {
+        activeTable.value.tamTinh = data.tongTien;
+        activeTable.value.ghiChu = data.ghiChu || "";
+      }
     } catch (e) {
       console.error("Lỗi tải hóa đơn cũ:", e);
     }
@@ -983,7 +1022,7 @@ const handleThanhToan = async () => {
         phone: storeInfo.value?.soDienThoai || "0905",
       });
     }
-    thucHienThanhToanChinhThuc(banId, "Tiền mặt", diemSuDung);
+    thucHienThanhToanChinhThuc(banId, "Tiền mặt", diemSuDung, _discountTemp);
   }
 
   // 2. NẾU CHỌN QUÉT QR (CHUYỂN KHOẢN)
@@ -997,7 +1036,7 @@ const handleThanhToan = async () => {
       tenBan: activeTable.value.tenBan,
       soTien: soTienThucTe,
       diemSuDung: diemSuDung,
-      discountPercent: discountPercent,
+      discountPercent: _discountTemp,
     };
 
     if (!pendingPayments.value.some((p) => p.banId === banId)) {
@@ -1107,8 +1146,9 @@ const moLaiQRModal = (p) => {
 
 const hoanThanhThanhToanNgay = async (banId, phuongThuc, diem) => {
   showQrModal.value = false;
-  pendingPayments.value = pendingPayments.value.filter((p) => p.banId !== banId);
-  await thucHienThanhToanChinhThuc(banId, phuongThuc, diem);
+  const p = pendingPayments.value.find((x) => x.banId === banId) || {};
+  pendingPayments.value = pendingPayments.value.filter((x) => x.banId !== banId);
+  await thucHienThanhToanChinhThuc(banId, phuongThuc, diem, p.discountPercent || 0);
 };
 
 const huyYeuCauQRModal = (banId) => {
