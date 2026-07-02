@@ -925,8 +925,8 @@ const handleThanhToan = async () => {
   // Biến tạm theo dõi số điểm nhập trong dialog
   let _diemTemp = 0;
 
-  // Xây dựng HTML phần khách hàng & điểm (nếu có ghim khách)
-  const diemHtml = khachHang
+  // Xây dựng HTML phần khách hàng & điểm (nếu có ghim khách và cấu hình tích điểm được bật)
+  const diemHtml = (khachHang && settings.value.Loyalty_BatTat)
     ? khachHang.diemHienTai > 0
       ? `<div class="border rounded p-2 mb-3 text-start" style="background:#f0fff4">
           <div class="d-flex justify-content-between align-items-center mb-2">
@@ -934,7 +934,7 @@ const handleThanhToan = async () => {
             <span class="badge bg-success rounded-pill"><i class="bi bi-star-fill me-1"></i>${khachHang.diemHienTai} điểm</span>
           </div>
           <div class="d-flex align-items-center gap-2">
-            <label class="text-muted small text-nowrap mb-0">Dùng điểm (1đ=1.000₫):</label>
+            <label class="text-muted small text-nowrap mb-0">Dùng điểm (1đ=${formatPrice(settings.value.Loyalty_TiLeDoiDiem)}₫):</label>
             <input id="swal-diem-sd" type="number" class="form-control form-control-sm text-center"
                    value="0" min="0" max="${khachHang.diemHienTai}" style="width:85px">
             <span class="text-danger fw-bold small" id="swal-tien-giam"></span>
@@ -944,7 +944,12 @@ const handleThanhToan = async () => {
           <span class="small"><i class="bi bi-person-check-fill text-success me-1"></i>
           <strong>${khachHang.tenKhachHang}</strong> — Chưa có điểm tích lũy</span>
         </div>`
-    : "";
+    : khachHang
+      ? `<div class="border rounded p-2 mb-3 text-start" style="background:#f0f8ff">
+          <span class="small"><i class="bi bi-person-check-fill text-primary me-1"></i>
+          <strong>Khách hàng: ${khachHang.tenKhachHang}</strong></span>
+        </div>`
+      : "";
 
   // UI-4: Biến tạm theo dõi chiết khấu %
   let _discountTemp = 0;
@@ -1122,6 +1127,7 @@ const settings = ref({
   POS_YeuCauMatKhauHuyBill: false,
   POS_ChoPhepHoanTraMon: false, // Thêm key này
   Loyalty_TiLeDoiDiem: 1000,
+  Loyalty_BatTat: false,
 });
 
 const showQrModal = ref(false);
@@ -1171,7 +1177,7 @@ const loadingHistory = ref(false);
 
 const loadSettings = async () => {
   try {
-    const keys = "POS_ThuNganInNhieuBill,POS_ThuNganXemLichSu,POS_TuDongIn,Perm_ThuNgan_XoaHoaDon,Perm_ThuNgan_HuyMonDaGui,POS_YeuCauMatKhauHuyBill,POS_ChoPhepHoanTraMon,Loyalty_TiLeDoiDiem";
+    const keys = "POS_ThuNganInNhieuBill,POS_ThuNganXemLichSu,POS_TuDongIn,Perm_ThuNgan_XoaHoaDon,Perm_ThuNgan_HuyMonDaGui,POS_YeuCauMatKhauHuyBill,POS_ChoPhepHoanTraMon,Loyalty_TiLeDoiDiem,Loyalty_BatTat";
     const res = await axios.get("/api/ThietLap/batch", { params: { keys } });
     if (res.data) {
       settings.value.POS_ThuNganInNhieuBill = res.data.POS_ThuNganInNhieuBill === "true";
@@ -1181,6 +1187,7 @@ const loadSettings = async () => {
       settings.value.Perm_ThuNgan_HuyMonDaGui = res.data.Perm_ThuNgan_HuyMonDaGui === "true";
       settings.value.POS_YeuCauMatKhauHuyBill = res.data.POS_YeuCauMatKhauHuyBill === "true";
       settings.value.POS_ChoPhepHoanTraMon = res.data.POS_ChoPhepHoanTraMon === "true"; // Đọc cấu hình hoàn trả
+      settings.value.Loyalty_BatTat = res.data.Loyalty_BatTat === "true";
       if (res.data.Loyalty_TiLeDoiDiem && !isNaN(res.data.Loyalty_TiLeDoiDiem)) {
           settings.value.Loyalty_TiLeDoiDiem = parseInt(res.data.Loyalty_TiLeDoiDiem);
       }

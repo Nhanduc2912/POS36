@@ -612,25 +612,30 @@ namespace POS36.Api.Controllers
                         hoaDon.KhachHangId = khachHang.Id;
                         tenKhachHang = khachHang.TenKhachHang;
 
-                        // BƯỚC 1: XỬ LÝ TIÊU ĐIỂM (trước khi tính tích điểm)
-                        if (diemSuDung > 0)
+                        // Bổ sung check cấu hình Kích hoạt tích điểm
+                        bool isLoyaltyActive = await GetThietLapBoolAsync(cuaHangId, "Loyalty_BatTat", false);
+                        if (isLoyaltyActive)
                         {
-                            if (diemSuDung > khachHang.DiemHienTai)
-                                return BadRequest(new { message = $"Khách chỉ có {khachHang.DiemHienTai} điểm, không đủ để sử dụng {diemSuDung} điểm!" });
+                            // BƯỚC 1: XỬ LÝ TIÊU ĐIỂM (trước khi tính tích điểm)
+                            if (diemSuDung > 0)
+                            {
+                                if (diemSuDung > khachHang.DiemHienTai)
+                                    return BadRequest(new { message = $"Khách chỉ có {khachHang.DiemHienTai} điểm, không đủ để sử dụng {diemSuDung} điểm!" });
 
-                            tienGiam = diemSuDung * tyLeQuyDoi; // FEAT-1: Dùng tỷ lệ từ ThietLap
-                            if (tienGiam > hoaDon.TongTien) tienGiam = hoaDon.TongTien;
+                                tienGiam = diemSuDung * tyLeQuyDoi; // FEAT-1: Dùng tỷ lệ từ ThietLap
+                                if (tienGiam > hoaDon.TongTien) tienGiam = hoaDon.TongTien;
 
-                            khachHang.DiemHienTai -= diemSuDung;
-                            hoaDon.TongTien -= tienGiam;
-                            if (hoaDon.TongTien < 0) hoaDon.TongTien = 0;
+                                khachHang.DiemHienTai -= diemSuDung;
+                                hoaDon.TongTien -= tienGiam;
+                                if (hoaDon.TongTien < 0) hoaDon.TongTien = 0;
+                            }
+
+                            // BƯỚC 2: TÍCH ĐIỂM từ số tiền thực tế thanh toán
+                            // FEAT-1: Dùng tỷ lệ từ ThietLap thay vì hardcode 20.000
+                            diemCong = (int)(hoaDon.TongTien / tyLeTichDiem);
+                            khachHang.TongDiemTichLuy += diemCong;
+                            khachHang.DiemHienTai += diemCong;
                         }
-
-                        // BƯỚC 2: TÍCH ĐIỂM từ số tiền thực tế thanh toán
-                        // FEAT-1: Dùng tỷ lệ từ ThietLap thay vì hardcode 20.000
-                        diemCong = (int)(hoaDon.TongTien / tyLeTichDiem);
-                        khachHang.TongDiemTichLuy += diemCong;
-                        khachHang.DiemHienTai += diemCong;
                     }
                 }
 
