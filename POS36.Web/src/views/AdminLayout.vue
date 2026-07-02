@@ -6,10 +6,13 @@ import { globalState } from "../store";
 import AiCopilot from "../components/AiCopilot.vue";
 import { useSignalR } from "../composables/useSignalR";
 
-const { startConnection } = useSignalR();
+const { startConnection, connection } = useSignalR();
 
 const storeTrangThai = ref(localStorage.getItem("pos36_storeTrangThai") || "HoatDong");
 const soNgayConLai = ref(999);
+
+const storeNotifications = ref([]);
+const unreadNotifCount = ref(0);
 
 const router = useRouter();
 
@@ -103,6 +106,13 @@ onMounted(() => {
 
   // Khởi động kết nối SignalR để lắng nghe thông báo từ SuperAdmin
   startConnection();
+  
+  // Lấy danh sách thông báo hệ thống
+  loadStoreNotifications();
+  connection.on("NhanThongBaoHeThong", () => {
+    // Tự động tải lại danh sách khi có thông báo mới
+    loadStoreNotifications();
+  });
 
   // FIX-SEC-5: Load cài đặt Auto-Logout và khởi động bộ đếm nếu được bật
   loadAutoLogoutSettings();
@@ -122,6 +132,27 @@ const loadSubscriptionStatus = async () => {
   } catch (e) {
     // Ignore
   }
+};
+
+// ==========================================
+// TẢI DANH SÁCH THÔNG BÁO HỆ THỐNG
+// ==========================================
+const loadStoreNotifications = async () => {
+  try {
+    const res = await axios.get("/api/ThongBao");
+    storeNotifications.value = res.data;
+    
+    // Tính số lượng chưa đọc (so sánh với thời gian xem cuối)
+    const lastRead = localStorage.getItem("pos36_last_read_notif") || "2000-01-01";
+    unreadNotifCount.value = res.data.filter(n => new Date(n.ngayTao) > new Date(lastRead)).length;
+  } catch (e) {
+    console.error("Lỗi tải thông báo", e);
+  }
+};
+
+const markNotifsAsRead = () => {
+  unreadNotifCount.value = 0;
+  localStorage.setItem("pos36_last_read_notif", new Date().toISOString());
 };
 
 // ==========================================
@@ -439,7 +470,45 @@ const userDisplayLabel = computed(() => {
               <span v-if="isThuNgan" class="badge ms-1" style="background: rgba(255,193,7,0.3); color: #ffc107; font-size: 0.65rem;">Hạn chế</span>
             </span>
 
-            <ul class="navbar-nav">
+            <ul class="navbar-nav align-items-center">
+              
+              <!-- Nút Chuông Thông Báo -->
+              <li class="nav-item dropdown ms-1">
+                <a class="nav-link text-white hide-caret p-0 position-relative me-3" href="#" role="button" data-bs-toggle="dropdown" @click="markNotifsAsRead">
+                  <i class="bi bi-bell-fill fs-5"></i>
+                  <span v-if="unreadNotifCount > 0" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                    {{ unreadNotifCount }}
+                  </span>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-3 p-0" style="width: 320px; overflow: hidden;">
+                  <li class="bg-light px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-dark"><i class="bi bi-bell me-1"></i> Thông báo hệ thống</span>
+                  </li>
+                  <div style="max-height: 350px; overflow-y: auto;" class="custom-scrollbar">
+                    <li v-for="n in storeNotifications" :key="n.id" class="px-3 py-2 border-bottom position-relative" style="transition: 0.2s">
+                      <div class="d-flex align-items-start gap-2">
+                        <div class="mt-1">
+                          <i v-if="n.loaiThongBao === 'CanhBao'" class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+                          <i v-else-if="n.loaiThongBao === 'KhanCap'" class="bi bi-exclamation-octagon-fill text-danger fs-5"></i>
+                          <i v-else class="bi bi-info-circle-fill text-primary fs-5"></i>
+                        </div>
+                        <div>
+                          <div class="fw-bold text-dark" style="font-size: 0.85rem;">{{ n.tieuDe }}</div>
+                          <div class="text-muted" style="font-size: 0.8rem; line-height: 1.4;">{{ n.noiDung }}</div>
+                          <div class="text-secondary mt-1" style="font-size: 0.7rem;">
+                            <i class="bi bi-clock me-1"></i> {{ new Date(n.ngayTao).toLocaleString("vi-VN") }}
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                    <li v-if="storeNotifications.length === 0" class="p-4 text-center text-muted">
+                      <i class="bi bi-bell-slash fs-3 d-block mb-2 opacity-50"></i>
+                      <span class="small">Không có thông báo nào.</span>
+                    </li>
+                  </div>
+                </ul>
+              </li>
+
               <li class="nav-item dropdown ms-1">
                 <a
                   class="nav-link text-white hide-caret p-0 ms-2"

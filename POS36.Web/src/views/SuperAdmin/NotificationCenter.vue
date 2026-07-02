@@ -12,10 +12,36 @@
           <h6 class="dash-card-title"><i class="bi bi-send me-2"></i>Gửi thông báo mới</h6>
           <div class="mb-3">
             <label>Gửi đến</label>
-            <select v-model="form.cuaHangId" class="sa-select w-100">
-              <option :value="null">📢 Tất cả cửa hàng</option>
-              <option v-for="s in storeList" :key="s.id" :value="s.id">{{ s.tenCuaHang }}</option>
-            </select>
+            <div class="position-relative">
+              <div 
+                class="sa-select w-100 d-flex justify-content-between align-items-center cursor-pointer" 
+                @click="showStoreDropdown = !showStoreDropdown"
+              >
+                <span>{{ getSelectedStoreName() }}</span>
+                <i class="bi bi-chevron-down"></i>
+              </div>
+              
+              <div v-if="showStoreDropdown" class="store-dropdown shadow-sm border rounded bg-white position-absolute w-100 z-3 mt-1">
+                <div class="p-2 border-bottom">
+                  <input v-model="searchQuery" class="form-control form-control-sm" placeholder="Tìm tên / SĐT cửa hàng..." autofocus>
+                </div>
+                <div class="dropdown-list" style="max-height: 200px; overflow-y: auto;">
+                  <div class="dropdown-item p-2 cursor-pointer" @click="selectStore(null)">
+                    📢 Tất cả cửa hàng
+                  </div>
+                  <div 
+                    v-for="s in filteredStores" :key="s.id" 
+                    class="dropdown-item p-2 cursor-pointer" 
+                    @click="selectStore(s.id)"
+                  >
+                    {{ s.tenCuaHang }} - {{ s.soDienThoai }}
+                  </div>
+                  <div v-if="filteredStores.length === 0" class="p-2 text-muted text-center small">
+                    Không tìm thấy cửa hàng
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="mb-3">
             <label>Loại thông báo</label>
@@ -75,7 +101,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, inject } from "vue";
+import { ref, onMounted, inject, computed } from "vue";
 import axios from "axios";
 const swal = inject("$swal");
 
@@ -83,6 +109,30 @@ const storeList = ref([]);
 const notifications = ref([]);
 const sending = ref(false);
 const form = ref({ cuaHangId: null, tieuDe: "", noiDung: "", loaiThongBao: "ThongTin" });
+
+const searchQuery = ref("");
+const showStoreDropdown = ref(false);
+
+const filteredStores = computed(() => {
+  if (!searchQuery.value) return storeList.value;
+  const q = searchQuery.value.toLowerCase();
+  return storeList.value.filter(s => 
+    (s.tenCuaHang && s.tenCuaHang.toLowerCase().includes(q)) || 
+    (s.soDienThoai && s.soDienThoai.includes(q))
+  );
+});
+
+const getSelectedStoreName = () => {
+  if (form.value.cuaHangId === null) return "📢 Tất cả cửa hàng";
+  const store = storeList.value.find(s => s.id === form.value.cuaHangId);
+  return store ? `${store.tenCuaHang} - ${store.soDienThoai}` : "📢 Tất cả cửa hàng";
+};
+
+const selectStore = (id) => {
+  form.value.cuaHangId = id;
+  showStoreDropdown.value = false;
+  searchQuery.value = "";
+};
 
 const notifTypes = [
   { val: "ThongTin", label: "Thông tin", icon: "info-circle", color: "#3b82f6" },
@@ -173,4 +223,16 @@ onMounted(load);
 .notif-title { font-weight: 700; font-size: .9rem; color: var(--sa-text); margin-bottom: 4px; }
 .notif-body  { font-size: .82rem; color: var(--sa-text-muted); line-height: 1.5; margin-bottom: 6px; }
 .notif-target { font-size: .72rem; color: var(--sa-text-faint); }
+
+/* Dropdown */
+.store-dropdown {
+  background: white;
+  border-color: var(--sa-border);
+}
+.dropdown-item:hover {
+  background-color: var(--sa-nav-hover-bg);
+}
+.cursor-pointer {
+  cursor: pointer;
+}
 </style>
