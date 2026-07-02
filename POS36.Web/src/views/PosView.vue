@@ -257,8 +257,9 @@ onMounted(async () => {
     // Lấy lại số điểm đã lưu khi bắt đầu chờ QR
     const pending = pendingPayments.value.find((p) => p.banId === banId);
     const diem = pending?.diemSuDung || 0;
+    const discount = pending?.discountPercent || 0;
     setTimeout(() => {
-      thucHienThanhToanChinhThuc(banId, "Chuyển khoản", diem);
+      thucHienThanhToanChinhThuc(banId, "Chuyển khoản", diem, discount);
     }, 300);
   });
 
@@ -2117,9 +2118,6 @@ watch(activeRightTab, (newTab) => {
       </div>
 
       <div class="d-flex flex-column gap-2">
-        <button class="btn btn-warning fw-bold text-dark py-2 rounded-3 w-100 shadow-sm" @click="hoanThanhThanhToanNgay(qrModalData.banId, 'Chuyển khoản', qrModalData.diemSuDung)">
-          <i class="bi bi-check-circle-fill me-1"></i> Xác nhận đã nhận chuyển khoản
-        </button>
         <div class="d-flex gap-2">
           <button class="btn btn-outline-danger fw-bold py-2 rounded-3 w-50" @click="huyYeuCauQRModal(qrModalData.banId)">
             Hủy yêu cầu
@@ -2128,8 +2126,8 @@ watch(activeRightTab, (newTab) => {
             Thu nhỏ
           </button>
         </div>
-        <button class="btn btn-link text-secondary text-decoration-none fw-bold small mt-1 mb-0" @click="hoanThanhThanhToanNgay(qrModalData.banId, 'Tiền mặt', qrModalData.diemSuDung)">
-          Chuyển sang thanh toán Tiền mặt
+        <button class="btn btn-warning fw-bold text-dark py-2 rounded-3 w-100 shadow-sm" @click="hoanThanhThanhToanNgay(qrModalData.banId, 'Tiền mặt', qrModalData.diemSuDung)">
+          <i class="bi bi-cash me-1"></i> Chuyển sang thanh toán Tiền mặt
         </button>
       </div>
     </div>
