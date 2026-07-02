@@ -46,9 +46,14 @@ export const printReceipt = (orderData, branchInfo) => {
             <tr><td colspan="3" style="text-align: center; color: #f37021; padding: 10px 0;">{DANH_SACH_MON_AN}</td></tr>
         </tbody>
     </table>
-    <div style="border-top: 1px dashed #000; padding-top: 10px;">
-        <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px;">
-            <span>TỔNG THANH TOÁN:</span>
+    <div style="border-top: 1px dashed #000; padding-top: 10px; font-size: 13px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+            <span>Tổng tiền hàng:</span>
+            <span>{TONG_CONG}</span>
+        </div>
+        {CHI_TIET_GIAM_GIA}
+        <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; border-top: 1px dashed #ccc; padding-top: 5px;">
+            <span>KHÁCH CẦN TRẢ:</span>
             <span>{KHACH_CAN_TRA}</span>
         </div>
     </div>
@@ -91,8 +96,14 @@ export const printReceipt = (orderData, branchInfo) => {
     .replace(/{GIO_IN}/g, now.toLocaleTimeString("vi-VN"))
     .replace(/{TEN_BAN}/g, orderData.tenBan || "Mang về")
     .replace(/{THU_NGAN}/g, localStorage.getItem("tenNhanVien") || "Admin")
-    .replace(/{TONG_CONG}/g, formatPrice(orderData.tongTien))
+    .replace(/{TONG_CONG}/g, formatPrice(orderData.tongCong || orderData.tongTien))
     .replace(/{KHACH_CAN_TRA}/g, formatPrice(orderData.tongTien))
+    .replace(/{CHI_TIET_GIAM_GIA}/g, orderData.tienGiam > 0 ? `
+        <div style="display: flex; justify-content: space-between; color: red; margin-bottom: 5px;">
+            <span>Chiết khấu / Giảm giá:</span>
+            <span>-${formatPrice(orderData.tienGiam)}</span>
+        </div>
+    ` : "")
     .replace(/{GHI_CHU}/g, orderData.ghiChu ? `<div style="font-size: 12px; border-bottom: 1px dashed #000; padding-bottom: 8px; margin-bottom: 10px; font-style: italic; color: #333;"><b>Ghi chú HD:</b> ${orderData.ghiChu}</div>` : "");
 
   // THUẬT TOÁN THAY THẾ DANH SÁCH MÓN ĂN THÔNG MINH

@@ -1004,12 +1004,18 @@ const handleThanhToan = async () => {
   });
 
   const diemSuDung = _diemTemp;
-  const soTienThucTe = soTien - Math.min(diemSuDung * settings.value.Loyalty_TiLeDoiDiem, soTien);
+  const discountPercent = _discountTemp;
+  const tienGiamDiem = Math.min(diemSuDung * settings.value.Loyalty_TiLeDoiDiem, soTien);
+  const soSauDiem = soTien - tienGiamDiem;
+  const tienGiamDiscount = soSauDiem * discountPercent / 100;
+  const soTienThucTe = soSauDiem - tienGiamDiscount;
 
   // 1. NẾU TRẢ TIỀN MẶT
   if (result.isConfirmed) {
     const orderToPrint = {
       tenBan: activeTable.value.tenBan,
+      tongCong: soTien,
+      tienGiam: soTien - soTienThucTe,
       tongTien: soTienThucTe,
       items: currentOrder.value,
       banId: banId,
@@ -1023,7 +1029,7 @@ const handleThanhToan = async () => {
         phone: storeInfo.value?.soDienThoai || "0905",
       });
     }
-    thucHienThanhToanChinhThuc(banId, "Tiền mặt", diemSuDung, _discountTemp);
+    thucHienThanhToanChinhThuc(banId, "Tiền mặt", diemSuDung, discountPercent);
   }
 
   // 2. NẾU CHỌN QUÉT QR (CHUYỂN KHOẢN)
@@ -1037,7 +1043,7 @@ const handleThanhToan = async () => {
       tenBan: activeTable.value.tenBan,
       soTien: soTienThucTe,
       diemSuDung: diemSuDung,
-      discountPercent: _discountTemp,
+      discountPercent: discountPercent,
     };
 
     if (!pendingPayments.value.some((p) => p.banId === banId)) {
@@ -1046,6 +1052,8 @@ const handleThanhToan = async () => {
 
     const orderToPrint = {
       tenBan: activeTable.value.tenBan,
+      tongCong: soTien,
+      tienGiam: soTien - soTienThucTe,
       tongTien: soTienThucTe,
       items: currentOrder.value,
       banId: banId,

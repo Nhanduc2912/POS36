@@ -414,10 +414,17 @@
                               formatPrice(o.tongCong)
                             }}</span>
                           </div>
+                          <!-- Hiển thị số tiền giảm giá / chiết khấu nếu có -->
+                          <div v-if="o.tienGiam > 0" class="d-flex justify-content-between mb-2 text-danger">
+                            <span class="fw-bold">Chiết khấu / Giảm giá</span>
+                            <span class="fw-bold">-{{
+                              formatPrice(o.tienGiam)
+                            }}</span>
+                          </div>
                           <div class="d-flex justify-content-between">
                             <span class="fw-bold text-muted"
                               >Tổng thanh toán</span
-                            ><span class="fw-bold">{{
+                            ><span class="fw-bold text-success">{{
                               formatPrice(o.tongThanhToan)
                             }}</span>
                           </div>
