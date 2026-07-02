@@ -447,6 +447,7 @@
                       <div class="fw-bold mb-2"><i class="bi bi-trophy-fill me-1"></i>Hạng Vàng</div>
                       <input type="number" v-model.number="cfg.Loyalty_NguongVang" class="form-control form-control-sm text-center border-0 bg-white" min="0" placeholder="2000" :disabled="!cfgBool.Loyalty_BatTat" />
                     </div>
+                  </div>
                 </div>
               </div>
             </div>
