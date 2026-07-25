@@ -27,8 +27,24 @@
           </div>
           <div class="col-lg-6">
             <div class="mb-3">
-              <label class="cfg-label">URL Logo (để trống dùng chữ)</label>
-              <input v-model="cfg.General.SiteLogo" class="sa-input w-100" placeholder="https://..." />
+              <label class="cfg-label">URL Logo thương hiệu (URL hình ảnh)</label>
+              <input v-model="cfg.General.SiteLogo" class="sa-input w-100" placeholder="https://domain.com/logo.png" />
+            </div>
+            <div class="mb-3">
+              <label class="cfg-label">URL Nền Trang Đăng nhập (Login Banner URL)</label>
+              <input v-model="cfg.General.LoginBgUrl" class="sa-input w-100" placeholder="https://images.unsplash.com/..." />
+            </div>
+            <div class="mb-3">
+              <label class="cfg-label">URL Banner Trang Chủ (Landing Hero Image URL)</label>
+              <input v-model="cfg.General.HeroBannerUrl" class="sa-input w-100" placeholder="https://images.unsplash.com/..." />
+            </div>
+            <div class="mb-3">
+              <label class="cfg-label">Mô tả hệ thống (Hiển thị Landing/Login)</label>
+              <textarea v-model="cfg.General.SiteDescription" class="sa-input w-100" rows="2" placeholder="Dành riêng cho những chủ nhà hàng..."></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="cfg-label">Bản quyền Footer (Footer Copyright)</label>
+              <input v-model="cfg.General.FooterCopyright" class="sa-input w-100" placeholder="© 2026 POS36..." />
             </div>
             <div class="mb-3">
               <label class="cfg-label">Màu chủ đề</label>
@@ -255,7 +271,11 @@ const currentTabLabel = computed(() => NAV_LABELS[activeTab.value] || "Cấu hì
 
 // ===== CONFIG STATE =====
 const cfg = reactive({
-  General: { SiteName: "", Slogan: "", SupportEmail: "", SupportPhone: "", SiteLogo: "", PrimaryColor: "#f59e0b", TrialDays: 7 },
+  General: {
+    SiteName: "", Slogan: "", SupportEmail: "", SupportPhone: "",
+    SiteLogo: "", PrimaryColor: "#f59e0b", TrialDays: 7,
+    HeroBannerUrl: "", LoginBgUrl: "", FooterCopyright: "", SiteDescription: ""
+  },
   Payment: { BankCode: "", BankAccountNo: "", BankAccountName: "", SePayWebhookSecret: "" },
   Email: { EmailJsServiceId: "", EmailJsTemplateId: "", EmailJsPublicKey: "", SmtpHost: "smtp.gmail.com", SmtpPort: "587", SmtpUser: "", SmtpPassword: "", SmtpFromName: "POS36 System" },
 });
