@@ -42,6 +42,54 @@ namespace POS36.Api.Controllers
         }
 
         // ==========================================
+        // 0. LẤY CẤU HÌNH CÔNG KHAI (Public Config)
+        // ==========================================
+        [HttpGet("public")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetPublicConfig()
+        {
+            try
+            {
+                var userAgent = Request.Headers["User-Agent"].ToString();
+                var ip = GetClientIp() ?? "127.0.0.1";
+                var isMobile = userAgent.Contains("Mobile", StringComparison.OrdinalIgnoreCase) || userAgent.Contains("Android", StringComparison.OrdinalIgnoreCase) || userAgent.Contains("iPhone", StringComparison.OrdinalIgnoreCase);
+
+                _context.LuotTruyCaps.Add(new LuotTruyCap
+                {
+                    IpAddress = ip,
+                    UserAgent = userAgent.Length > 200 ? userAgent.Substring(0, 200) : userAgent,
+                    Url = "/landing",
+                    ThietBi = isMobile ? "Mobile" : "Desktop",
+                    ThoiGian = DateTime.Now
+                });
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("Không thể ghi nhận LuotTruyCap: {Message}", ex.Message);
+            }
+
+            var publicKeys = new[] { "SiteName", "Slogan", "SupportEmail", "SupportPhone", "SiteLogo", "PrimaryColor", "TrialDays", "BankCode", "BankAccountNo", "BankAccountName" };
+            var configs = await _context.CauHinhHeThangs
+                .Where(c => publicKeys.Contains(c.MaKey))
+                .ToDictionaryAsync(c => c.MaKey, c => c.GiaTri);
+
+            return Ok(new
+            {
+                siteName = configs.GetValueOrDefault("SiteName", "POS36"),
+                slogan = configs.GetValueOrDefault("Slogan", "Giải pháp quản lý nhà hàng & quán cafe hiện đại"),
+                supportEmail = configs.GetValueOrDefault("SupportEmail", "support@pos36.vn"),
+                supportPhone = configs.GetValueOrDefault("SupportPhone", "0901234567"),
+                siteLogo = configs.GetValueOrDefault("SiteLogo", ""),
+                primaryColor = configs.GetValueOrDefault("PrimaryColor", "#ea580c"),
+                trialDays = int.TryParse(configs.GetValueOrDefault("TrialDays", "7"), out var t) ? t : 7,
+                bankCode = configs.GetValueOrDefault("BankCode", ""),
+                bankAccountNo = configs.GetValueOrDefault("BankAccountNo", ""),
+                bankAccountName = configs.GetValueOrDefault("BankAccountName", "")
+            });
+        }
+
+        // ==========================================
         // 1. LẤY TẤT CẢ CẤU HÌNH (nhóm theo nhóm)
         // ==========================================
         [HttpGet]

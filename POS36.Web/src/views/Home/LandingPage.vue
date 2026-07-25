@@ -1,5 +1,18 @@
 <script setup>
+import { ref, onMounted } from "vue";
+import axios from "axios";
 import PublicNavbar from "../../components/PublicNavbar.vue";
+
+const siteConfig = ref({ trialDays: 7, siteName: "POS36" });
+
+onMounted(async () => {
+  try {
+    const res = await axios.get("/api/CauHinh/public");
+    if (res.data) siteConfig.value = res.data;
+  } catch (e) {
+    console.error("Lỗi tải cấu hình trang chủ:", e);
+  }
+});
 </script>
 
 <template>
@@ -147,7 +160,7 @@ import PublicNavbar from "../../components/PublicNavbar.vue";
               <div
                 class="trial-box text-center p-4 rounded-4 border border-light border-opacity-25"
               >
-                <div class="display-6 fw-black font-headline mb-1">14 Ngày</div>
+                <div class="display-6 fw-black font-headline mb-1">{{ siteConfig.trialDays }} Ngày</div>
                 <div
                   class="small fw-bold text-uppercase tracking-widest opacity-75 mb-3"
                 >

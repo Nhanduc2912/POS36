@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using POS36.Api.Data;
 
@@ -11,9 +12,11 @@ using POS36.Api.Data;
 namespace POS36.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260706021422_AddEmployeeProfileFields")]
+    partial class AddEmployeeProfileFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -639,9 +642,6 @@ namespace POS36.Api.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("DongYXuLyDuLieu")
-                        .HasColumnType("bit");
-
                     b.Property<string>("Email")
                         .HasColumnType("nvarchar(max)");
 
@@ -656,13 +656,7 @@ namespace POS36.Api.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("MoiQuanHeKhanCap")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<DateTime?>("NgayCapCccd")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("NgayDongY")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("NgaySinh")
@@ -674,17 +668,11 @@ namespace POS36.Api.Migrations
                     b.Property<DateTime?>("NgayXoa")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("NguoiLienHeKhanCap")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("NguoiXoa")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("NoiCapCccd")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SdtKhanCap")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SoDienThoai")

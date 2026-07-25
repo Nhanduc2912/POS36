@@ -32,6 +32,19 @@ namespace POS36.Api.Controllers
                     nv.TenNhanVien,
                     nv.SoDienThoai,
                     nv.Email,
+                    nv.Cccd,
+                    nv.NgayCapCccd,
+                    nv.NoiCapCccd,
+                    nv.GioiTinh,
+                    nv.NgaySinh,
+                    nv.DiaChiThuongTru,
+                    nv.DiaChiTamTru,
+                    nv.NgayVaoLam,
+                    nv.NguoiLienHeKhanCap,
+                    nv.SdtKhanCap,
+                    nv.MoiQuanHeKhanCap,
+                    nv.DongYXuLyDuLieu,
+                    nv.NgayDongY,
                     TenDangNhap = _context.TaiKhoans.Where(t => t.NhanVienId == nv.Id).Select(t => t.TenDangNhap).FirstOrDefault(),
                     VaiTro = _context.TaiKhoans.Where(t => t.NhanVienId == nv.Id).Select(t => t.VaiTro).FirstOrDefault(),
                     IsActive = _context.TaiKhoans.Where(t => t.NhanVienId == nv.Id).Select(t => t.IsActive).FirstOrDefault(),
@@ -62,6 +75,14 @@ namespace POS36.Api.Controllers
             if (string.IsNullOrWhiteSpace(request.TenDangNhap) || string.IsNullOrWhiteSpace(request.MatKhau))
                 return BadRequest(new { message = "Vui lòng nhập đầy đủ Tên đăng nhập và Mật khẩu!" });
 
+            // VALIDATION 1.5: Thông tin hồ sơ pháp lý bắt buộc
+            if (string.IsNullOrWhiteSpace(request.Cccd) || request.NgaySinh == null || string.IsNullOrWhiteSpace(request.GioiTinh) || string.IsNullOrWhiteSpace(request.DiaChiThuongTru) || string.IsNullOrWhiteSpace(request.DiaChiTamTru))
+                return BadRequest(new { message = "Vui lòng nhập đầy đủ các thông tin hồ sơ pháp lý bắt buộc (CCCD, Ngày sinh, Giới tính, Thường trú, Tạm trú)!" });
+
+            // VALIDATION 1.6: Phải có sự đồng ý xử lý dữ liệu cá nhân (NĐ 13/2023/NĐ-CP)
+            if (!request.DongYXuLyDuLieu)
+                return BadRequest(new { message = "Nhân viên phải đồng ý cho phép xử lý dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP trước khi tạo hồ sơ!" });
+
             // VALIDATION 2: Kiểm tra Mã Nhân viên trùng lặp
             bool maNvTrung = await _context.NhanViens.AnyAsync(
                 nv => nv.CuaHangId == cuaHangId && nv.MaNhanVien == request.MaNhanVien);
@@ -91,7 +112,20 @@ namespace POS36.Api.Controllers
                     MaNhanVien = request.MaNhanVien,
                     TenNhanVien = request.TenNhanVien,
                     SoDienThoai = request.SoDienThoai,
-                    Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email // FIX: Lưu Email
+                    Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email, // FIX: Lưu Email
+                    Cccd = request.Cccd,
+                    NgayCapCccd = request.NgayCapCccd,
+                    NoiCapCccd = request.NoiCapCccd,
+                    GioiTinh = request.GioiTinh,
+                    NgaySinh = request.NgaySinh,
+                    DiaChiThuongTru = request.DiaChiThuongTru,
+                    DiaChiTamTru = request.DiaChiTamTru,
+                    NgayVaoLam = request.NgayVaoLam,
+                    NguoiLienHeKhanCap = request.NguoiLienHeKhanCap,
+                    SdtKhanCap = request.SdtKhanCap,
+                    MoiQuanHeKhanCap = request.MoiQuanHeKhanCap,
+                    DongYXuLyDuLieu = request.DongYXuLyDuLieu,
+                    NgayDongY = request.DongYXuLyDuLieu ? DateTime.Now : null
                 };
                 _context.NhanViens.Add(newNv);
                 await _context.SaveChangesAsync(); // Lưu để lấy newNv.Id
@@ -135,10 +169,25 @@ namespace POS36.Api.Controllers
             if (sdtTrung)
                 return BadRequest(new { message = $"Số điện thoại '{request.SoDienThoai}' đã được đăng ký cho nhân viên khác!" });
 
+            // VALIDATION 1.5: Thông tin hồ sơ pháp lý bắt buộc
+            if (string.IsNullOrWhiteSpace(request.Cccd) || request.NgaySinh == null || string.IsNullOrWhiteSpace(request.GioiTinh) || string.IsNullOrWhiteSpace(request.DiaChiThuongTru) || string.IsNullOrWhiteSpace(request.DiaChiTamTru))
+                return BadRequest(new { message = "Vui lòng nhập đầy đủ các thông tin hồ sơ pháp lý bắt buộc (CCCD, Ngày sinh, Giới tính, Thường trú, Tạm trú)!" });
+
             // FIX: Chỉ cập nhật Tên, SĐT, Email — KHÔNG cập nhật MaNhanVien
             nv.TenNhanVien = request.TenNhanVien;
             nv.SoDienThoai = request.SoDienThoai;
             nv.Email = string.IsNullOrWhiteSpace(request.Email) ? null : request.Email;
+            nv.Cccd = request.Cccd;
+            nv.NgayCapCccd = request.NgayCapCccd;
+            nv.NoiCapCccd = request.NoiCapCccd;
+            nv.GioiTinh = request.GioiTinh;
+            nv.NgaySinh = request.NgaySinh;
+            nv.DiaChiThuongTru = request.DiaChiThuongTru;
+            nv.DiaChiTamTru = request.DiaChiTamTru;
+            nv.NgayVaoLam = request.NgayVaoLam;
+            nv.NguoiLienHeKhanCap = request.NguoiLienHeKhanCap;
+            nv.SdtKhanCap = request.SdtKhanCap;
+            nv.MoiQuanHeKhanCap = request.MoiQuanHeKhanCap;
             // nv.MaNhanVien = ... ← KHÔNG cho sửa mã NV
 
             await _context.SaveChangesAsync();

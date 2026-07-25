@@ -9,7 +9,7 @@
           <span class="text-orange fst-italic">Khởi nghiệp không giới hạn.</span>
         </h1>
         <p class="fs-5 text-secondary max-w-lg mx-auto mb-5">
-          Bắt đầu miễn phí 7 ngày, không yêu cầu thẻ tín dụng. Chọn gói phù hợp với quy mô kinh doanh của bạn.
+          Bắt đầu miễn phí {{ siteConfig.trialDays }} ngày, không yêu cầu thẻ tín dụng. Chọn gói phù hợp với quy mô kinh doanh của bạn.
         </p>
       </section>
 
@@ -46,7 +46,7 @@
               <router-link to="/register"
                 class="btn w-100 py-3 fw-black rounded-4 fs-6"
                 :class="plan.featured ? 'btn-orange text-white shadow-lg' : 'btn-outline-dark'">
-                Dùng thử 7 ngày miễn phí
+                Dùng thử {{ siteConfig.trialDays }} ngày miễn phí
               </router-link>
             </div>
           </div>
@@ -99,9 +99,9 @@
       <!-- CTA -->
       <section class="container max-w-7xl pb-5 mb-5 mt-4">
         <div class="bg-dark rounded-5 p-5 text-center text-white ambient-shadow position-relative overflow-hidden border-bottom border-5 border-orange">
-          <div class="position-relative z-index-1 py-4">
+            <div class="position-relative z-index-1 py-4">
             <h2 class="display-5 font-headline fw-black mb-4">Bắt đầu trong 5 phút</h2>
-            <p class="fs-5 opacity-75 mb-4 max-w-lg mx-auto">Đăng ký tài khoản → Dùng thử 7 ngày → Mua gói khi sẵn sàng.</p>
+            <p class="fs-5 opacity-75 mb-4 max-w-lg mx-auto">Đăng ký tài khoản → Dùng thử {{ siteConfig.trialDays }} ngày → Mua gói khi sẵn sàng.</p>
             <router-link to="/register" class="btn culinary-gradient text-white rounded-pill px-5 py-3 fw-black fs-5 shadow-lg hover-scale">
               Tạo tài khoản ngay
             </router-link>
@@ -114,9 +114,12 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
+import axios from "axios";
 import PublicNavbar from "../../components/PublicNavbar.vue";
 import PublicFooter from "../../components/PublicFooter.vue";
+
+const siteConfig = ref({ trialDays: 7 });
 
 const plans = ref([
   {
@@ -150,10 +153,57 @@ const featureCategories = ref([
 
 const faqs = ref([
   { q: "Tôi mở thêm chi nhánh thì tính phí thế nào?", a: "Mức giá trên tính cho 1 điểm bán. Khi mở rộng thêm chi nhánh, bạn chỉ cần mua thêm 1 gói cho chi nhánh đó." },
-  { q: "Hết 7 ngày dùng thử, dữ liệu có bị mất không?", a: "Tuyệt đối không! Dữ liệu được lưu trữ an toàn. Khi nâng cấp, mọi dữ liệu từ quá trình dùng thử sẽ được giữ nguyên." },
+  { q: "Hết thời gian dùng thử, dữ liệu có bị mất không?", a: "Tuyệt đối không! Dữ liệu được lưu trữ an toàn. Khi nâng cấp, mọi dữ liệu từ quá trình dùng thử sẽ được giữ nguyên." },
   { q: "Hết hạn gói thì chuyện gì xảy ra?", a: "Bạn sẽ có 15 ngày ở chế độ Chỉ Đọc (vẫn xem được dữ liệu). Sau 15 ngày, tài khoản bị tạm khóa. Gia hạn bất cứ lúc nào để mở lại." },
   { q: "Thanh toán bằng cách nào?", a: "Chuyển khoản ngân hàng qua mã QR VietQR. Hệ thống tự động kích hoạt gói ngay sau khi nhận được thanh toán (webhook SePay)." },
 ]);
+
+const iconColors = ["#3b82f6", "#f59e0b", "#a855f7", "#10b981", "#ec4899"];
+const icons = ["rocket-takeoff", "star-fill", "gem", "lightning-charge-fill", "shield-check"];
+
+const formatVND = (n) => {
+  if (!n) return "0đ";
+  if (n >= 1000000) return (n / 1000000).toLocaleString("vi-VN") + "Tr";
+  if (n >= 1000) return (n / 1000).toLocaleString("vi-VN") + "k";
+  return n.toLocaleString("vi-VN") + "đ";
+};
+
+const loadData = async () => {
+  try {
+    const [plansRes, cfgRes] = await Promise.all([
+      axios.get("/api/Subscription/plans"),
+      axios.get("/api/CauHinh/public")
+    ]);
+
+    if (cfgRes.data) siteConfig.value = cfgRes.data;
+
+    if (plansRes.data && plansRes.data.length > 0) {
+      plans.value = plansRes.data.map((p, idx) => ({
+        code: p.maGoi,
+        name: p.tenGoi,
+        price: formatVND(p.tongGia),
+        monthly: formatVND(p.giaThang),
+        period: `${p.soThang} tháng`,
+        icon: icons[idx % icons.length],
+        color: iconColors[idx % iconColors.length],
+        featured: idx === 1 || p.maGoi?.toUpperCase() === 'PRO',
+        desc: p.moTa || "Gói dịch vụ chính thức",
+        features: [
+          p.gioiHanHoaDon > 0 ? `Giới hạn ${p.gioiHanHoaDon} hóa đơn/tháng` : "Không giới hạn hóa đơn",
+          p.gioiHanNhanVien > 0 ? `Giới hạn ${p.gioiHanNhanVien} nhân viên` : "Không giới hạn nhân viên",
+          "Đầy đủ tính năng POS & Quản lý",
+          "Thanh toán QR tự động (VietQR/SePay)",
+          "Hỗ trợ kỹ thuật 24/7"
+        ],
+        limits: []
+      }));
+    }
+  } catch (e) {
+    console.error("Lỗi tải dữ liệu bảng giá:", e);
+  }
+};
+
+onMounted(loadData);
 </script>
 
 <style scoped>
