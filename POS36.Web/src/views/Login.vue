@@ -3,18 +3,13 @@ import { ref, inject, onMounted } from "vue";
 import axios from "axios";
 
 const swal = inject("$swal");
-const siteConfig = ref({
-  siteName: "POS36",
-  slogan: "Nền tảng quản lý ẩm thực hiện đại.",
-  siteDescription: "Dành riêng cho những chủ nhà hàng khát khao sự hoàn mỹ trong từng quy trình vận hành. Tăng tốc phục vụ, tối ưu doanh thu.",
-  siteLogo: "",
-  loginBgUrl: "https://images.unsplash.com/photo-1556155092-490a1ba16284?q=80&w=2070&auto=format&fit=crop"
-});
+
+const siteConfig = ref({ siteName: "POS36", siteLogo: "", loginBgImage: "", slogan: "" });
 
 onMounted(async () => {
   try {
     const res = await axios.get("/api/CauHinh/public");
-    if (res.data) siteConfig.value = { ...siteConfig.value, ...res.data };
+    if (res.data) siteConfig.value = res.data;
   } catch (e) {
     console.error("Lỗi tải cấu hình login:", e);
   }
@@ -107,22 +102,22 @@ const handleLogin = async () => {
 <template>
   <div class="container-fluid p-0 login-container">
     <div class="row g-0 min-vh-100">
-      <div class="col-lg-6 d-none d-lg-flex position-relative left-panel" :style="{ backgroundImage: `url(${siteConfig.loginBgUrl})` }">
+      <div class="col-lg-6 d-none d-lg-flex position-relative left-panel" :style="siteConfig.loginBgImage ? { backgroundImage: `url('${siteConfig.loginBgImage}')` } : {}">
         <div
           class="overlay d-flex flex-column justify-content-between p-5 w-100 h-100 text-white"
         >
           <div class="logo-box">
-            <router-link to="/" class="text-decoration-none">
-              <img v-if="siteConfig.siteLogo" :src="siteConfig.siteLogo" alt="Logo" style="max-height: 45px;" />
-              <h2 v-else class="fw-bold tracking-tight text-white">{{ siteConfig.siteName }}</h2>
+            <router-link to="/" class="text-decoration-none text-white d-inline-flex align-items-center gap-2">
+              <img v-if="siteConfig.siteLogo" :src="siteConfig.siteLogo" alt="Logo" style="max-height: 48px; object-fit: contain;" />
+              <h2 v-else class="fw-bold tracking-tight text-white m-0">{{ siteConfig.siteName || "POS36" }}</h2>
             </router-link>
           </div>
           <div class="content-box pe-5 mb-5">
             <h1 class="display-5 fw-bolder mb-3 lh-sm text-shadow">
-              {{ siteConfig.slogan }}
+              Nền tảng quản lý ẩm<br />thực hiện đại.
             </h1>
             <p class="fs-6 opacity-75 pe-5 lh-lg">
-              {{ siteConfig.siteDescription }}
+              {{ siteConfig.slogan || "Dành riêng cho những chủ nhà hàng khát khao sự hoàn mỹ trong từng quy trình vận hành. Tăng tốc phục vụ, tối ưu doanh thu." }}
             </p>
           </div>
         </div>
@@ -133,8 +128,10 @@ const handleLogin = async () => {
       >
         <div class="form-wrapper w-100" style="max-width: 420px; padding: 2rem">
           <div class="d-lg-none mb-5 text-center">
-            <img v-if="siteConfig.siteLogo" :src="siteConfig.siteLogo" alt="Logo" style="max-height: 40px;" />
-            <h2 v-else class="fw-bold text-orange">{{ siteConfig.siteName }}</h2>
+            <router-link to="/" class="text-decoration-none">
+              <img v-if="siteConfig.siteLogo" :src="siteConfig.siteLogo" alt="Logo" style="max-height: 50px; object-fit: contain;" />
+              <h2 v-else class="fw-bold text-orange m-0">{{ siteConfig.siteName || "POS36" }}</h2>
+            </router-link>
           </div>
 
           <div class="mb-5">

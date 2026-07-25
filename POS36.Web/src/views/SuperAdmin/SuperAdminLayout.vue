@@ -3,9 +3,15 @@
     <!-- Sidebar -->
     <aside class="sa-sidebar" :class="{ collapsed: sidebarCollapsed }">
       <div class="sa-logo">
-        <h2 v-if="!sidebarCollapsed">POS36</h2>
-        <span v-if="!sidebarCollapsed" class="sa-logo-sub">Super Admin</span>
-        <h2 v-else>P</h2>
+        <div v-if="!sidebarCollapsed" class="d-flex align-items-center gap-2">
+          <img v-if="siteConfig.siteLogo" :src="siteConfig.siteLogo" alt="Logo" style="max-height: 36px; object-fit: contain;" />
+          <h2 v-else class="m-0">{{ siteConfig.siteName || "POS36" }}</h2>
+          <span class="sa-logo-sub ms-auto">Super Admin</span>
+        </div>
+        <div v-else class="text-center">
+          <img v-if="siteConfig.siteLogo" :src="siteConfig.siteLogo" alt="Logo" style="max-height: 28px; object-fit: contain;" />
+          <h2 v-else class="m-0">P</h2>
+        </div>
       </div>
 
       <nav class="sa-nav">
@@ -174,6 +180,8 @@ const router = useRouter();
 const sidebarCollapsed = ref(false);
 const isDark = ref(true);
 
+const siteConfig = ref({ siteName: "POS36", siteLogo: "" });
+
 // AI Chat - watch for report navigation requests
 const { pendingNavigation, clearPendingNavigation } = useAIChat();
 const navConfirm = ref(null);
@@ -292,7 +300,7 @@ const acceptNavigation = () => {
 };
 const denyNavigation = () => { navConfirm.value = null; };
 
-onMounted(() => {
+onMounted(async () => {
   const savedTheme = localStorage.getItem('pos36_sa_theme');
   isDark.value = savedTheme !== 'light';
   const savedTerm = localStorage.getItem('pos36_terminal_visible');
@@ -300,6 +308,13 @@ onMounted(() => {
   const savedMode = localStorage.getItem('pos36_ai_mode');
   if (savedMode) terminalMode.value = savedMode;
   window.addEventListener('keydown', handleKeydown);
+
+  try {
+    const res = await axios.get('/api/CauHinh/public');
+    if (res.data) siteConfig.value = res.data;
+  } catch (e) {
+    console.error("Lỗi tải cấu hình layout:", e);
+  }
 });
 
 onUnmounted(() => { window.removeEventListener('keydown', handleKeydown); });

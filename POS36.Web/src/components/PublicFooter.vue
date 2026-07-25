@@ -1,25 +1,3 @@
-<script setup>
-import { ref, onMounted } from "vue";
-import axios from "axios";
-
-const siteConfig = ref({
-  siteName: "POS36",
-  footerCopyright: "© 2026 POS36. Nền tảng quản lý nhà hàng hàng đầu Việt Nam. Tự hào đồng hành cùng sự phát triển của ngành ẩm thực Việt.",
-  supportEmail: "support@pos36.vn",
-  supportPhone: "0901234567",
-  siteLogo: ""
-});
-
-onMounted(async () => {
-  try {
-    const res = await axios.get("/api/CauHinh/public");
-    if (res.data) siteConfig.value = { ...siteConfig.value, ...res.data };
-  } catch (e) {
-    console.error("Lỗi tải cấu hình footer:", e);
-  }
-});
-</script>
-
 <template>
   <footer class="w-100 border-top bg-white font-body pt-5 pb-4 mt-5">
     <div class="container max-w-7xl mx-auto px-4">
@@ -28,11 +6,12 @@ onMounted(async () => {
           <div
             class="fs-3 font-headline fw-black text-dark mb-4 tracking-tighter d-flex align-items-center gap-2"
           >
-            <img v-if="siteConfig.siteLogo" :src="siteConfig.siteLogo" alt="Logo" style="max-height: 40px;" />
-            <span v-else>{{ siteConfig.siteName }}</span>
+            <img v-if="siteConfig.siteLogo" :src="siteConfig.siteLogo" alt="Logo" style="max-height: 42px; object-fit: contain;" />
+            <span v-else>{{ siteConfig.siteName || "POS36" }}</span>
           </div>
           <p class="text-secondary small lh-lg pe-lg-4">
-            {{ siteConfig.footerCopyright }}
+            © 2026 {{ siteConfig.siteName || "POS36" }}. Nền tảng quản lý nhà hàng hàng đầu Việt Nam. Tự hào
+            đồng hành cùng sự phát triển của ngành ẩm thực Việt.
           </p>
           <div class="d-flex gap-3 mt-4">
             <a
@@ -164,6 +143,22 @@ onMounted(async () => {
     </div>
   </footer>
 </template>
+
+<script setup>
+import { ref, onMounted } from "vue";
+import axios from "axios";
+
+const siteConfig = ref({ siteName: "POS36", siteLogo: "" });
+
+onMounted(async () => {
+  try {
+    const res = await axios.get("/api/CauHinh/public");
+    if (res.data) siteConfig.value = res.data;
+  } catch (e) {
+    console.error("Lỗi tải cấu hình footer:", e);
+  }
+});
+</script>
 
 <style scoped>
 @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;800&family=Manrope:wght@400;600&display=swap");

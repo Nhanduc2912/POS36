@@ -1,19 +1,3 @@
-<script setup>
-import { ref, onMounted } from "vue";
-import axios from "axios";
-
-const siteConfig = ref({ siteName: "POS36", siteLogo: "" });
-
-onMounted(async () => {
-  try {
-    const res = await axios.get("/api/CauHinh/public");
-    if (res.data) siteConfig.value = res.data;
-  } catch (e) {
-    console.error("Lỗi tải cấu hình navbar:", e);
-  }
-});
-</script>
-
 <template>
   <nav
     class="navbar navbar-expand-lg fixed-top glass-navbar shadow-sm transition-all"
@@ -21,10 +5,10 @@ onMounted(async () => {
     <div class="container-fluid max-w-7xl mx-auto px-4 py-2">
       <router-link
         to="/"
-        class="navbar-brand fw-black text-primary fs-3 tracking-tighter d-flex align-items-center gap-2"
+        class="navbar-brand fw-black text-primary fs-3 tracking-tighter d-inline-flex align-items-center gap-2"
       >
-        <img v-if="siteConfig.siteLogo" :src="siteConfig.siteLogo" alt="Logo" style="max-height: 38px;" />
-        <span v-else>{{ siteConfig.siteName }}</span>
+        <img v-if="siteConfig.siteLogo" :src="siteConfig.siteLogo" alt="Logo" style="max-height: 40px; object-fit: contain;" />
+        <span v-else>{{ siteConfig.siteName || "POS36" }}</span>
       </router-link>
 
       <button
@@ -101,6 +85,22 @@ onMounted(async () => {
     </div>
   </nav>
 </template>
+
+<script setup>
+import { ref, onMounted } from "vue";
+import axios from "axios";
+
+const siteConfig = ref({ siteName: "POS36", siteLogo: "" });
+
+onMounted(async () => {
+  try {
+    const res = await axios.get("/api/CauHinh/public");
+    if (res.data) siteConfig.value = res.data;
+  } catch (e) {
+    console.error("Lỗi tải cấu hình navbar:", e);
+  }
+});
+</script>
 
 <style scoped>
 @import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;800&display=swap");

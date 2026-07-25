@@ -30,7 +30,9 @@ onMounted(async () => {
               <span class="text-orange">Dễ Dàng & Tốc Độ</span>
             </h1>
             <p class="lead text-secondary mb-5 fs-6 lh-lg pe-lg-4">
-              {{ siteConfig.siteDescription || 'Nâng tầm trải nghiệm ẩm thực và tối ưu hóa quy trình vận hành với giải pháp POS thông minh nhất dành cho nhà hàng và quán cafe hiện đại.' }}
+              Nâng tầm trải nghiệm ẩm thực và tối ưu hóa quy trình vận hành với
+              giải pháp POS thông minh nhất dành cho nhà hàng và quán cafe hiện
+              đại.
             </p>
             <div
               class="d-flex flex-column flex-sm-row justify-content-center justify-content-lg-start gap-3"
@@ -39,7 +41,7 @@ onMounted(async () => {
                 to="/register"
                 class="btn btn-orange text-white rounded-3 px-5 py-3 fw-bold shadow hover-scale"
               >
-                Dùng thử {{ siteConfig.trialDays || 7 }} ngày miễn phí
+                Bắt đầu ngay
               </router-link>
             </div>
           </div>
@@ -48,7 +50,7 @@ onMounted(async () => {
             <div class="blob-bg"></div>
             <div class="mockup-container mx-auto">
               <img
-                :src="siteConfig.heroBannerUrl || 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=800&auto=format&fit=crop'"
+                :src="siteConfig.heroImage || 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=800&auto=format&fit=crop'"
                 class="img-fluid rounded-4 shadow-lg mockup-img"
                 alt="POS Mockup"
               />

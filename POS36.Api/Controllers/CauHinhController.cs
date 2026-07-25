@@ -69,7 +69,7 @@ namespace POS36.Api.Controllers
                 Log.Warning("Không thể ghi nhận LuotTruyCap: {Message}", ex.Message);
             }
 
-            var publicKeys = new[] { "SiteName", "Slogan", "SupportEmail", "SupportPhone", "SiteLogo", "PrimaryColor", "TrialDays", "BankCode", "BankAccountNo", "BankAccountName", "HeroBannerUrl", "LoginBgUrl", "FooterCopyright", "SiteDescription" };
+            var publicKeys = new[] { "SiteName", "Slogan", "SupportEmail", "SupportPhone", "SiteLogo", "HeroImage", "LoginBgImage", "PrimaryColor", "TrialDays", "BankCode", "BankAccountNo", "BankAccountName" };
             var configs = await _context.CauHinhHeThangs
                 .Where(c => publicKeys.Contains(c.MaKey))
                 .ToDictionaryAsync(c => c.MaKey, c => c.GiaTri);
@@ -81,16 +81,45 @@ namespace POS36.Api.Controllers
                 supportEmail = configs.GetValueOrDefault("SupportEmail", "support@pos36.vn"),
                 supportPhone = configs.GetValueOrDefault("SupportPhone", "0901234567"),
                 siteLogo = configs.GetValueOrDefault("SiteLogo", ""),
+                heroImage = configs.GetValueOrDefault("HeroImage", ""),
+                loginBgImage = configs.GetValueOrDefault("LoginBgImage", ""),
                 primaryColor = configs.GetValueOrDefault("PrimaryColor", "#ea580c"),
                 trialDays = int.TryParse(configs.GetValueOrDefault("TrialDays", "7"), out var t) ? t : 7,
                 bankCode = configs.GetValueOrDefault("BankCode", ""),
                 bankAccountNo = configs.GetValueOrDefault("BankAccountNo", ""),
-                bankAccountName = configs.GetValueOrDefault("BankAccountName", ""),
-                heroBannerUrl = configs.GetValueOrDefault("HeroBannerUrl", "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=800&auto=format&fit=crop"),
-                loginBgUrl = configs.GetValueOrDefault("LoginBgUrl", "https://images.unsplash.com/photo-1556155092-490a1ba16284?q=80&w=2070&auto=format&fit=crop"),
-                footerCopyright = configs.GetValueOrDefault("FooterCopyright", "© 2026 POS36. Nền tảng quản lý nhà hàng hàng đầu Việt Nam."),
-                siteDescription = configs.GetValueOrDefault("SiteDescription", "Nâng tầm trải nghiệm ẩm thực và tối ưu hóa quy trình vận hành với giải pháp POS thông minh nhất dành cho nhà hàng và quán cafe hiện đại.")
+                bankAccountName = configs.GetValueOrDefault("BankAccountName", "")
             });
+        }
+
+        // ==========================================
+        // 0B. UPLOAD ẢNH / LOGO (Cho SuperAdmin)
+        // ==========================================
+        [HttpPost("upload-image")]
+        public async Task<IActionResult> UploadImage(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest(new { message = "Vui lòng chọn tập tin ảnh!" });
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg" };
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(extension))
+                return BadRequest(new { message = "Định dạng tập tin không được hỗ trợ! Vui lòng chọn ảnh JPG, PNG, WEBP, SVG." });
+
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+            var uniqueFileName = $"config_{Guid.NewGuid()}{extension}";
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            using (var fileStream = new FileStream(filePath, FileMode.Create))
+            {
+                await file.CopyToAsync(fileStream);
+            }
+
+            var url = $"/images/{uniqueFileName}";
+            await GhiLog("CauHinh", $"Upload ảnh hệ thống thành công: {url}", "/super-admin/config");
+
+            return Ok(new { url, message = "Upload ảnh thành công!" });
         }
 
         // ==========================================

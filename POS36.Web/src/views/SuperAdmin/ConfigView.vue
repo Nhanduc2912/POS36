@@ -27,39 +27,69 @@
           </div>
           <div class="col-lg-6">
             <div class="mb-3">
-              <label class="cfg-label">URL Logo thương hiệu (URL hình ảnh)</label>
-              <input v-model="cfg.General.SiteLogo" class="sa-input w-100" placeholder="https://domain.com/logo.png" />
+              <label class="cfg-label">Logo hệ thống (SiteLogo)</label>
+              <div class="d-flex gap-2 align-items-center mb-2">
+                <input v-model="cfg.General.SiteLogo" class="sa-input flex-fill" placeholder="/images/pos36_logo_light.png hoặc https://..." />
+                <label class="sa-action-btn m-0" style="padding: 8px 12px; cursor: pointer;">
+                  <i class="bi bi-cloud-upload me-1"></i> {{ uploadingField === 'SiteLogo' ? 'Đang tải...' : 'Upload Logo' }}
+                  <input type="file" accept="image/*" class="d-none" @change="uploadImage($event, 'SiteLogo')" :disabled="uploadingField === 'SiteLogo'" />
+                </label>
+              </div>
+
+              <!-- Mẫu logo có sẵn cho người dùng chọn nhanh -->
+              <div class="mb-3 p-2 border rounded bg-white">
+                <small class="text-muted fw-bold d-block mb-2"><i class="bi bi-palette me-1"></i>Chọn nhanh logo mẫu có sẵn:</small>
+                <div class="d-flex gap-2 flex-wrap">
+                  <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1" @click="selectSampleLogo('/images/pos36_logo_light.png')">
+                    <img src="/images/pos36_logo_light.png" height="20" alt="Logo Sáng" /> Mẫu Sáng
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-dark d-flex align-items-center gap-1 bg-dark text-white" @click="selectSampleLogo('/images/pos36_logo_dark.png')">
+                    <img src="/images/pos36_logo_dark.png" height="20" alt="Logo Tối" /> Mẫu Tối
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-warning d-flex align-items-center gap-1" @click="selectSampleLogo('/images/pos36_logo_modern.png')">
+                    <img src="/images/pos36_logo_modern.png" height="20" alt="Logo Phẳng" /> Mẫu Hiện Đại
+                  </button>
+                </div>
+              </div>
             </div>
+
             <div class="mb-3">
-              <label class="cfg-label">URL Nền Trang Đăng nhập (Login Banner URL)</label>
-              <input v-model="cfg.General.LoginBgUrl" class="sa-input w-100" placeholder="https://images.unsplash.com/..." />
+              <label class="cfg-label">Ảnh Hero Trang Chủ (HeroImage)</label>
+              <div class="d-flex gap-2 align-items-center">
+                <input v-model="cfg.General.HeroImage" class="sa-input flex-fill" placeholder="Tùy chọn URL ảnh minh họa trang chủ..." />
+                <label class="sa-action-btn m-0" style="padding: 8px 12px; cursor: pointer;">
+                  <i class="bi bi-image me-1"></i> Upload Ảnh
+                  <input type="file" accept="image/*" class="d-none" @change="uploadImage($event, 'HeroImage')" :disabled="uploadingField === 'HeroImage'" />
+                </label>
+              </div>
             </div>
+
             <div class="mb-3">
-              <label class="cfg-label">URL Banner Trang Chủ (Landing Hero Image URL)</label>
-              <input v-model="cfg.General.HeroBannerUrl" class="sa-input w-100" placeholder="https://images.unsplash.com/..." />
+              <label class="cfg-label">Ảnh Nền Trang Đăng Nhập (LoginBgImage)</label>
+              <div class="d-flex gap-2 align-items-center">
+                <input v-model="cfg.General.LoginBgImage" class="sa-input flex-fill" placeholder="Tùy chọn URL ảnh nền trang Login..." />
+                <label class="sa-action-btn m-0" style="padding: 8px 12px; cursor: pointer;">
+                  <i class="bi bi-card-image me-1"></i> Upload Ảnh
+                  <input type="file" accept="image/*" class="d-none" @change="uploadImage($event, 'LoginBgImage')" :disabled="uploadingField === 'LoginBgImage'" />
+                </label>
+              </div>
             </div>
+
             <div class="mb-3">
-              <label class="cfg-label">Mô tả hệ thống (Hiển thị Landing/Login)</label>
-              <textarea v-model="cfg.General.SiteDescription" class="sa-input w-100" rows="2" placeholder="Dành riêng cho những chủ nhà hàng..."></textarea>
-            </div>
-            <div class="mb-3">
-              <label class="cfg-label">Bản quyền Footer (Footer Copyright)</label>
-              <input v-model="cfg.General.FooterCopyright" class="sa-input w-100" placeholder="© 2026 POS36..." />
-            </div>
-            <div class="mb-3">
-              <label class="cfg-label">Màu chủ đề</label>
+              <label class="cfg-label">Màu chủ đề (PrimaryColor)</label>
               <div class="d-flex gap-2 align-items-center">
                 <input type="color" v-model="cfg.General.PrimaryColor"
                   style="width:44px;height:38px;border-radius:8px;border:1px solid var(--sa-border);background:var(--sa-surface);cursor:pointer;padding:2px" />
                 <input v-model="cfg.General.PrimaryColor" class="sa-input flex-fill" placeholder="#f59e0b" />
               </div>
             </div>
+            
             <div class="preview-box" :style="{ borderColor: cfg.General.PrimaryColor || '#f59e0b' }">
               <div v-if="cfg.General.SiteLogo" class="mb-2">
-                <img :src="cfg.General.SiteLogo" alt="Logo" style="max-height:50px;max-width:100%;border-radius:6px" />
+                <img :src="cfg.General.SiteLogo" alt="Logo Preview" style="max-height:60px;max-width:100%;border-radius:6px;object-fit:contain;" />
               </div>
-              <div class="fw-bold" :style="{ color: cfg.General.PrimaryColor || '#f59e0b' }">{{ cfg.General.SiteName || 'POS36' }}</div>
-              <div style="font-size:.78rem;color:var(--sa-text-faint)">{{ cfg.General.Slogan }}</div>
+              <div class="fw-bold fs-5" :style="{ color: cfg.General.PrimaryColor || '#f59e0b' }">{{ cfg.General.SiteName || 'POS36' }}</div>
+              <div style="font-size:.8rem;color:var(--sa-text-faint)">{{ cfg.General.Slogan }}</div>
             </div>
           </div>
         </div>
@@ -271,14 +301,39 @@ const currentTabLabel = computed(() => NAV_LABELS[activeTab.value] || "Cấu hì
 
 // ===== CONFIG STATE =====
 const cfg = reactive({
-  General: {
-    SiteName: "", Slogan: "", SupportEmail: "", SupportPhone: "",
-    SiteLogo: "", PrimaryColor: "#f59e0b", TrialDays: 7,
-    HeroBannerUrl: "", LoginBgUrl: "", FooterCopyright: "", SiteDescription: ""
-  },
+  General: { SiteName: "", Slogan: "", SupportEmail: "", SupportPhone: "", SiteLogo: "", HeroImage: "", LoginBgImage: "", PrimaryColor: "#f59e0b", TrialDays: 7 },
   Payment: { BankCode: "", BankAccountNo: "", BankAccountName: "", SePayWebhookSecret: "" },
   Email: { EmailJsServiceId: "", EmailJsTemplateId: "", EmailJsPublicKey: "", SmtpHost: "smtp.gmail.com", SmtpPort: "587", SmtpUser: "", SmtpPassword: "", SmtpFromName: "POS36 System" },
 });
+
+const uploadingField = ref("");
+
+const uploadImage = async (event, targetField) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  uploadingField.value = targetField;
+  try {
+    const res = await axios.post("/api/CauHinh/upload-image", formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    cfg.General[targetField] = res.data.url;
+    swal.fire({ toast: true, position: "top-end", icon: "success", title: "Đã tải ảnh lên thành công!", timer: 2000, showConfirmButton: false });
+  } catch (e) {
+    swal.fire("Lỗi tải ảnh", e.response?.data?.message || "Không thể tải tập tin ảnh", "error");
+  } finally {
+    uploadingField.value = "";
+    event.target.value = "";
+  }
+};
+
+const selectSampleLogo = (url) => {
+  cfg.General.SiteLogo = url;
+  swal.fire({ toast: true, position: "top-end", icon: "success", title: "Đã chọn logo mẫu!", timer: 1500, showConfirmButton: false });
+};
 
 // ===== LOGS STATE =====
 const logs = ref([]);
