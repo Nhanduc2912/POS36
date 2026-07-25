@@ -69,7 +69,12 @@ namespace POS36.Api.Controllers
                 Log.Warning("Không thể ghi nhận LuotTruyCap: {Message}", ex.Message);
             }
 
-            var publicKeys = new[] { "SiteName", "Slogan", "SupportEmail", "SupportPhone", "SiteLogo", "HeroImage", "LoginBgImage", "PrimaryColor", "TrialDays", "BankCode", "BankAccountNo", "BankAccountName" };
+            var publicKeys = new[] {
+                "SiteName", "Slogan", "SupportEmail", "SupportPhone",
+                "SiteLogo", "HeroImage", "LoginBgImage", "PrimaryColor", "TrialDays",
+                "BankCode", "BankAccountNo", "BankAccountName",
+                "AuthorName", "CopyrightYear", "ContactFacebook", "ContactZalo", "AboutDescription"
+            };
             var configs = await _context.CauHinhHeThangs
                 .Where(c => publicKeys.Contains(c.MaKey))
                 .ToDictionaryAsync(c => c.MaKey, c => c.GiaTri);
@@ -87,7 +92,12 @@ namespace POS36.Api.Controllers
                 trialDays = int.TryParse(configs.GetValueOrDefault("TrialDays", "7"), out var t) ? t : 7,
                 bankCode = configs.GetValueOrDefault("BankCode", ""),
                 bankAccountNo = configs.GetValueOrDefault("BankAccountNo", ""),
-                bankAccountName = configs.GetValueOrDefault("BankAccountName", "")
+                bankAccountName = configs.GetValueOrDefault("BankAccountName", ""),
+                authorName = configs.GetValueOrDefault("AuthorName", "Nhóm POS36"),
+                copyrightYear = configs.GetValueOrDefault("CopyrightYear", DateTime.Now.Year.ToString()),
+                contactFacebook = configs.GetValueOrDefault("ContactFacebook", ""),
+                contactZalo = configs.GetValueOrDefault("ContactZalo", ""),
+                aboutDescription = configs.GetValueOrDefault("AboutDescription", "POS36 là hệ thống quản lý nhà hàng và quán cafe được phát triển như một đồ án tốt nghiệp, ứng dụng các công nghệ hiện đại để số hóa quy trình vận hành F&B.")
             });
         }
 

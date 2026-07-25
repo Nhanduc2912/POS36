@@ -10,24 +10,30 @@
             <span v-else>{{ siteConfig.siteName || "POS36" }}</span>
           </div>
           <p class="text-secondary small lh-lg pe-lg-4">
-            © 2026 {{ siteConfig.siteName || "POS36" }}. Nền tảng quản lý nhà hàng hàng đầu Việt Nam. Tự hào
-            đồng hành cùng sự phát triển của ngành ẩm thực Việt.
+            {{ siteConfig.siteName || "POS36" }} – Đồ án tốt nghiệp Đại học.<br />
+            Phát triển các công nghệ hiện đại để số hóa ngành F&amp;B Việt Nam.
           </p>
           <div class="d-flex gap-3 mt-4">
             <a
-              href="#"
+              :href="siteConfig.contactFacebook || '#'"
+              :target="siteConfig.contactFacebook ? '_blank' : '_self'"
               class="text-secondary fs-4 hover-text-orange transition-colors"
+              :class="{ 'opacity-25 pe-none': !siteConfig.contactFacebook }"
               ><i class="bi bi-facebook"></i
             ></a>
             <a
-              href="#"
+              :href="siteConfig.contactZalo ? ('https://zalo.me/' + siteConfig.contactZalo) : '#'"
+              :target="siteConfig.contactZalo ? '_blank' : '_self'"
               class="text-secondary fs-4 hover-text-orange transition-colors"
-              ><i class="bi bi-youtube"></i
+              :class="{ 'opacity-25 pe-none': !siteConfig.contactZalo }"
+              title="Zalo"
+              ><i class="bi bi-chat-dots-fill"></i
             ></a>
             <a
-              href="#"
+              v-if="siteConfig.supportEmail"
+              :href="'mailto:' + siteConfig.supportEmail"
               class="text-secondary fs-4 hover-text-orange transition-colors"
-              ><i class="bi bi-linkedin"></i
+              ><i class="bi bi-envelope-fill"></i
             ></a>
           </div>
         </div>
@@ -67,7 +73,7 @@
         </div>
 
         <div class="col-6 col-lg-2">
-          <h6 class="font-headline fw-bold text-dark mb-4">Công ty</h6>
+          <h6 class="font-headline fw-bold text-dark mb-4">Thông tin</h6>
           <ul class="list-unstyled space-y-3 small text-secondary">
             <li class="mb-3">
               <router-link
@@ -77,24 +83,24 @@
               >
             </li>
             <li class="mb-3">
-              <a
-                href="#"
+              <router-link
+                to="/features"
                 class="text-decoration-none text-secondary hover-text-orange transition-colors"
-                >Tin tức</a
+                >Tính năng</router-link
               >
             </li>
             <li class="mb-3">
-              <a
-                href="#"
+              <router-link
+                to="/solutions"
                 class="text-decoration-none text-secondary hover-text-orange transition-colors"
-                >Tuyển dụng</a
+                >Giải pháp</router-link
               >
             </li>
             <li>
-              <a
-                href="#"
+              <router-link
+                to="/pricing"
                 class="text-decoration-none text-secondary hover-text-orange transition-colors"
-                >Liên hệ</a
+                >Bảng giá</router-link
               >
             </li>
           </ul>
@@ -137,8 +143,9 @@
 
       <div class="text-center pt-4 border-top">
         <span class="small text-muted fw-bold tracking-wide text-uppercase"
-          >Thiết kế bởi Đội ngũ POS36 Creative Labs</span
-        >
+          >© {{ siteConfig.copyrightYear || new Date().getFullYear() }} {{ siteConfig.siteName || 'POS36' }} – Đồ án tốt nghiệp
+          <span v-if="siteConfig.authorName"> &bull; Phát triển bởi {{ siteConfig.authorName }}</span>
+        </span>
       </div>
     </div>
   </footer>

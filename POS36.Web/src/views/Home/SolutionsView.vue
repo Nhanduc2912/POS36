@@ -24,12 +24,13 @@
               vận hành.
             </p>
             <div class="d-flex flex-wrap gap-3">
-              <button
+              <router-link
+                to="/register"
                 class="btn culinary-gradient text-white px-5 py-3 rounded-4 font-headline fw-bold fs-6 shadow hover-scale d-flex align-items-center gap-2 group-hover"
               >
-                Khám phá ngay
+                Dùng thử miễn phí
                 <i class="bi bi-arrow-right transition-icon fs-5"></i>
-              </button>
+              </router-link>
             </div>
           </div>
 
@@ -460,8 +461,8 @@
                 Sẵn sàng để cách mạng hóa mô hình của bạn?
               </h2>
               <p class="fs-5 text-white-50 mb-0 lh-lg">
-                Tham gia cùng hơn 10,000+ nhà hàng đã tin dùng POS36 để tối ưu
-                hóa lợi nhuận ngay hôm nay.
+                Phù hợp với mọi mô hình kinh doanh F&amp;B – từ nhà hàng nhỏ
+                đến chuỗi quán ăn hiện đại.
               </p>
             </div>
 
@@ -469,16 +470,18 @@
               class="d-flex flex-column gap-3 w-100"
               style="max-width: 250px"
             >
-              <button
+              <router-link
+                to="/register"
                 class="btn culinary-gradient text-white py-3 font-headline fw-bold fs-5 shadow hover-scale w-100"
               >
-                Tìm giải pháp cho bạn
-              </button>
-              <button
+                Dùng thử miễn phí
+              </router-link>
+              <router-link
+                to="/pricing"
                 class="btn btn-outline-light py-3 font-headline fw-bold fs-5 bg-white bg-opacity-10 hover-scale border-secondary w-100"
               >
-                Liên hệ tư vấn
-              </button>
+                Xem bảng giá
+              </router-link>
             </div>
           </div>
         </div>

@@ -23,16 +23,18 @@
               thực vào quy trình số hóa hiện đại.
             </p>
             <div class="d-flex flex-wrap gap-3">
-              <button
+              <router-link
+                to="/register"
                 class="btn culinary-gradient text-white px-4 py-3 rounded-4 fw-bold ambient-shadow hover-scale fs-6"
               >
-                Trải nghiệm miễn phí
-              </button>
-              <button
+                Dùng thử miễn phí
+              </router-link>
+              <router-link
+                to="/pricing"
                 class="btn btn-outline-secondary px-4 py-3 rounded-4 fw-bold hover-scale bg-white fs-6 border-outline"
               >
-                Xem Demo
-              </button>
+                Xem bảng giá
+              </router-link>
             </div>
           </div>
 
@@ -201,6 +203,9 @@
                       <div class="fs-4 fw-black text-dark">1,402</div>
                     </div>
                   </div>
+                  <div class="col-12">
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary" style="font-size:.7rem">* Dữ liệu minh họa</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -230,11 +235,12 @@
                       Giữ chân khách hàng bằng hệ thống tích điểm, phân hạng
                       thành viên và ưu đãi cá nhân hóa tự động.
                     </p>
-                    <button
+                    <router-link
+                      to="/pricing"
                       class="btn btn-light text-orange fw-bold px-4 py-2 rounded-pill hover-scale"
                     >
-                      Khám phá ngay
-                    </button>
+                      Xem bảng giá
+                    </router-link>
                   </div>
                   <div
                     class="col-md-5 d-flex justify-content-center align-items-center"
@@ -300,16 +306,18 @@
               <div
                 class="d-flex flex-column flex-sm-row justify-content-center gap-3"
               >
-                <button
+                <router-link
+                  to="/register"
                   class="btn btn-light text-orange px-5 py-3 rounded-4 font-headline fw-bold fs-5 shadow-lg hover-scale"
                 >
-                  Dùng thử miễn phí
-                </button>
-                <button
+                  Đăng ký dùng thử
+                </router-link>
+                <router-link
+                  to="/pricing"
                   class="btn btn-outline-light px-5 py-3 rounded-4 font-headline fw-bold fs-5 border-2 hover-scale bg-white bg-opacity-10"
                 >
-                  Liên hệ tư vấn
-                </button>
+                  Xem bảng giá
+                </router-link>
               </div>
             </div>
           </div>

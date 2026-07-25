@@ -24,6 +24,11 @@
             <div class="mb-3"><label class="cfg-label">Email hỗ trợ</label><input v-model="cfg.General.SupportEmail" class="sa-input w-100" placeholder="support@pos36.vn" /></div>
             <div class="mb-3"><label class="cfg-label">SĐT hỗ trợ</label><input v-model="cfg.General.SupportPhone" class="sa-input w-100" placeholder="0901234567" /></div>
             <div class="mb-3"><label class="cfg-label">Số ngày dùng thử</label><input v-model.number="cfg.General.TrialDays" type="number" class="sa-input w-100" min="1" max="30" /></div>
+            <div class="mb-3"><label class="cfg-label">Tên tác giả / Nhóm phát triển</label><input v-model="cfg.General.AuthorName" class="sa-input w-100" placeholder="Nhóm POS36 – Trường X" /></div>
+            <div class="mb-3"><label class="cfg-label">Năm bản quyền (Copyright)</label><input v-model="cfg.General.CopyrightYear" class="sa-input w-100" placeholder="2026" /></div>
+            <div class="mb-3"><label class="cfg-label">Link Facebook</label><input v-model="cfg.General.ContactFacebook" class="sa-input w-100" placeholder="https://facebook.com/..." /></div>
+            <div class="mb-3"><label class="cfg-label">Số Zalo (chỉ số, không dấu +84)</label><input v-model="cfg.General.ContactZalo" class="sa-input w-100" placeholder="0901234567" /></div>
+            <div class="mb-3"><label class="cfg-label">Mô tả ngắn về dự án (trang Giới thiệu)</label><textarea v-model="cfg.General.AboutDescription" class="sa-input w-100" rows="3" placeholder="Mô tả ngắn về hệ thống..."></textarea></div>
           </div>
           <div class="col-lg-6">
             <div class="mb-3">
@@ -301,7 +306,7 @@ const currentTabLabel = computed(() => NAV_LABELS[activeTab.value] || "Cấu hì
 
 // ===== CONFIG STATE =====
 const cfg = reactive({
-  General: { SiteName: "", Slogan: "", SupportEmail: "", SupportPhone: "", SiteLogo: "", HeroImage: "", LoginBgImage: "", PrimaryColor: "#f59e0b", TrialDays: 7 },
+  General: { SiteName: "", Slogan: "", SupportEmail: "", SupportPhone: "", SiteLogo: "", HeroImage: "", LoginBgImage: "", PrimaryColor: "#f59e0b", TrialDays: 7, AuthorName: "", CopyrightYear: new Date().getFullYear().toString(), ContactFacebook: "", ContactZalo: "", AboutDescription: "" },
   Payment: { BankCode: "", BankAccountNo: "", BankAccountName: "", SePayWebhookSecret: "" },
   Email: { EmailJsServiceId: "", EmailJsTemplateId: "", EmailJsPublicKey: "", SmtpHost: "smtp.gmail.com", SmtpPort: "587", SmtpUser: "", SmtpPassword: "", SmtpFromName: "POS36 System" },
 });

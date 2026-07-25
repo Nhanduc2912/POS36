@@ -2,6 +2,7 @@
 import { ref, onMounted } from "vue";
 import axios from "axios";
 import PublicNavbar from "../../components/PublicNavbar.vue";
+import PublicFooter from "../../components/PublicFooter.vue";
 
 const siteConfig = ref({ trialDays: 7, siteName: "POS36" });
 
@@ -20,6 +21,7 @@ onMounted(async () => {
     <PublicNavbar />
 
     <main class="main-content">
+      <!-- ====== Hero Section ====== -->
       <section class="hero-section container">
         <div class="row align-items-center min-vh-75">
           <div class="col-lg-6 text-center text-lg-start mb-5 mb-lg-0 pe-lg-5">
@@ -27,12 +29,11 @@ onMounted(async () => {
               class="display-3 fw-black text-dark lh-sm mb-4 font-headline tracking-tighter"
             >
               Quản Lý Nhà Hàng <br />
-              <span class="text-orange">Dễ Dàng & Tốc Độ</span>
+              <span class="text-orange">Dễ Dàng &amp; Tốc Độ</span>
             </h1>
             <p class="lead text-secondary mb-5 fs-6 lh-lg pe-lg-4">
               Nâng tầm trải nghiệm ẩm thực và tối ưu hóa quy trình vận hành với
-              giải pháp POS thông minh nhất dành cho nhà hàng và quán cafe hiện
-              đại.
+              giải pháp POS thông minh dành cho nhà hàng và quán cafe hiện đại.
             </p>
             <div
               class="d-flex flex-column flex-sm-row justify-content-center justify-content-lg-start gap-3"
@@ -41,7 +42,13 @@ onMounted(async () => {
                 to="/register"
                 class="btn btn-orange text-white rounded-3 px-5 py-3 fw-bold shadow hover-scale"
               >
-                Bắt đầu ngay
+                Dùng thử miễn phí
+              </router-link>
+              <router-link
+                to="/pricing"
+                class="btn btn-outline-secondary rounded-3 px-5 py-3 fw-bold hover-scale"
+              >
+                Xem bảng giá
               </router-link>
             </div>
           </div>
@@ -59,23 +66,7 @@ onMounted(async () => {
         </div>
       </section>
 
-      <section class="social-proof py-5 text-center">
-        <p class="small text-muted fw-bold text-uppercase tracking-widest mb-4">
-          Tin dùng bởi các thương hiệu hàng đầu
-        </p>
-        <div class="d-flex flex-wrap justify-content-center gap-5 opacity-75">
-          <div class="brand-item fw-black fs-5">
-            <i class="bi bi-cup-hot-fill me-2"></i> Cafe Hub
-          </div>
-          <div class="brand-item fw-black fs-5">
-            <i class="bi bi-shop me-2"></i> Foodie
-          </div>
-          <div class="brand-item fw-black fs-5">
-            <i class="bi bi-egg-fried me-2"></i> Restauro
-          </div>
-        </div>
-      </section>
-
+      <!-- ====== Tính năng nổi bật ====== -->
       <section class="features-section py-5 mt-5 container">
         <div class="text-center mb-5">
           <h2 class="display-6 font-headline fw-black text-dark mb-3">
@@ -94,7 +85,7 @@ onMounted(async () => {
               >
                 <i class="bi bi-lightning-charge-fill fs-3"></i>
               </div>
-              <h5 class="font-headline fw-bold mb-3">Fast Interface</h5>
+              <h5 class="font-headline fw-bold mb-3">Giao diện nhanh</h5>
               <p class="text-muted small lh-lg mb-0">
                 Giao diện tối giản, tốc độ xử lý nhanh chóng giúp nhân viên phục
                 vụ khách hàng trong tích tắc.
@@ -110,7 +101,7 @@ onMounted(async () => {
               >
                 <i class="bi bi-shop-window fs-3"></i>
               </div>
-              <h5 class="font-headline fw-bold mb-3">Table Ordering</h5>
+              <h5 class="font-headline fw-bold mb-3">Order theo bàn</h5>
               <p class="text-muted small lh-lg mb-0">
                 Quản lý sơ đồ bàn trực quan, gọi món tại bàn và đồng bộ dữ liệu
                 ngay lập tức xuống bếp.
@@ -126,7 +117,7 @@ onMounted(async () => {
               >
                 <i class="bi bi-box-seam-fill fs-3"></i>
               </div>
-              <h5 class="font-headline fw-bold mb-3">Inventory Management</h5>
+              <h5 class="font-headline fw-bold mb-3">Quản lý kho</h5>
               <p class="text-muted small lh-lg mb-0">
                 Kiểm soát nguyên vật liệu chính xác theo thời gian thực, cảnh
                 báo khi tồn kho xuống thấp.
@@ -136,6 +127,7 @@ onMounted(async () => {
         </div>
       </section>
 
+      <!-- ====== Banner Dùng Thử ====== -->
       <section class="banner-section container py-5 my-4">
         <div
           class="bg-orange-gradient rounded-5 p-5 text-white position-relative overflow-hidden shadow-lg"
@@ -147,11 +139,10 @@ onMounted(async () => {
               <h2
                 class="display-5 fw-black font-headline tracking-tighter mb-3"
               >
-                Tối ưu doanh thu ngay hôm nay
+                Tối ưu vận hành ngay hôm nay
               </h2>
               <p class="fs-5 opacity-75 mb-0">
-                Gia nhập cộng đồng hơn 5,000+ nhà hàng và quán cafe đã thành
-                công cùng POS36.
+                Bắt đầu với đầy đủ tính năng. Không yêu cầu thẻ tín dụng.
               </p>
             </div>
             <div
@@ -177,6 +168,7 @@ onMounted(async () => {
         </div>
       </section>
 
+      <!-- ====== CTA Section ====== -->
       <section class="cta-section py-5 text-center mt-4">
         <div class="container">
           <span
@@ -200,7 +192,7 @@ onMounted(async () => {
           >
             <div class="d-flex align-items-center">
               <i class="bi bi-check-circle-fill text-success me-2"></i> Hỗ trợ
-              24/7
+              kỹ thuật
             </div>
             <div class="d-flex align-items-center">
               <i class="bi bi-check-circle-fill text-success me-2"></i> Triển
@@ -215,66 +207,7 @@ onMounted(async () => {
       </section>
     </main>
 
-    <footer class="bg-white border-top py-5 mt-5">
-      <div class="container">
-        <div class="row gy-4">
-          <div class="col-lg-4">
-            <h4
-              class="fw-black text-orange font-headline mb-3 tracking-tighter"
-            >
-              POS36
-            </h4>
-            <p class="text-muted small pe-lg-5 lh-lg">
-              Giải pháp quản lý nhà hàng hiện đại, nâng tầm hiệu quả kinh doanh
-              và trải nghiệm khách hàng tại Việt Nam.
-            </p>
-            <div class="d-flex gap-3 text-muted">
-              <i class="bi bi-globe fs-5 cursor-pointer"></i>
-              <i class="bi bi-envelope-fill fs-5 cursor-pointer"></i>
-              <i class="bi bi-telephone-fill fs-5 cursor-pointer"></i>
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <h6 class="fw-bold mb-3">Công ty</h6>
-            <ul class="list-unstyled text-muted small lh-lg">
-              <li>
-                <a href="#" class="text-decoration-none text-muted hover-orange"
-                  >Privacy Policy</a
-                >
-              </li>
-              <li>
-                <a href="#" class="text-decoration-none text-muted hover-orange"
-                  >Terms of Service</a
-                >
-              </li>
-              <li>
-                <a href="#" class="text-decoration-none text-muted hover-orange"
-                  >Cookie Settings</a
-                >
-              </li>
-            </ul>
-          </div>
-          <div class="col-lg-4">
-            <h6 class="fw-bold mb-3">Hỗ trợ</h6>
-            <ul class="list-unstyled text-muted small lh-lg">
-              <li>
-                <a href="#" class="text-decoration-none text-muted hover-orange"
-                  >Contact Support</a
-                >
-              </li>
-              <li>
-                <a href="#" class="text-decoration-none text-muted hover-orange"
-                  >Global Locations</a
-                >
-              </li>
-            </ul>
-          </div>
-        </div>
-        <div class="text-center text-muted small border-top pt-4 mt-4">
-          © 2024 POS36 Editorial Excellence. All rights reserved.
-        </div>
-      </div>
-    </footer>
+    <PublicFooter />
   </div>
 </template>
 
@@ -321,18 +254,8 @@ onMounted(async () => {
   transform: scale(1.05);
 }
 
-.hover-bg-gray:hover {
-  background-color: #f1f1f1;
-}
 .hover-orange:hover {
   color: #e65c00 !important;
-}
-
-.cursor-pointer {
-  cursor: pointer;
-}
-.cursor-pointer:hover {
-  color: #e65c00;
 }
 
 /* Hero section mockup */
@@ -362,7 +285,7 @@ onMounted(async () => {
 }
 
 .mockup-img {
-  border: 10px solid #222; /* Giả làm viền tablet đen */
+  border: 10px solid #222;
 }
 
 /* Features */
@@ -405,6 +328,10 @@ onMounted(async () => {
 .trial-box {
   background: rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(10px);
+}
+
+.max-w-75 {
+  max-width: 75%;
 }
 
 @media (max-width: 992px) {
