@@ -1,84 +1,93 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
+using POS36.Api.Data;
+using Serilog;
 
 namespace POS36.Api.Services
 {
     public interface ICloudStorageService
     {
-        Task<string?> UploadImageAsync(IFormFile file, string folder = "pos36");
+        Task<string?> UploadImageAsync(IFormFile? file, string folder = "pos36");
     }
 
     public class CloudStorageService : ICloudStorageService
     {
-        private readonly IConfiguration _configuration;
+        private readonly AppDbContext _context;
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IWebHostEnvironment _env;
-        private readonly ILogger<CloudStorageService> _logger;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public CloudStorageService(
-            IConfiguration configuration,
+            AppDbContext context,
             IHttpClientFactory httpClientFactory,
-            IWebHostEnvironment env,
-            ILogger<CloudStorageService> logger)
+            IHttpContextAccessor httpContextAccessor)
         {
-            _configuration = configuration;
+            _context = context;
             _httpClientFactory = httpClientFactory;
-            _env = env;
-            _logger = logger;
+            _httpContextAccessor = httpContextAccessor;
         }
 
-        public async Task<string?> UploadImageAsync(IFormFile file, string folder = "pos36")
+        public async Task<string?> UploadImageAsync(IFormFile? file, string folder = "pos36")
         {
             if (file == null || file.Length == 0) return null;
 
-            // 1. Thử Upload lên Cloudinary nếu có cấu hình CloudName & Preset / ApiKey
-            var cloudName = _configuration["Cloudinary:CloudName"];
-            var uploadPreset = _configuration["Cloudinary:UploadPreset"];
+            // 1. Lấy cấu hình Cloud từ CSDL (Hệ thống SuperAdmin)
+            var cloudKeys = new[] { "CloudProvider", "CloudinaryCloudName", "CloudinaryUploadPreset", "ImgBbApiKey" };
+            var configs = await _context.CauHinhHeThangs
+                .Where(c => cloudKeys.Contains(c.MaKey))
+                .ToDictionaryAsync(c => c.MaKey, c => c.GiaTri);
 
-            if (!string.IsNullOrEmpty(cloudName) && !string.IsNullOrEmpty(uploadPreset))
+            string provider = configs.GetValueOrDefault("CloudProvider", "Local")?.Trim() ?? "Local";
+            string cloudinaryCloudName = configs.GetValueOrDefault("CloudinaryCloudName", "")?.Trim() ?? "";
+            string cloudinaryPreset = configs.GetValueOrDefault("CloudinaryUploadPreset", "")?.Trim() ?? "";
+            string imgBbKey = configs.GetValueOrDefault("ImgBbApiKey", "")?.Trim() ?? "";
+
+            // ===== MÔ HÌNH 1: UPLOAD LÊN CLOUDINARY =====
+            if (provider.Equals("Cloudinary", StringComparison.OrdinalIgnoreCase) &&
+                !string.IsNullOrEmpty(cloudinaryCloudName) &&
+                !string.IsNullOrEmpty(cloudinaryPreset))
             {
                 try
                 {
-                    var cloudinaryUrl = await UploadToCloudinaryAsync(file, cloudName, uploadPreset, folder);
-                    if (!string.IsNullOrEmpty(cloudinaryUrl))
+                    string cloudUrl = await UploadToCloudinaryAsync(file, cloudinaryCloudName, cloudinaryPreset, folder);
+                    if (!string.IsNullOrEmpty(cloudUrl))
                     {
-                        _logger.LogInformation("Upload thành công lên Cloudinary CDN: {Url}", cloudinaryUrl);
-                        return cloudinaryUrl;
+                        Log.Information("☁️ Up ảnh thành công lên Cloudinary: {Url}", cloudUrl);
+                        return cloudUrl;
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning("Cloudinary Upload thất bại, fallback sang ImgBB / Local: {Error}", ex.Message);
+                    Log.Error("❌ Lỗi upload Cloudinary: {Message}. Chuyển sang fallback...", ex.Message);
                 }
             }
 
-            // 2. Thử Upload lên ImgBB nếu có ImgBBApiKey
-            var imgbbApiKey = _configuration["ImgBB:ApiKey"];
-            if (!string.IsNullOrEmpty(imgbbApiKey))
+            // ===== MÔ HÌNH 2: UPLOAD LÊN IMGBB =====
+            if (provider.Equals("ImgBB", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(imgBbKey))
             {
                 try
                 {
-                    var imgbbUrl = await UploadToImgBBAsync(file, imgbbApiKey);
-                    if (!string.IsNullOrEmpty(imgbbUrl))
+                    string cloudUrl = await UploadToImgBbAsync(file, imgBbKey);
+                    if (!string.IsNullOrEmpty(cloudUrl))
                     {
-                        _logger.LogInformation("Upload thành công lên ImgBB CDN: {Url}", imgbbUrl);
-                        return imgbbUrl;
+                        Log.Information("☁️ Up ảnh thành công lên ImgBB: {Url}", cloudUrl);
+                        return cloudUrl;
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning("ImgBB Upload thất bại, fallback sang Local storage: {Error}", ex.Message);
+                    Log.Error("❌ Lỗi upload ImgBB: {Message}. Chuyển sang fallback...", ex.Message);
                 }
             }
 
-            // 3. Fallback: Lưu vào wwwroot/images nếu chưa cấu hình Cloud hoặc Cloud bị lỗi
-            return await SaveLocalImageAsync(file);
+            // ===== FALLBACK: LƯU CỤC BỘ VÀO WWWROOT/IMAGES =====
+            return await SaveLocalAsync(file);
         }
 
-        private async Task<string?> UploadToCloudinaryAsync(IFormFile file, string cloudName, string uploadPreset, string folder)
+        private async Task<string> UploadToCloudinaryAsync(IFormFile file, string cloudName, string uploadPreset, string folder)
         {
             var client = _httpClientFactory.CreateClient();
-            var url = $"https://api.cloudinary.com/v1_1/{cloudName}/image/upload";
+            var apiUrl = $"https://api.cloudinary.com/v1_1/{cloudName}/image/upload";
 
             using var content = new MultipartFormDataContent();
             using var stream = file.OpenReadStream();
@@ -87,57 +96,56 @@ namespace POS36.Api.Services
 
             content.Add(streamContent, "file", file.FileName);
             content.Add(new StringContent(uploadPreset), "upload_preset");
-            if (!string.IsNullOrEmpty(folder))
-            {
-                content.Add(new StringContent(folder), "folder");
-            }
+            content.Add(new StringContent(folder), "folder");
 
-            var response = await client.PostAsync(url, content);
+            var response = await client.PostAsync(apiUrl, content);
+            var responseString = await response.Content.ReadAsStringAsync();
+
             if (response.IsSuccessStatusCode)
             {
-                var json = await response.Content.ReadAsStringAsync();
-                using var doc = JsonDocument.Parse(json);
-                if (doc.RootElement.TryGetProperty("secure_url", out var secureUrlProp))
+                using var doc = JsonDocument.Parse(responseString);
+                if (doc.RootElement.TryGetProperty("secure_url", out var urlProp))
                 {
-                    return secureUrlProp.GetString();
+                    return urlProp.GetString() ?? "";
                 }
             }
 
-            return null;
+            throw new Exception($"Cloudinary API Error ({response.StatusCode}): {responseString}");
         }
 
-        private async Task<string?> UploadToImgBBAsync(IFormFile file, string apiKey)
+        private async Task<string> UploadToImgBbAsync(IFormFile file, string apiKey)
         {
             var client = _httpClientFactory.CreateClient();
-            var url = $"https://api.imgbb.com/1/upload?key={apiKey}";
+            var apiUrl = $"https://api.imgbb.com/1/upload?key={apiKey}";
 
             using var content = new MultipartFormDataContent();
             using var stream = file.OpenReadStream();
             var streamContent = new StreamContent(stream);
-            streamContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType ?? "image/jpeg");
 
             content.Add(streamContent, "image", file.FileName);
 
-            var response = await client.PostAsync(url, content);
+            var response = await client.PostAsync(apiUrl, content);
+            var responseString = await response.Content.ReadAsStringAsync();
+
             if (response.IsSuccessStatusCode)
             {
-                var json = await response.Content.ReadAsStringAsync();
-                using var doc = JsonDocument.Parse(json);
-                if (doc.RootElement.GetProperty("data").TryGetProperty("url", out var urlProp))
+                using var doc = JsonDocument.Parse(responseString);
+                if (doc.RootElement.TryGetProperty("data", out var dataObj) &&
+                    dataObj.TryGetProperty("url", out var urlProp))
                 {
-                    return urlProp.GetString();
+                    return urlProp.GetString() ?? "";
                 }
             }
 
-            return null;
+            throw new Exception($"ImgBB API Error ({response.StatusCode}): {responseString}");
         }
 
-        private async Task<string> SaveLocalImageAsync(IFormFile file)
+        private async Task<string> SaveLocalAsync(IFormFile file)
         {
-            var uploadsFolder = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "images");
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
             if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
-            var uniqueFileName = $"{Guid.NewGuid()}_{file.FileName}";
+            var uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
             var filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
             using (var fileStream = new FileStream(filePath, FileMode.Create))
@@ -145,7 +153,7 @@ namespace POS36.Api.Services
                 await file.CopyToAsync(fileStream);
             }
 
-            return $"/images/{uniqueFileName}";
+            return "/images/" + uniqueFileName;
         }
     }
 }

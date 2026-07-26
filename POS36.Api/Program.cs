@@ -106,11 +106,13 @@ namespace POS36.Api
                 builder.Services.AddHttpContextAccessor();
                 builder.Services.AddHostedService<SubscriptionBackgroundService>();
 
-                // Phase 7B: Gemini AI Service & Cloud Storage
-                builder.Services.AddHttpClient();
+                // Phase 7B: Gemini AI Service
                 builder.Services.AddHttpClient<GeminiAIService>();
                 builder.Services.AddScoped<GeminiAIService>();
                 builder.Services.AddScoped<ISampleDataService, SampleDataService>();
+
+                // Cloud Storage Service (Cloudinary, ImgBB, Local Fallback)
+                builder.Services.AddHttpClient();
                 builder.Services.AddScoped<ICloudStorageService, CloudStorageService>();
 
                 builder.Services.AddEndpointsApiExplorer();

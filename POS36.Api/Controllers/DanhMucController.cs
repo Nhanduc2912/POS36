@@ -55,11 +55,10 @@ namespace POS36.Api.Controllers
             public IFormFile? HinhAnhFile { get; set; }
         }
 
-        // Hàm hỗ trợ UploadImageAsync sử dụng Cloud Storage / Local fallback
+        // Copy lại hàm UploadImageAsync (giống bên SanPhamController) để dùng
         private async Task<string?> UploadImageAsync(IFormFile? file)
         {
-            if (file == null || file.Length == 0) return null;
-            return await _cloudStorage.UploadImageAsync(file, "pos36/categories");
+            return await _cloudStorage.UploadImageAsync(file, "danh-muc");
         }
 
         // 2. THÊM MỚI DANH MỤC (Có Up Ảnh)

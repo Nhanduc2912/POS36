@@ -176,11 +176,10 @@ namespace POS36.Api.Controllers
             public int NgưỡngCanhBao { get; set; } = 5; // FEAT-2
         }
 
-        // HÀM HỖ TRỢ LƯU FILE ẢNH VÀO CLOUD HOẶC LOCAL
+        // HÀM HỖ TRỢ UPLOAD ẢNH (GỌI CLOUD STORAGE SERVICE)
         private async Task<string?> UploadImageAsync(IFormFile? file)
         {
-            if (file == null || file.Length == 0) return null;
-            return await _cloudStorage.UploadImageAsync(file, "pos36/products");
+            return await _cloudStorage.UploadImageAsync(file, "san-pham");
         }
 
         // THÊM MỚI SẢN PHẨM (Dùng [FromForm] thay vì [FromBody])

@@ -237,6 +237,7 @@ const menuItems = ref([
     icon: 'gear', label: 'Cấu hình', isGroup: true,
     children: [
       { tab: 'general',  icon: 'sliders',      label: 'Cấu hình chung' },
+      { tab: 'cloud',    icon: 'cloud-upload', label: 'Lưu trữ Cloud' },
       { tab: 'logs',     icon: 'journal-text', label: 'Nhật ký hệ thống' },
       { tab: 'payment',  icon: 'credit-card',  label: 'Thanh toán & Webhook' },
       { tab: 'email',    icon: 'envelope',     label: 'Email & SMTP' },

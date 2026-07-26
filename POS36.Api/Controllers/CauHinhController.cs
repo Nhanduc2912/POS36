@@ -106,7 +106,7 @@ namespace POS36.Api.Controllers
         }
 
         // ==========================================
-        // 0B. UPLOAD ẢNH / LOGO (Cho SuperAdmin - Tự động Cloud / Fallback Local)
+        // 0B. UPLOAD ẢNH / LOGO (Cho SuperAdmin)
         // ==========================================
         [HttpPost("upload-image")]
         public async Task<IActionResult> UploadImage(IFormFile file)
@@ -119,9 +119,9 @@ namespace POS36.Api.Controllers
             if (!allowedExtensions.Contains(extension))
                 return BadRequest(new { message = "Định dạng tập tin không được hỗ trợ! Vui lòng chọn ảnh JPG, PNG, WEBP, SVG." });
 
-            var url = await _cloudStorage.UploadImageAsync(file, "pos36/config");
+            var url = await _cloudStorage.UploadImageAsync(file, "system");
             if (string.IsNullOrEmpty(url))
-                return StatusCode(500, new { message = "Lỗi tải ảnh lên Cloud!" });
+                return BadRequest(new { message = "Lỗi khi lưu ảnh hệ thống!" });
 
             await GhiLog("CauHinh", $"Upload ảnh hệ thống thành công: {url}", "/super-admin/config");
 
