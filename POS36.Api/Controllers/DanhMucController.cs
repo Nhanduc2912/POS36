@@ -6,6 +6,8 @@ using POS36.Api.DTOs;
 using POS36.Api.Models;
 using System.Security.Claims;
 
+using POS36.Api.Services;
+
 namespace POS36.Api.Controllers
 {
     [Route("api/[controller]")]
@@ -14,10 +16,12 @@ namespace POS36.Api.Controllers
     public class DanhMucController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ICloudStorageService _cloudStorage;
 
-        public DanhMucController(AppDbContext context)
+        public DanhMucController(AppDbContext context, ICloudStorageService cloudStorage)
         {
             _context = context;
+            _cloudStorage = cloudStorage;
         }
 
 
@@ -51,19 +55,11 @@ namespace POS36.Api.Controllers
             public IFormFile? HinhAnhFile { get; set; }
         }
 
-        // Copy lại hàm UploadImageAsync (giống bên SanPhamController) để dùng
+        // Hàm hỗ trợ UploadImageAsync sử dụng Cloud Storage / Local fallback
         private async Task<string?> UploadImageAsync(IFormFile? file)
         {
             if (file == null || file.Length == 0) return null;
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
-            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-            var uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
-            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(fileStream);
-            }
-            return "/images/" + uniqueFileName;
+            return await _cloudStorage.UploadImageAsync(file, "pos36/categories");
         }
 
         // 2. THÊM MỚI DANH MỤC (Có Up Ảnh)

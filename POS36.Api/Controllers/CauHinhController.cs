@@ -5,6 +5,8 @@ using POS36.Api.Data;
 using POS36.Api.Models;
 using Serilog;
 
+using POS36.Api.Services;
+
 namespace POS36.Api.Controllers
 {
     [Route("api/[controller]")]
@@ -14,11 +16,13 @@ namespace POS36.Api.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IHttpContextAccessor _httpContext;
+        private readonly ICloudStorageService _cloudStorage;
 
-        public CauHinhController(AppDbContext context, IHttpContextAccessor httpContext)
+        public CauHinhController(AppDbContext context, IHttpContextAccessor httpContext, ICloudStorageService cloudStorage)
         {
             _context = context;
             _httpContext = httpContext;
+            _cloudStorage = cloudStorage;
         }
 
         // Helper: lấy IP
@@ -102,7 +106,7 @@ namespace POS36.Api.Controllers
         }
 
         // ==========================================
-        // 0B. UPLOAD ẢNH / LOGO (Cho SuperAdmin)
+        // 0B. UPLOAD ẢNH / LOGO (Cho SuperAdmin - Tự động Cloud / Fallback Local)
         // ==========================================
         [HttpPost("upload-image")]
         public async Task<IActionResult> UploadImage(IFormFile file)
@@ -115,18 +119,10 @@ namespace POS36.Api.Controllers
             if (!allowedExtensions.Contains(extension))
                 return BadRequest(new { message = "Định dạng tập tin không được hỗ trợ! Vui lòng chọn ảnh JPG, PNG, WEBP, SVG." });
 
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
-            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+            var url = await _cloudStorage.UploadImageAsync(file, "pos36/config");
+            if (string.IsNullOrEmpty(url))
+                return StatusCode(500, new { message = "Lỗi tải ảnh lên Cloud!" });
 
-            var uniqueFileName = $"config_{Guid.NewGuid()}{extension}";
-            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(fileStream);
-            }
-
-            var url = $"/images/{uniqueFileName}";
             await GhiLog("CauHinh", $"Upload ảnh hệ thống thành công: {url}", "/super-admin/config");
 
             return Ok(new { url, message = "Upload ảnh thành công!" });

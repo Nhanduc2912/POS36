@@ -8,6 +8,8 @@ using POS36.Api.Models;
 
 using System.Security.Claims;
 
+using POS36.Api.Services;
+
 namespace POS36.Api.Controllers
 {
     [Route("api/[controller]")]
@@ -16,10 +18,12 @@ namespace POS36.Api.Controllers
     public class SanPhamController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly ICloudStorageService _cloudStorage;
 
-        public SanPhamController(AppDbContext context)
+        public SanPhamController(AppDbContext context, ICloudStorageService cloudStorage)
         {
             _context = context;
+            _cloudStorage = cloudStorage;
         }
 
         private int GetCuaHangId()
@@ -172,25 +176,11 @@ namespace POS36.Api.Controllers
             public int NgưỡngCanhBao { get; set; } = 5; // FEAT-2
         }
 
-        // HÀM HỖ TRỢ LƯU FILE ẢNH VÀO THƯ MỤC wwwroot/images
+        // HÀM HỖ TRỢ LƯU FILE ẢNH VÀO CLOUD HOẶC LOCAL
         private async Task<string?> UploadImageAsync(IFormFile? file)
         {
             if (file == null || file.Length == 0) return null;
-
-            // Tạo thư mục wwwroot/images nếu chưa có
-            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
-            if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-
-            // Đổi tên file để không bị trùng (dùng GUID)
-            var uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
-            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-            using (var fileStream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(fileStream);
-            }
-
-            return "/images/" + uniqueFileName; // Trả về đường dẫn để lưu vào DB
+            return await _cloudStorage.UploadImageAsync(file, "pos36/products");
         }
 
         // THÊM MỚI SẢN PHẨM (Dùng [FromForm] thay vì [FromBody])
