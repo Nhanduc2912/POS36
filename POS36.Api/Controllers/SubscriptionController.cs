@@ -12,12 +12,14 @@ namespace POS36.Api.Controllers
     public class SubscriptionController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _configuration;
         private const int EXPIRY_MINUTES = 10;
         private const int DAILY_LIMIT = 3;
 
-        public SubscriptionController(AppDbContext context)
+        public SubscriptionController(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         private int GetCuaHangId()
@@ -27,22 +29,32 @@ namespace POS36.Api.Controllers
             return int.Parse(claim.Value);
         }
 
-        /// <summary>Lấy thông tin ngân hàng SuperAdmin (private helper)</summary>
+        /// <summary>Lấy thông tin ngân hàng SuperAdmin (bảo mật hệ thống)</summary>
         private async Task<(string bankCode, string bankAccountNo, string bankAccountName, bool configured)> GetSystemBankAsync()
         {
-            var keys = new[] { "BankCode", "BankAccountNo", "BankAccountName" };
-            var configs = await _context.CauHinhHeThangs
-                .Where(c => c.NhomCauHinh == "Payment" && keys.Contains(c.MaKey))
-                .ToListAsync();
+            // 1. Ưu tiên đọc cấu hình bảo mật từ backend appsettings.json
+            string bankCode = _configuration["Payment:BankCode"] ?? "MBBank";
+            string bankAccountNo = _configuration["Payment:BankAccountNo"] ?? "0387114402";
+            string bankAccountName = _configuration["Payment:BankAccountName"] ?? "NGUYEN TRAN NHAN DUC";
 
-            var dict = configs.ToDictionary(c => c.MaKey, c => c.GiaTri);
-            var no = dict.GetValueOrDefault("BankAccountNo", "");
-            return (
-                dict.GetValueOrDefault("BankCode", ""),
-                no,
-                dict.GetValueOrDefault("BankAccountName", ""),
-                !string.IsNullOrWhiteSpace(no)
-            );
+            if (string.IsNullOrWhiteSpace(bankAccountNo))
+            {
+                var keys = new[] { "BankCode", "BankAccountNo", "BankAccountName" };
+                var configs = await _context.CauHinhHeThangs
+                    .Where(c => c.NhomCauHinh == "Payment" && keys.Contains(c.MaKey))
+                    .ToListAsync();
+
+                var dict = configs.ToDictionary(c => c.MaKey, c => c.GiaTri);
+                bankCode = dict.GetValueOrDefault("BankCode", bankCode);
+                bankAccountNo = dict.GetValueOrDefault("BankAccountNo", bankAccountNo);
+                bankAccountName = dict.GetValueOrDefault("BankAccountName", bankAccountName);
+            }
+
+            if (string.IsNullOrWhiteSpace(bankCode)) bankCode = "MBBank";
+            if (string.IsNullOrWhiteSpace(bankAccountNo)) bankAccountNo = "0387114402";
+            if (string.IsNullOrWhiteSpace(bankAccountName)) bankAccountName = "NGUYEN TRAN NHAN DUC";
+
+            return (bankCode, bankAccountNo, bankAccountName, true);
         }
 
         // ================================================================

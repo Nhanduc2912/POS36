@@ -16,31 +16,47 @@ namespace POS36.Api.Services
         private readonly AppDbContext _context;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IConfiguration _configuration;
 
         public CloudStorageService(
             AppDbContext context,
             IHttpClientFactory httpClientFactory,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            IConfiguration configuration)
         {
             _context = context;
             _httpClientFactory = httpClientFactory;
             _httpContextAccessor = httpContextAccessor;
+            _configuration = configuration;
         }
 
         public async Task<string?> UploadImageAsync(IFormFile? file, string folder = "pos36")
         {
             if (file == null || file.Length == 0) return null;
 
-            // 1. Lấy cấu hình Cloud từ CSDL (Hệ thống SuperAdmin)
-            var cloudKeys = new[] { "CloudProvider", "CloudinaryCloudName", "CloudinaryUploadPreset", "ImgBbApiKey" };
-            var configs = await _context.CauHinhHeThangs
-                .Where(c => cloudKeys.Contains(c.MaKey))
-                .ToDictionaryAsync(c => c.MaKey, c => c.GiaTri);
+            // 1. Ưu tiên đọc cấu hình từ appsettings.json (Bảo mật tối đa, không sợ lộ ra UI)
+            string provider = _configuration["CloudStorage:Provider"] ?? "Cloudinary";
+            string cloudinaryCloudName = _configuration["CloudStorage:CloudName"] ?? "kab6azhv";
+            string cloudinaryPreset = _configuration["CloudStorage:UploadPreset"] ?? "pos36_preset";
+            string imgBbKey = _configuration["CloudStorage:ImgBbApiKey"] ?? "";
 
-            string provider = configs.GetValueOrDefault("CloudProvider", "Local")?.Trim() ?? "Local";
-            string cloudinaryCloudName = configs.GetValueOrDefault("CloudinaryCloudName", "")?.Trim() ?? "";
-            string cloudinaryPreset = configs.GetValueOrDefault("CloudinaryUploadPreset", "")?.Trim() ?? "";
-            string imgBbKey = configs.GetValueOrDefault("ImgBbApiKey", "")?.Trim() ?? "";
+            // 2. Nếu cấu hình appsettings trống, mới đọc từ DB
+            if (string.IsNullOrEmpty(cloudinaryCloudName) || string.IsNullOrEmpty(cloudinaryPreset))
+            {
+                var cloudKeys = new[] { "CloudProvider", "CloudinaryCloudName", "CloudinaryUploadPreset", "ImgBbApiKey" };
+                var configs = await _context.CauHinhHeThangs
+                    .Where(c => cloudKeys.Contains(c.MaKey))
+                    .ToDictionaryAsync(c => c.MaKey, c => c.GiaTri);
+
+                provider = configs.GetValueOrDefault("CloudProvider", provider);
+                cloudinaryCloudName = configs.GetValueOrDefault("CloudinaryCloudName", cloudinaryCloudName);
+                cloudinaryPreset = configs.GetValueOrDefault("CloudinaryUploadPreset", cloudinaryPreset);
+                imgBbKey = configs.GetValueOrDefault("ImgBbApiKey", imgBbKey);
+            }
+
+            // Fallback cứng nếu thiếu
+            if (string.IsNullOrEmpty(cloudinaryCloudName)) cloudinaryCloudName = "kab6azhv";
+            if (string.IsNullOrEmpty(cloudinaryPreset)) cloudinaryPreset = "pos36_preset";
 
             // ===== MÔ HÌNH 1: UPLOAD LÊN CLOUDINARY =====
             if (provider.Equals("Cloudinary", StringComparison.OrdinalIgnoreCase) &&
@@ -52,7 +68,7 @@ namespace POS36.Api.Services
                     string cloudUrl = await UploadToCloudinaryAsync(file, cloudinaryCloudName, cloudinaryPreset, folder);
                     if (!string.IsNullOrEmpty(cloudUrl))
                     {
-                        Log.Information("☁️ Up ảnh thành công lên Cloudinary: {Url}", cloudUrl);
+                        Log.Information("☁️ Up ảnh thành công lên Cloudinary ({CloudName}): {Url}", cloudinaryCloudName, cloudUrl);
                         return cloudUrl;
                     }
                 }

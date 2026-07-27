@@ -101,62 +101,7 @@
       </div>
     </div>
 
-    <!-- ====== Cấu hình Lưu trữ Cloud ====== -->
-    <div v-show="activeTab === 'cloud'" class="cfg-section">
-      <div class="cfg-section-title"><i class="bi bi-cloud-upload me-2"></i>Lưu trữ Cloud Storage (Hình Ảnh)</div>
-      <div class="dash-card">
-        <div class="row g-4">
-          <div class="col-lg-6">
-            <div class="mb-4">
-              <label class="cfg-label">Nền tảng Cloud Storage</label>
-              <select v-model="cfg.Cloud.CloudProvider" class="sa-select w-100 fs-6">
-                <option value="Local">Cục bộ Server (wwwroot/images)</option>
-                <option value="Cloudinary">Cloudinary (Khuyên dùng - 25GB miễn phí)</option>
-                <option value="ImgBB">ImgBB (Miễn phí API Key)</option>
-              </select>
-              <small class="text-muted d-block mt-2">
-                Khi chọn Cloud, tất cả tập tin logo, hero banner, hình ảnh sản phẩm và danh mục tải lên sẽ được đưa thẳng lên đám mây và trả về đường dẫn HTTPS trực tiếp.
-              </small>
-            </div>
 
-            <!-- Cấu hình Cloudinary -->
-            <div v-if="cfg.Cloud.CloudProvider === 'Cloudinary'" class="p-3 border rounded bg-white mb-3">
-              <h6 class="fw-bold text-primary mb-3"><i class="bi bi-cloud-fill me-2"></i>Cấu hình Cloudinary</h6>
-              <div class="mb-3">
-                <label class="cfg-label">Cloud Name</label>
-                <input v-model="cfg.Cloud.CloudinaryCloudName" class="sa-input w-100" placeholder="Ví dụ: pos36-cloud" />
-              </div>
-              <div class="mb-3">
-                <label class="cfg-label">Upload Preset (Unsigned)</label>
-                <input v-model="cfg.Cloud.CloudinaryUploadPreset" class="sa-input w-100" placeholder="Ví dụ: pos36_preset" />
-              </div>
-              <small class="text-muted">Tạo Upload Preset tại: Cloudinary Dashboard &rarr; Settings &rarr; Upload &rarr; Add Upload Preset (Signing Mode: Unsigned).</small>
-            </div>
-
-            <!-- Cấu hình ImgBB -->
-            <div v-if="cfg.Cloud.CloudProvider === 'ImgBB'" class="p-3 border rounded bg-white mb-3">
-              <h6 class="fw-bold text-success mb-3"><i class="bi bi-image-fill me-2"></i>Cấu hình ImgBB API</h6>
-              <div class="mb-3">
-                <label class="cfg-label">ImgBB API Key</label>
-                <input v-model="cfg.Cloud.ImgBbApiKey" class="sa-input w-100" placeholder="Nhập API Key ImgBB..." />
-              </div>
-              <small class="text-muted">Lấy API Key miễn phí tại: <a href="https://api.imgbb.com/" target="_blank" class="text-primary fw-bold">api.imgbb.com</a></small>
-            </div>
-          </div>
-
-          <div class="col-lg-6">
-            <div class="p-4 rounded-4 bg-light border">
-              <h6 class="fw-bold mb-3"><i class="bi bi-info-circle-fill text-info me-2"></i>Hướng Dẫn Sử Dụng Cloud Image</h6>
-              <ul class="lh-lg small text-secondary mb-0">
-                <li><strong>Cloudinary:</strong> Nền tảng CDN lưu trữ ảnh chất lượng cao hàng đầu thế giới, tự động tối ưu hóa dung lượng và hỗ trợ resize ảnh siêu tốc.</li>
-                <li><strong>ImgBB:</strong> Dễ dàng cấu hình nhất, chỉ cần 1 API Key là có thể tải ảnh không giới hạn.</li>
-                <li><strong>Cơ chế tự động Fallback:</strong> Nếu Cloud gặp sự cố hoặc chưa cấu hình API Key, hệ thống sẽ tự động lưu ảnh vào thư mục cục bộ <code>wwwroot/images</code> trên server mà không làm gián đoạn ứng dụng.</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- ====== Nhật ký hệ thống ====== -->
     <div v-show="activeTab === 'logs'" class="cfg-section">
@@ -231,76 +176,7 @@
       </div>
     </div>
 
-    <!-- ====== Thanh toán & Webhook ====== -->
-    <div v-show="activeTab === 'payment'" class="cfg-section">
-      <div class="cfg-section-title"><i class="bi bi-credit-card me-2"></i>Thanh toán & Webhook</div>
-      <div class="row g-3">
-        <div class="col-lg-6">
-          <div class="dash-card">
-            <h6 class="dash-card-title"><i class="bi bi-bank me-2"></i>Thông tin ngân hàng (VietQR)</h6>
-            <div class="mb-3"><label class="cfg-label">Mã ngân hàng</label><input v-model="cfg.Payment.BankCode" class="sa-input w-100" placeholder="MBBank" /></div>
-            <div class="mb-3"><label class="cfg-label">Số tài khoản</label><input v-model="cfg.Payment.BankAccountNo" class="sa-input w-100" placeholder="0123456789" /></div>
-            <div class="mb-3"><label class="cfg-label">Tên chủ tài khoản</label><input v-model="cfg.Payment.BankAccountName" class="sa-input w-100" placeholder="NGUYEN VAN A" /></div>
-          </div>
-        </div>
-        <div class="col-lg-6">
-          <div class="dash-card">
-            <h6 class="dash-card-title"><i class="bi bi-webhook me-2"></i>SePay Webhook</h6>
-            <div class="mb-3">
-              <label class="cfg-label">Webhook Secret Key</label>
-              <div class="d-flex gap-2">
-                <input :type="showSecret ? 'text' : 'password'" v-model="cfg.Payment.SePayWebhookSecret" class="sa-input flex-fill" placeholder="••••••••" />
-                <button class="sa-btn-sm sa-btn-info" @click="showSecret = !showSecret"><i :class="'bi bi-' + (showSecret ? 'eye-slash' : 'eye')"></i></button>
-              </div>
-            </div>
-            <div class="webhook-info">
-              <i class="bi bi-info-circle me-2 text-info"></i>
-              <span style="font-size:.8rem;color:var(--sa-text-muted)">Webhook URL: <code style="color:var(--sa-accent)">{{ backendUrl }}/api/Webhook/sepay</code></span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- ====== Email & SMTP ====== -->
-    <div v-show="activeTab === 'email'" class="cfg-section">
-      <div class="cfg-section-title"><i class="bi bi-envelope me-2"></i>Email & SMTP</div>
-      <div class="row g-3">
-        <div class="col-lg-6">
-          <div class="dash-card">
-            <h6 class="dash-card-title"><i class="bi bi-send me-2"></i>EmailJS (Form liên hệ)</h6>
-            <div class="mb-3"><label class="cfg-label">Service ID</label><input v-model="cfg.Email.EmailJsServiceId" class="sa-input w-100" placeholder="service_xxx" /></div>
-            <div class="mb-3"><label class="cfg-label">Template ID</label><input v-model="cfg.Email.EmailJsTemplateId" class="sa-input w-100" placeholder="template_xxx" /></div>
-            <div class="mb-3">
-              <label class="cfg-label">Public Key</label>
-              <div class="d-flex gap-2">
-                <input :type="showEmailKey ? 'text' : 'password'" v-model="cfg.Email.EmailJsPublicKey" class="sa-input flex-fill" placeholder="••••••••" />
-                <button class="sa-btn-sm sa-btn-info" @click="showEmailKey = !showEmailKey"><i :class="'bi bi-eye' + (showEmailKey ? '-slash' : '')"></i></button>
-              </div>
-            </div>
-            <button class="sa-action-btn" @click="testEmail"><i class="bi bi-send me-1"></i>Test gửi email</button>
-          </div>
-        </div>
-        <div class="col-lg-6">
-          <div class="dash-card">
-            <h6 class="dash-card-title"><i class="bi bi-server me-2"></i>SMTP Server</h6>
-            <div class="row g-2 mb-3">
-              <div class="col-8"><label class="cfg-label">SMTP Host</label><input v-model="cfg.Email.SmtpHost" class="sa-input w-100" placeholder="smtp.gmail.com" /></div>
-              <div class="col-4"><label class="cfg-label">Port</label><input v-model="cfg.Email.SmtpPort" class="sa-input w-100" placeholder="587" /></div>
-            </div>
-            <div class="mb-3"><label class="cfg-label">Username</label><input v-model="cfg.Email.SmtpUser" class="sa-input w-100" placeholder="yourmail@gmail.com" /></div>
-            <div class="mb-3">
-              <label class="cfg-label">Password</label>
-              <div class="d-flex gap-2">
-                <input :type="showSmtpPw ? 'text' : 'password'" v-model="cfg.Email.SmtpPassword" class="sa-input flex-fill" placeholder="••••••••" />
-                <button class="sa-btn-sm sa-btn-info" @click="showSmtpPw = !showSmtpPw"><i :class="'bi bi-eye' + (showSmtpPw ? '-slash' : '')"></i></button>
-              </div>
-            </div>
-            <div class="mb-3"><label class="cfg-label">Tên hiển thị khi gửi</label><input v-model="cfg.Email.SmtpFromName" class="sa-input w-100" placeholder="POS36 System" /></div>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- Log Detail Modal -->
     <div class="sa-modal-overlay" v-if="logDetail" @click.self="logDetail = null">
@@ -355,19 +231,13 @@ watch(() => route.query.tab, (tab) => {
 
 const NAV_LABELS = {
   general: "Cấu hình chung",
-  cloud: "Lưu trữ Cloud Storage",
   logs: "Nhật ký hệ thống",
-  payment: "Thanh toán & Webhook",
-  email: "Email & SMTP",
 };
 const currentTabLabel = computed(() => NAV_LABELS[activeTab.value] || "Cấu hình chung");
 
 // ===== CONFIG STATE =====
 const cfg = reactive({
   General: { SiteName: "", Slogan: "", SupportEmail: "", SupportPhone: "", SiteLogo: "", HeroImage: "", LoginBgImage: "", PrimaryColor: "#f59e0b", TrialDays: 7, AuthorName: "", CopyrightYear: new Date().getFullYear().toString(), ContactFacebook: "", ContactZalo: "", AboutDescription: "" },
-  Cloud: { CloudProvider: "Local", CloudinaryCloudName: "", CloudinaryUploadPreset: "", ImgBbApiKey: "" },
-  Payment: { BankCode: "", BankAccountNo: "", BankAccountName: "", SePayWebhookSecret: "" },
-  Email: { EmailJsServiceId: "", EmailJsTemplateId: "", EmailJsPublicKey: "", SmtpHost: "smtp.gmail.com", SmtpPort: "587", SmtpUser: "", SmtpPassword: "", SmtpFromName: "POS36 System" },
 });
 
 const uploadingField = ref("");
