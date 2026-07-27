@@ -111,23 +111,28 @@ namespace POS36.Api.Services
 
         private async Task<string> UploadToCloudinaryAsync(IFormFile file, string cloudName, string uploadPreset, string folder)
         {
+            // Chuyển file binary thành Base64 Data URI để truyền chuẩn FormUrlEncoded
+            using var memoryStream = new MemoryStream();
+            await file.CopyToAsync(memoryStream);
+            byte[] fileBytes = memoryStream.ToArray();
+            string base64Data = Convert.ToBase64String(fileBytes);
+            string mimeType = string.IsNullOrWhiteSpace(file.ContentType) ? "image/jpeg" : file.ContentType;
+            string dataUri = $"data:{mimeType};base64,{base64Data}";
+
             var client = _httpClientFactory.CreateClient();
             var apiUrl = $"https://api.cloudinary.com/v1_1/{cloudName.Trim()}/image/upload";
 
-            using var content = new MultipartFormDataContent();
-            
-            // LƯU Ý QUAN TRỌNG: Cloudinary API bắt buộc upload_preset phải đứng ĐẦU TIÊN trước file binary
-            content.Add(new StringContent(uploadPreset.Trim()), "upload_preset");
+            var formData = new Dictionary<string, string>
+            {
+                { "file", dataUri },
+                { "upload_preset", uploadPreset.Trim() }
+            };
             if (!string.IsNullOrWhiteSpace(folder))
             {
-                content.Add(new StringContent(folder.Trim()), "folder");
+                formData["folder"] = folder.Trim();
             }
 
-            using var stream = file.OpenReadStream();
-            var streamContent = new StreamContent(stream);
-            streamContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType ?? "image/jpeg");
-            content.Add(streamContent, "file", file.FileName);
-
+            var content = new FormUrlEncodedContent(formData);
             var response = await client.PostAsync(apiUrl, content);
             var responseString = await response.Content.ReadAsStringAsync();
 
@@ -145,15 +150,20 @@ namespace POS36.Api.Services
 
         private async Task<string> UploadToImgBbAsync(IFormFile file, string apiKey)
         {
+            using var memoryStream = new MemoryStream();
+            await file.CopyToAsync(memoryStream);
+            byte[] fileBytes = memoryStream.ToArray();
+            string base64Data = Convert.ToBase64String(fileBytes);
+
             var client = _httpClientFactory.CreateClient();
             var apiUrl = $"https://api.imgbb.com/1/upload?key={apiKey.Trim()}";
 
-            using var content = new MultipartFormDataContent();
-            using var stream = file.OpenReadStream();
-            var streamContent = new StreamContent(stream);
+            var formData = new Dictionary<string, string>
+            {
+                { "image", base64Data }
+            };
 
-            content.Add(streamContent, "image", file.FileName);
-
+            var content = new FormUrlEncodedContent(formData);
             var response = await client.PostAsync(apiUrl, content);
             var responseString = await response.Content.ReadAsStringAsync();
 
