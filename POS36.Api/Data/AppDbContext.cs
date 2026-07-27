@@ -172,7 +172,7 @@ namespace POS36.Api.Data
                     }
                 }
 
-                // Nếu cuaHangId chưa xác định và chiNhanhId > 0, xác định cuaHangId từ chi nhánh
+                // 1. Nếu cuaHangId chưa xác định và chiNhanhId > 0, xác định cuaHangId từ chi nhánh
                 if (cuaHangId == 0 && chiNhanhId > 0)
                 {
                     var cn = await this.Set<ChiNhanh>().FindAsync(chiNhanhId);
@@ -180,6 +180,26 @@ namespace POS36.Api.Data
                 }
 
                 if (cuaHangId == 0) return; // Không xác định được store thì bỏ qua
+
+                // 2. CHỐNG LỖI FK 547: Kiểm tra chiNhanhId có hợp lệ trong bảng ChiNhanh không
+                var branchExists = chiNhanhId > 0 && await this.Set<ChiNhanh>().AnyAsync(cn => cn.Id == chiNhanhId);
+                if (!branchExists)
+                {
+                    var validBranchId = await this.Set<ChiNhanh>()
+                        .Where(cn => cn.CuaHangId == cuaHangId && !cn.IsDeleted)
+                        .Select(cn => cn.Id)
+                        .FirstOrDefaultAsync();
+
+                    if (validBranchId > 0)
+                    {
+                        chiNhanhId = validBranchId;
+                    }
+                    else
+                    {
+                        // Không có chi nhánh nào hợp lệ thuộc cửa hàng này -> hủy bỏ để tránh lỗi FK
+                        return;
+                    }
+                }
 
                 var nhatKy = new NhatKyHoatDong
                 {
