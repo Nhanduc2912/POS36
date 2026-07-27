@@ -9,7 +9,13 @@ const swal = inject("$swal");
 const backendUrl = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
   ? "http://localhost:5098"
   : `http://${window.location.hostname}:5098`;
-const getImageUrl = (path) => (path ? backendUrl + path : null);
+const getImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) {
+    return path;
+  }
+  return backendUrl + path;
+};
 
 const categories = ref([]);
 const products = ref([]);

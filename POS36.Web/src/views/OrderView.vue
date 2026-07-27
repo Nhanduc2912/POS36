@@ -396,7 +396,7 @@
               <div class="bg-light" style="height: 80px; width: 100%">
                 <img
                   v-if="item.hinhAnh"
-                  :src="backendUrl + item.hinhAnh"
+                  :src="getImageUrl(item.hinhAnh)"
                   class="w-100 h-100"
                   style="object-fit: cover"
                 />
@@ -573,6 +573,14 @@ import { printReceipt } from "../utils/printer";
 const router = useRouter();
 const swal = inject("$swal");
 const { connection, connectionStatus, backendUrl, startConnection, stopConnection } = useSignalR();
+
+const getImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) {
+    return path;
+  }
+  return backendUrl + path;
+};
 
 const isMobile = ref(window.innerWidth < 768);
 const tenNhanVien = ref(

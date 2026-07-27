@@ -10,6 +10,14 @@ import { useSignalR } from "../composables/useSignalR";
 const swal = inject("$swal");
 const router = useRouter();
 const { connection, connectionStatus, backendUrl, startConnection, stopConnection } = useSignalR();
+
+const getImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) {
+    return path;
+  }
+  return backendUrl + path;
+};
 import AiCopilot from "../components/AiCopilot.vue";
 // --- THÔNG TIN NHÂN VIÊN & PHÂN QUYỀN ---
 const tenNhanVien = ref(localStorage.getItem("tenNhanVien") || "Nhân viên");
@@ -2052,7 +2060,7 @@ watch(activeRightTab, (newTab) => {
                   <div class="bg-light" style="height: 100px; width: 100%">
                     <img
                       v-if="prod.hinhAnh"
-                      :src="backendUrl + prod.hinhAnh"
+                      :src="getImageUrl(prod.hinhAnh)"
                       class="w-100 h-100"
                       style="object-fit: cover"
                     />
