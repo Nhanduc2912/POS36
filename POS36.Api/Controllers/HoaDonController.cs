@@ -491,7 +491,7 @@ namespace POS36.Api.Controllers
         // 5. THANH TOÁN KẾT HỢP TRỪ KHO & TẠO PHIẾU THU SỔ QUỸ
         // ==========================================
         [HttpPost("thanhtoan/{banId}")]
-        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan,Order")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan")]
         public async Task<IActionResult> ThanhToan(int banId,
             [FromQuery] string phuongThuc = "Tiền mặt",
             [FromQuery] int? khachHangId = null,

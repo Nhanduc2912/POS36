@@ -145,50 +145,7 @@
                 </div>
               </div>
 
-              <!-- NEW Switch 6a -->
-              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="fw-bold text-dark mb-1">Cho phép nhân viên Order thanh toán Tiền mặt ngay tại bàn</h6>
-                  <p class="text-muted mb-0 small">Nhân viên phục vụ có thể nhận tiền mặt và xác nhận hoàn tất thanh toán hóa đơn trực tiếp cho khách.</p>
-                </div>
-                <div class="form-check form-switch form-switch-lg">
-                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_OrderThanhToanTienMat" />
-                </div>
-              </div>
 
-              <!-- NEW Switch 6b -->
-              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center" :class="{'opacity-50': !cfgBool.POS_HienQR}">
-                <div>
-                  <h6 class="fw-bold text-dark mb-1">Cho phép nhân viên Order thanh toán chuyển khoản QR tại bàn</h6>
-                  <p class="text-muted mb-0 small">Nhân viên phục vụ có thể mở mã VietQR động trực tiếp tại bàn để khách hàng quét chuyển khoản nhanh.</p>
-                </div>
-                <div class="form-check form-switch form-switch-lg">
-                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_OrderThanhToanQR" :disabled="!cfgBool.POS_HienQR" />
-                </div>
-              </div>
-
-              <!-- NEW Switch 7 -->
-              <div class="toggle-item-row py-3 border-bottom d-flex flex-column align-items-stretch">
-                <div class="d-flex justify-content-between align-items-center">
-                  <div>
-                    <h6 class="fw-bold text-dark mb-1">Cho phép nhân viên Order tạm in hóa đơn/in thử</h6>
-                    <p class="text-muted mb-0 small">Thêm chức năng in thử hóa đơn tạm tính ngay từ giao diện điện thoại của nhân viên Order.</p>
-                  </div>
-                  <div class="form-check form-switch form-switch-lg">
-                    <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_OrderInBillNgay" />
-                  </div>
-                </div>
-                <div v-if="cfgBool.POS_OrderInBillNgay" class="mt-3 p-3 rounded bg-white border border-light-subtle row g-2">
-                  <div class="col-md-6">
-                    <label class="form-label fw-semibold text-secondary small">Chế độ in hóa đơn của Order:</label>
-                    <select v-model="cfg.POS_OrderInBillCheDo" class="form-select bg-light border-0 text-dark">
-                      <option value="Direct">In trực tiếp từ điện thoại nhân viên</option>
-                      <option value="Remote">Gửi lệnh in về máy Thu Ngân ở quầy</option>
-                      <option value="Ask">Hỏi ý kiến nhân viên mỗi khi in</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
 
               <!-- NEW Switch 8 -->
               <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
@@ -589,18 +546,12 @@ const cfg = reactive({
   Loyalty_TiLeKiem: '10000', Loyalty_TiLeDoiDiem: '100',
   Loyalty_NguongDong: '0', Loyalty_NguongBac: '500', Loyalty_NguongVang: '2000',
   Security_TimeoutPhut: '30',
-  POS_OrderInBillCheDo: 'Ask',
   Security_AdminPIN: '1234',
 });
 
 const cfgBool = reactive({
   POS_ChophepGiamGia: true, POS_TuDongIn: false, POS_XacNhanGuiBep: false, POS_HienQR: true,
   POS_HienQrThuNganOnly: false,
-  POS_OrderThanhToanTienMat: false,
-  POS_OrderThanhToanQR: false,
-  POS_OrderInBillNgay: false,
-  POS_ThuNganInNhieuBill: false,
-  POS_ThuNganXemLichSu: true,
   Perm_Order_HuyMon: true,
   Perm_Order_ChuyenTach: true,
   Perm_ThuNgan_XoaHoaDon: true,
