@@ -560,16 +560,18 @@ onMounted(async () => {
 
   try {
     await startConnection();
-    // Đơn hàng mới (gọi món) → refresh sơ đồ bàn
+
+    // ✅ 1. Đơn hàng mới (gọi món) → refresh sơ đồ bàn
     connection.on("CoDonHangMoi", () =>
       fetchStructure(globalState.value.activeBranchId),
     );
 
-    // Cập nhật bàn (chuyển bàn, tách bàn, ghép bàn, thanh toán, hủy món)
+    // ✅ 2. Cập nhật bàn (chuyển bàn, tách bàn, ghép bàn, thanh toán, hủy món)
     connection.on("CapNhatBan", () =>
       fetchStructure(globalState.value.activeBranchId),
     );
 
+    // ✅ 3. Bếp báo xong món → hiện chấm đỏ trên bàn + toast cho nhân viên
     connection.on("MonAnDaXong", (data) => {
       if (!notifications.value.includes(data.banId))
         notifications.value.push(data.banId);
@@ -585,12 +587,62 @@ onMounted(async () => {
         toast: true,
         position: "top-end",
         icon: "info",
-        title: `Bếp báo: Bàn ${data.tenBan} ${data.tenMon}`,
+        title: `🍽️ Bếp báo xong: ${data.tenMon} - Bàn ${data.tenBan}`,
         showConfirmButton: false,
         timer: 4000,
       });
       fetchStructure(globalState.value.activeBranchId);
     });
+
+    // ✅ 4. Thu ngân xác nhận đang xử lý yêu cầu thanh toán
+    //    Handler này BẮT BUỘC phải có để tránh SignalR warning "No client method found"
+    //    vì backend broadcast CoYeuCauThanhToan tới toàn bộ group (kể cả màn Order)
+    connection.on("CoYeuCauThanhToan", (chiNhanhId, tenBan) => {
+      // Nhân viên Order chỉ cần biết thu ngân đang xử lý — không cần làm gì thêm
+      console.log(`[SignalR] Thu ngân đang xử lý bàn ${tenBan} (chi nhánh ${chiNhanhId})`);
+    });
+
+    // ✅ 5. Thu ngân tạo QR → nếu NV đang xem đúng bàn đó thì hiện toast
+    connection.on("NhanYeuCauMoQR", (banId, soTien, maChungTu) => {
+      if (!selectedTable.value || selectedTable.value.id !== banId) return;
+      swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "info",
+        title: `💳 Thu ngân đang tạo QR thanh toán cho bàn này`,
+        showConfirmButton: false,
+        timer: 3000,
+      });
+    });
+
+    // ✅ 6. Thu ngân hủy QR → thông báo cho nhân viên biết
+    connection.on("NhanHuyMoQR", (banId, lyDo) => {
+      if (!selectedTable.value || selectedTable.value.id !== banId) return;
+      swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "warning",
+        title: `QR đã bị hủy. Lý do: ${lyDo}`,
+        showConfirmButton: false,
+        timer: 3000,
+      });
+    });
+
+    // ✅ 7. Thanh toán QR thành công → refresh sơ đồ bàn ngay lập tức
+    connection.on("ThanhToanQRThanhCong", (banId) => {
+      fetchStructure(globalState.value.activeBranchId);
+      if (selectedTable.value && selectedTable.value.id === banId) {
+        swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: `✅ Bàn đã thanh toán thành công!`,
+          showConfirmButton: false,
+          timer: 3000,
+        });
+      }
+    });
+
   } catch (err) {
     console.error("SignalR Lỗi: ", err);
   }
@@ -688,8 +740,12 @@ const fetchBillDetails = async (tableId) => {
 };
 
 const openMenu = () => {
+  // Blur focus trước khi hide modal để tránh aria-hidden warning của Bootstrap 5
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
   tableModal.hide();
-  menuOffcanvas.show();
+  setTimeout(() => menuOffcanvas.show(), 50);
 };
 
 const addToCart = (product) => {
@@ -1001,56 +1057,6 @@ const getBranchIdAndFetch = async () => {
     await fetchProducts(branchId);
   }
 };
-
-// Lắng nghe lệnh yêu cầu mở QR từ Thu Ngân (SỬA LỖI KHÔNG HIỆN)
-// Lắng nghe lệnh yêu cầu mở QR
-connection.on("NhanYeuCauMoQR", (banId, soTien) => {
-  // Bỏ qua nếu bật chế độ chỉ hiện ở Thu Ngân
-  if (settings.value.POS_HienQrThuNganOnly) {
-    return;
-  }
-
-  // Bỏ qua nếu không chủ động xem bàn này
-  if (!selectedTable.value || selectedTable.value.id !== banId) {
-    return;
-  }
-
-  const table = tables.value.find((t) => t.id === banId);
-  const tenBanHienTai = table ? table.tenBan : `Bàn số ${banId}`;
-  const maChungTu = `POS36B${banId}`; // <--- MÃ MỚI SIÊU CHUẨN
-
-  const bankConfig = JSON.parse(
-    localStorage.getItem("pos36_bank_config") || "{}",
-  );
-  if (!bankConfig.bankId) return swal.fire("Lỗi", "Chưa thiết lập NH", "error");
-
-  const accountName = encodeURIComponent(bankConfig.accountName);
-  const url = `https://img.vietqr.io/image/${bankConfig.bankId}-${bankConfig.accountNo}-${bankConfig.template}.png?amount=${soTien}&addInfo=${maChungTu}&accountName=${accountName}`;
-
-  qrData.value = { url, soTien, maChungTu, banId, tenBan: tenBanHienTai };
-  showQRModal.value = true;
-});
-// Nhân viên chủ động bấm Hủy (Do khách muốn trả tiền mặt hoặc sai bill)
-const huyHienThiQR = () => {
-  showQRModal.value = false;
-  connection.invoke(
-    "HuyMoQR",
-    qrData.value.banId,
-    "Nhân viên/Khách hàng báo hủy",
-  );
-};
-
-// Lắng nghe tiền về thật (để tự đóng modal)
-connection.on("ThanhToanQRThanhCong", (banId) => {
-  if (qrData.value.banId === banId) {
-    showQRModal.value = false;
-    swal.fire(
-      "Thành công!",
-      "Hệ thống đã nhận được tiền chuyển khoản.",
-      "success",
-    );
-  }
-});
 </script>
 
 <style scoped>

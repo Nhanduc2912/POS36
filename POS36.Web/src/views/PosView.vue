@@ -314,6 +314,22 @@ onMounted(async () => {
     }
   });
 
+  // ✅ Bếp báo xong món → Thu ngân nhận thông báo + refresh bill đang mở
+  connection.on("MonAnDaXong", (data) => {
+    swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: `🍽️ Bếp báo xong: ${data.tenMon} - Bàn ${data.tenBan}`,
+      showConfirmButton: false,
+      timer: 3500,
+    });
+    // Nếu đang mở bàn đó thì refresh lại bill
+    if (activeTable.value && activeTable.value.id === data.banId) {
+      openTable(activeTable.value);
+    }
+  });
+
   await getBranchIdAndFetch();
 
   refreshTimer = setInterval(() => {
