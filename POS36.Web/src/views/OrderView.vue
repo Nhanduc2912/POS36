@@ -973,9 +973,7 @@ const getBranchIdAndFetch = async () => {
   } catch (e) {
     console.log("Chưa có cấu hình mẫu in");
   }
-  // -----------------------------------------------------------------
 
-  await loadSettings();
 
   let branchId =
     globalState.value.activeBranchId ||
