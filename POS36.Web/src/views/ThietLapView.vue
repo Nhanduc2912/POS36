@@ -78,109 +78,162 @@
               <i class="bi bi-sliders fs-4"></i> Tùy Chọn Vận Hành POS
             </h5>
 
-            <div class="toggle-list-group">
-              <!-- Switch 1 -->
-              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="fw-bold text-dark mb-1">Cho phép giảm giá thủ công ở POS</h6>
-                  <p class="text-muted mb-0 small">Thu ngân có thể điều chỉnh giảm giá theo % hoặc tiền mặt trực tiếp trên giỏ hàng.</p>
+            <!-- Group 1: Nghiệp vụ Bán hàng & Tồn kho -->
+            <div class="mb-4">
+              <h6 class="fw-bold text-uppercase text-secondary small tracking-wider mb-3">
+                <i class="bi bi-cart-check-fill text-primary me-1"></i> 1. Quy trình Bán hàng & Tồn kho
+              </h6>
+              <div class="toggle-list-group border rounded-3 p-3 bg-light bg-opacity-50">
+                <!-- Cho phép giảm giá thủ công ở POS -->
+                <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="fw-bold text-dark mb-1">Cho phép giảm giá thủ công ở POS</h6>
+                    <p class="text-muted mb-0 small">Thu ngân có thể điều chỉnh giảm giá theo % trực tiếp khi tính tiền.</p>
+                  </div>
+                  <div class="form-check form-switch form-switch-lg">
+                    <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_ChophepGiamGia" />
+                  </div>
                 </div>
-                <div class="form-check form-switch form-switch-lg">
-                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_ChophepGiamGia" />
-                </div>
-              </div>
 
-              <!-- Switch 2 -->
-              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="fw-bold text-dark mb-1">Tự động in hóa đơn ngay sau khi thanh toán</h6>
-                  <p class="text-muted mb-0 small">Máy in POS sẽ tự kích hoạt xuất hóa đơn giấy ngay khi nhận tín hiệu thanh toán thành công.</p>
+                <!-- Tỉ lệ Giảm Giá Tối Đa (%) - Ràng buộc phụ thuộc vào POS_ChophepGiamGia -->
+                <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center" :class="{'opacity-50': !cfgBool.POS_ChophepGiamGia}">
+                  <div>
+                    <h6 class="fw-bold text-dark mb-1">Tỉ lệ giảm giá tối đa cho phép (%)</h6>
+                    <p class="text-muted mb-0 small">Giới hạn % giảm giá tối đa Thu ngân được quyền áp dụng (0 - 100%).</p>
+                  </div>
+                  <div style="width: 140px;">
+                    <div class="input-group input-group-sm">
+                      <input type="number" v-model.number="cfg.POS_GiamGiaMax" class="form-control text-center fw-bold" min="0" max="100" :disabled="!cfgBool.POS_ChophepGiamGia" />
+                      <span class="input-group-text fw-bold">%</span>
+                    </div>
+                  </div>
                 </div>
-                <div class="form-check form-switch form-switch-lg">
-                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_TuDongIn" />
-                </div>
-              </div>
 
-              <!-- Switch Cho phép bán âm -->
-              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="fw-bold text-dark mb-1">Cho phép bán hàng vượt quá số lượng tồn kho (Bán âm)</h6>
-                  <p class="text-muted mb-0 small">Bật chức năng này để Thu ngân và Order tiếp tục tính tiền/thêm món ngay cả khi hệ thống hết tồn kho thực tế.</p>
+                <!-- Bắt buộc chọn món trước khi thanh toán -->
+                <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="fw-bold text-dark mb-1">Bắt buộc phải chọn món trước khi thanh toán</h6>
+                    <p class="text-muted mb-0 small">Ngăn chặn tạo hóa đơn rỗng (0 món / 0đ) khi tính tiền tại quầy thu ngân.</p>
+                  </div>
+                  <div class="form-check form-switch form-switch-lg">
+                    <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_ThanhToanBatBuocChonMon" />
+                  </div>
                 </div>
-                <div class="form-check form-switch form-switch-lg">
-                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.Kho_ChoPhepBanAm" />
-                </div>
-              </div>
 
-              <!-- Switch 3 -->
-              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="fw-bold text-dark mb-1">Yêu cầu xác nhận khi gửi đơn xuống Bếp</h6>
-                  <p class="text-muted mb-0 small">Hiện hộp thoại hỏi lại nhân viên order để tránh thao tác nhầm hoặc trùng lặp.</p>
+                <!-- Cho phép hoàn trả món sau thanh toán -->
+                <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="fw-bold text-dark mb-1">Cho phép khách hàng hoàn trả món sau khi thanh toán</h6>
+                    <p class="text-muted mb-0 small">Cho phép Thu ngân nhập phiếu trả đồ và hoàn tiền đối với các hóa đơn đã hoàn tất thanh toán.</p>
+                  </div>
+                  <div class="form-check form-switch form-switch-lg">
+                    <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_ChoPhepHoanTraMon" />
+                  </div>
                 </div>
-                <div class="form-check form-switch form-switch-lg">
-                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_XacNhanGuiBep" />
-                </div>
-              </div>
 
-              <!-- Switch 4 -->
-              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="fw-bold text-dark mb-1">Hiển thị mã QR thanh toán động VietQR</h6>
-                  <p class="text-muted mb-0 small">Tự tạo và hiển thị mã chuyển khoản nhanh có số tiền kèm theo khi Thu ngân bấm thanh toán.</p>
+                <!-- Bán âm kho -->
+                <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="fw-bold text-dark mb-1">Cho phép bán hàng vượt quá số lượng tồn kho (Bán âm)</h6>
+                    <p class="text-muted mb-0 small">Bật chức năng này để Thu ngân và Order tiếp tục tính tiền/thêm món ngay cả khi hết tồn kho thực tế.</p>
+                  </div>
+                  <div class="form-check form-switch form-switch-lg">
+                    <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.Kho_ChoPhepBanAm" />
+                  </div>
                 </div>
-                <div class="form-check form-switch form-switch-lg">
-                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_HienQR" />
-                </div>
-              </div>
 
-              <!-- NEW Switch 5 -->
-              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center" :class="{'opacity-50': !cfgBool.POS_HienQR}">
-                <div>
-                  <h6 class="fw-bold text-dark mb-1">Chỉ hiển thị mã QR trên màn hình Thu ngân (Thu ngân Only)</h6>
-                  <p class="text-muted mb-0 small">Không hiện QR trên màn hình Order của nhân viên bàn ăn khác để tránh gây gián đoạn công việc.</p>
-                </div>
-                <div class="form-check form-switch form-switch-lg">
-                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_HienQrThuNganOnly" :disabled="!cfgBool.POS_HienQR" />
-                </div>
-              </div>
-
-
-
-              <!-- NEW Switch 8 -->
-              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="fw-bold text-dark mb-1">Cho phép in nhiều bản hóa đơn tại Thu ngân</h6>
-                  <p class="text-muted mb-0 small">Bật nút in bill linh động trên giao diện tính tiền của Thu ngân để in lại bất cứ lúc nào.</p>
-                </div>
-                <div class="form-check form-switch form-switch-lg">
-                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_ThuNganInNhieuBill" />
-                </div>
-              </div>
-
-              <!-- NEW Switch 9 -->
-              <div class="toggle-item-row py-3 d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="fw-bold text-dark mb-1">Cho phép Thu ngân xem lịch sử & in lại hóa đơn cũ</h6>
-                  <p class="text-muted mb-0 small">Hiển thị danh sách hóa đơn đã thanh toán gần nhất ở POS để Thu ngân truy xuất đối chiếu hoặc in lại.</p>
-                </div>
-                <div class="form-check form-switch form-switch-lg">
-                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_ThuNganXemLichSu" />
+                <!-- Cảnh báo hạn mức kho -->
+                <div class="toggle-item-row py-3 d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="fw-bold text-dark mb-1">Ngưỡng cảnh báo sản phẩm sắp hết hàng trong kho</h6>
+                    <p class="text-muted mb-0 small">Hiển thị cảnh báo đỏ trên trang tổng quan và kiểm kê khi số lượng kho xuống dưới ngưỡng này.</p>
+                  </div>
+                  <div style="width: 140px;">
+                    <div class="input-group input-group-sm">
+                      <input type="number" v-model.number="cfg.POS_CanhBaoKho" class="form-control text-center fw-bold" min="0" placeholder="5" />
+                      <span class="input-group-text small">SP</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- Các ô nhập số cấu hình POS -->
-            <div class="row g-3 mt-4 pt-3 border-top">
-              <div class="col-md-6">
-                <label class="form-label fw-semibold text-secondary small">Tỉ lệ Giảm Giá Tối Đa (%)</label>
-                <input type="number" v-model.number="cfg.POS_GiamGiaMax" class="form-control bg-light border-0 text-dark fs-6" min="0" max="100" />
-              </div>
-              <div class="col-md-6">
-                <label class="form-label fw-semibold text-secondary small">Cảnh báo hạn mức kho (đơn vị)</label>
-                <input type="number" v-model.number="cfg.POS_CanhBaoKho" class="form-control bg-light border-0 text-dark fs-6" min="0" />
+            <!-- Group 2: In ấn & Nhật ký giao dịch -->
+            <div class="mb-4">
+              <h6 class="fw-bold text-uppercase text-secondary small tracking-wider mb-3">
+                <i class="bi bi-printer-fill text-primary me-1"></i> 2. In ấn Hóa đơn & Nhật ký Bán hàng
+              </h6>
+              <div class="toggle-list-group border rounded-3 p-3 bg-light bg-opacity-50">
+                <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="fw-bold text-dark mb-1">Tự động in hóa đơn ngay sau khi thanh toán</h6>
+                    <p class="text-muted mb-0 small">Máy in POS sẽ tự kích hoạt xuất hóa đơn giấy ngay khi nhận tín hiệu thanh toán thành công.</p>
+                  </div>
+                  <div class="form-check form-switch form-switch-lg">
+                    <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_TuDongIn" />
+                  </div>
+                </div>
+
+                <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="fw-bold text-dark mb-1">Cho phép in nhiều bản hóa đơn tại Thu ngân</h6>
+                    <p class="text-muted mb-0 small">Bật nút in bill linh động trên giao diện tính tiền của Thu ngân để in lại bất cứ lúc nào.</p>
+                  </div>
+                  <div class="form-check form-switch form-switch-lg">
+                    <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_ThuNganInNhieuBill" />
+                  </div>
+                </div>
+
+                <div class="toggle-item-row py-3 d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="fw-bold text-dark mb-1">Cho phép Thu ngân xem lịch sử & in lại hóa đơn cũ</h6>
+                    <p class="text-muted mb-0 small">Hiển thị danh sách hóa đơn đã thanh toán gần nhất ở POS để Thu ngân truy xuất đối chiếu hoặc in lại.</p>
+                  </div>
+                  <div class="form-check form-switch form-switch-lg">
+                    <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_ThuNganXemLichSu" />
+                  </div>
+                </div>
               </div>
             </div>
+
+            <!-- Group 3: Quy trình Gửi Bếp & Mã QR -->
+            <div>
+              <h6 class="fw-bold text-uppercase text-secondary small tracking-wider mb-3">
+                <i class="bi bi-qr-code-scan text-primary me-1"></i> 3. Quy trình Gửi Bếp & Thanh toán VietQR
+              </h6>
+              <div class="toggle-list-group border rounded-3 p-3 bg-light bg-opacity-50">
+                <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="fw-bold text-dark mb-1">Yêu cầu xác nhận khi gửi đơn xuống Bếp</h6>
+                    <p class="text-muted mb-0 small">Hiện hộp thoại hỏi lại Nhân viên Order trước khi truyền tin xuống Bếp/Bar để tránh nhầm lẫn.</p>
+                  </div>
+                  <div class="form-check form-switch form-switch-lg">
+                    <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_XacNhanGuiBep" />
+                  </div>
+                </div>
+
+                <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                  <div>
+                    <h6 class="fw-bold text-dark mb-1">Hiển thị mã QR thanh toán động VietQR</h6>
+                    <p class="text-muted mb-0 small">Tự động tạo mã chuyển khoản nhanh có sẵn số tiền và nội dung hóa đơn khi Thu ngân tính tiền.</p>
+                  </div>
+                  <div class="form-check form-switch form-switch-lg">
+                    <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_HienQR" />
+                  </div>
+                </div>
+
+                <div class="toggle-item-row py-3 d-flex justify-content-between align-items-center" :class="{'opacity-50': !cfgBool.POS_HienQR}">
+                  <div>
+                    <h6 class="fw-bold text-dark mb-1">Chỉ hiển thị mã QR trên màn hình Thu ngân (Thu ngân Only)</h6>
+                    <p class="text-muted mb-0 small">Không hiện popup QR trên thiết bị di động của Nhân viên Order để tránh làm gián đoạn công việc.</p>
+                  </div>
+                  <div class="form-check form-switch form-switch-lg">
+                    <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_HienQrThuNganOnly" :disabled="!cfgBool.POS_HienQR" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -431,14 +484,24 @@
         <div v-show="activeTab === 'security'" class="tab-pane-content">
           <div class="card border-0 shadow-sm rounded-3 p-4 mb-4">
             <h5 class="fw-bold text-primary mb-4 pb-2 border-bottom d-flex align-items-center gap-2">
-              <i class="bi bi-shield-lock-fill fs-4"></i> Bảo Mật Vận Hành
+              <i class="bi bi-shield-lock-fill fs-4"></i> Bảo Mật Vận Hành & Quản Lý Mã PIN
             </h5>
 
             <div class="toggle-list-group mb-4">
               <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
                 <div>
-                  <h6 class="fw-bold text-dark mb-1">Yêu cầu nhập mã PIN nhân viên</h6>
-                  <p class="text-muted mb-0 small">Nhân viên cần xác nhận mật mã PIN cá nhân khi thực hiện các giao dịch nhạy cảm.</p>
+                  <h6 class="fw-bold text-dark mb-1">Mã PIN xác thực nhanh của Chủ cửa hàng / Quản lý (4 chữ số)</h6>
+                  <p class="text-muted mb-0 small">Mật mã PIN 4 chữ số dùng để phê duyệt các thao tác nhạy cảm (Xóa bàn, hủy món đã gửi bếp, hoàn tiền).</p>
+                </div>
+                <div style="width: 140px;">
+                  <input type="text" maxlength="4" v-model="cfg.Security_AdminPIN" class="form-control text-center font-monospace fw-bold fs-6 border-primary" placeholder="1234" />
+                </div>
+              </div>
+
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Yêu cầu nhập mã PIN nhân viên khi giao dịch</h6>
+                  <p class="text-muted mb-0 small">Nhân viên cần xác nhận mật mã PIN cá nhân khi thực hiện các giao dịch trên hệ thống.</p>
                 </div>
                 <div class="form-check form-switch form-switch-lg">
                   <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.Security_YeuCauPIN" />
@@ -448,53 +511,34 @@
               <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
                 <div>
                   <h6 class="fw-bold text-dark mb-1">Tự động đăng xuất tài khoản khi treo màn hình</h6>
-                  <p class="text-muted mb-0 small">Khóa màn hình làm việc của thu ngân khi không phát hiện tương tác sau một thời gian nhất định.</p>
+                  <p class="text-muted mb-0 small">Khóa màn hình làm việc của thu ngân khi không phát hiện tương tác sau khoảng thời gian nhất định.</p>
                 </div>
                 <div class="form-check form-switch form-switch-lg">
                   <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.Security_AutoLogout" />
                 </div>
               </div>
 
-              <!-- Thêm thiết lập vận hành thông minh & bảo mật khác -->
-              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center" v-if="cfgBool.Security_AutoLogout">
                 <div>
-                  <h6 class="fw-bold text-dark mb-1">Tự động khóa sổ doanh thu lúc 23:59 hàng ngày</h6>
-                  <p class="text-muted mb-0 small">Khóa tất cả hóa đơn đã bán của ngày cũ, nhân viên sẽ không thể sửa đổi hay xóa hóa đơn cũ.</p>
+                  <h6 class="fw-bold text-dark mb-1">Thời gian tự động khóa màn hình (Phút)</h6>
+                  <p class="text-muted mb-0 small">Khoảng thời gian chờ trước khi hệ thống tự động đăng xuất tài khoản (tối thiểu 1 phút, tối đa 120 phút).</p>
                 </div>
-                <div class="form-check form-switch form-switch-lg">
-                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_TuDongKhoaSo" />
-                </div>
-              </div>
-
-              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="fw-bold text-dark mb-1">Bắt buộc phải chọn món trước khi thanh toán</h6>
-                  <p class="text-muted mb-0 small">Ngăn chặn tạo hóa đơn rỗng (0 món) khi tính tiền tại quầy thu ngân.</p>
-                </div>
-                <div class="form-check form-switch form-switch-lg">
-                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_ThanhToanBatBuocChonMon" />
+                <div style="width: 140px;">
+                  <div class="input-group input-group-sm">
+                    <input type="number" v-model.number="cfg.Security_TimeoutPhut" class="form-control text-center fw-bold" min="1" max="120" placeholder="30" />
+                    <span class="input-group-text small">Phút</span>
+                  </div>
                 </div>
               </div>
 
               <div class="toggle-item-row py-3 d-flex justify-content-between align-items-center">
                 <div>
-                  <h6 class="fw-bold text-dark mb-1">Cho phép khách hàng hoàn trả món sau khi thanh toán</h6>
-                  <p class="text-muted mb-0 small">Cho phép thu ngân nhập phiếu trả đồ và hoàn tiền đối với các hóa đơn đã hoàn tất thanh toán.</p>
+                  <h6 class="fw-bold text-dark mb-1">Tự động khóa sổ doanh thu lúc 23:59 hàng ngày</h6>
+                  <p class="text-muted mb-0 small">Khóa tất cả hóa đơn đã bán của ngày cũ, đảm bảo tính minh bạch kế toán và chống gian lận.</p>
                 </div>
                 <div class="form-check form-switch form-switch-lg">
-                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_ChoPhepHoanTraMon" />
+                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_TuDongKhoaSo" />
                 </div>
-              </div>
-            </div>
-
-            <div class="row g-3 mt-2">
-              <div class="col-md-6" v-if="cfgBool.Security_AutoLogout">
-                <label class="form-label fw-semibold text-secondary small">Thời gian tự động khóa (phút)</label>
-                <input type="number" v-model.number="cfg.Security_TimeoutPhut" class="form-control bg-light border-0 text-dark fs-6" min="5" max="120" />
-              </div>
-              <div class="col-md-6">
-                <label class="form-label fw-semibold text-secondary small">Mã PIN xác thực nhanh của Chủ quán/Quản lý</label>
-                <input type="text" maxlength="4" v-model="cfg.Security_AdminPIN" class="form-control bg-light border-0 text-dark fs-6 font-monospace text-center fw-bold" style="width: 150px;" placeholder="1234" />
               </div>
             </div>
           </div>
@@ -616,8 +660,43 @@ const validateLoyalty = () => {
   return true;
 };
 
+const validatePosOptions = () => {
+  // 1. Kiểm tra % giảm giá tối đa
+  const giamGiaMax = parseFloat(cfg.POS_GiamGiaMax);
+  if (isNaN(giamGiaMax) || giamGiaMax < 0 || giamGiaMax > 100) {
+    swal.fire('Lỗi cấu hình', 'Tỉ lệ giảm giá tối đa phải nằm trong khoảng từ 0% đến 100%!', 'warning');
+    return false;
+  }
+
+  // 2. Kiểm tra hạn mức cảnh báo kho
+  const canhBaoKho = parseInt(cfg.POS_CanhBaoKho);
+  if (isNaN(canhBaoKho) || canhBaoKho < 0) {
+    swal.fire('Lỗi cấu hình', 'Cảnh báo hạn mức kho phải là số lớn hơn hoặc bằng 0!', 'warning');
+    return false;
+  }
+
+  // 3. Kiểm tra mã PIN Admin (bắt buộc đúng 4 chữ số)
+  const adminPin = String(cfg.Security_AdminPIN || '').trim();
+  if (!/^\d{4}$/.test(adminPin)) {
+    swal.fire('Lỗi cấu hình', 'Mã PIN Quản lý/Chủ quán phải đúng 4 chữ số (VD: 1234)!', 'warning');
+    return false;
+  }
+
+  // 4. Kiểm tra thời gian timeout nếu bật auto logout
+  if (cfgBool.Security_AutoLogout) {
+    const timeoutPhut = parseInt(cfg.Security_TimeoutPhut);
+    if (isNaN(timeoutPhut) || timeoutPhut < 1 || timeoutPhut > 120) {
+      swal.fire('Lỗi cấu hình', 'Thời gian tự động khóa màn hình phải từ 1 đến 120 phút!', 'warning');
+      return false;
+    }
+  }
+
+  return true;
+};
+
 const saveAll = async () => {
   if (!validateLoyalty()) return;
+  if (!validatePosOptions()) return;
   saving.value = true;
   try {
     const batch = {};
