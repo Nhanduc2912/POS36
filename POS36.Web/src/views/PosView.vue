@@ -942,6 +942,14 @@ const thucHienThanhToanChinhThuc = async (banId, phuongThuc, diemSuDung = 0, dis
 const handleThanhToan = async () => {
   if (!activeTable.value || activeTable.value.trangThai === "Trống") return;
 
+  // Bắt buộc chọn món nếu được bật
+  if (settings.value.POS_ThanhToanBatBuocChonMon) {
+    const tableOrders = ordersByTable.value[activeTable.value.id] || [];
+    if (tableOrders.length === 0 || activeTable.value.tamTinh <= 0) {
+      return swal.fire("Không thể tính tiền", "Bàn chưa có món ăn nào! Vui lòng chọn món trước khi thanh toán.", "warning");
+    }
+  }
+
   const soTien = activeTable.value.tamTinh;
   const banId = activeTable.value.id;
   const khachHang = selectedCustomer.value;
@@ -975,25 +983,31 @@ const handleThanhToan = async () => {
         </div>`
       : "";
 
-  // UI-4: Biến tạm theo dõi chiết khấu %
+  // UI-4: Biến tạm theo dõi chiết khấu % (Chỉ cho phép nếu POS_ChophepGiamGia = true)
   let _discountTemp = 0;
+  const allowDiscount = settings.value.POS_ChophepGiamGia;
+  const maxDiscountPercent = settings.value.POS_GiamGiaMax > 0 ? settings.value.POS_GiamGiaMax : 100;
+
+  const discountHtml = allowDiscount
+    ? `<div class="border rounded p-2 mb-3 text-start" style="background:#fff8e1">
+        <label class="small fw-semibold mb-1"><i class="bi bi-percent me-1 text-warning"></i>Chiết khấu hóa đơn (%) <span class="text-muted" style="font-size:0.75rem">(Tối đa ${maxDiscountPercent}%):</span></label>
+        <div class="d-flex align-items-center gap-2">
+          <input id="swal-discount" type="number" class="form-control form-control-sm text-center"
+                 value="0" min="0" max="${maxDiscountPercent}" step="1" style="width:80px" placeholder="0">
+          <span class="text-muted small">% &rarr; Giảm <span id="swal-tien-giam-discount" class="text-danger fw-bold"></span></span>
+        </div>
+      </div>`
+    : "";
 
   const result = await swal.fire({
     title: `Thanh toán Bàn ${activeTable.value.tenBan}`,
     html: `
       ${diemHtml}
-      <div class="border rounded p-2 mb-3 text-start" style="background:#fff8e1">
-        <label class="small fw-semibold mb-1"><i class="bi bi-percent me-1 text-warning"></i>Chiết khấu hóa đơn (%):</label>
-        <div class="d-flex align-items-center gap-2">
-          <input id="swal-discount" type="number" class="form-control form-control-sm text-center"
-                 value="0" min="0" max="100" step="1" style="width:80px" placeholder="0">
-          <span class="text-muted small">% &rarr; Giảm <span id="swal-tien-giam-discount" class="text-danger fw-bold"></span></span>
-        </div>
-      </div>
+      ${discountHtml}
       <h3 class="text-danger fw-bold mb-1" id="swal-so-tien">${formatPrice(soTien)}</h3>
       <p class="text-muted small mb-0" id="swal-so-tien-goc"></p>
     `,
-    showDenyButton: true,
+    showDenyButton: settings.value.POS_HienQR !== false,
     showCancelButton: true,
     confirmButtonText: '<i class="bi bi-cash"></i> Tiền mặt',
     denyButtonText: '<i class="bi bi-qr-code-scan"></i> Chuyển khoản QR',
@@ -1006,7 +1020,14 @@ const handleThanhToan = async () => {
 
       const recalcTotal = () => {
         const diem = Math.max(0, Math.min(parseInt(inputDiem?.value) || 0, khachHang?.diemHienTai || 0));
-        const discount = Math.max(0, Math.min(parseFloat(inputDiscount?.value) || 0, 100));
+        const discountInputVal = parseFloat(inputDiscount?.value) || 0;
+        const discount = allowDiscount ? Math.max(0, Math.min(discountInputVal, maxDiscountPercent)) : 0;
+        
+        // Nếu người dùng nhập quá maxDiscountPercent, tự động bóp lại giá trị trên input
+        if (allowDiscount && inputDiscount && discountInputVal > maxDiscountPercent) {
+          inputDiscount.value = maxDiscountPercent;
+        }
+
         _diemTemp = diem;
         _discountTemp = discount;
 
@@ -1143,14 +1164,18 @@ connection.on("NhanHuyMoQR", (banId, lyDo) => {
 // --- BỔ SUNG ĐOẠN CẤU HÌNH VẬN HÀNH CHO THU NGÂN ---
 
 const settings = ref({
+  POS_ChophepGiamGia: true,
+  POS_GiamGiaMax: 20,
+  POS_HienQR: true,
+  POS_ThanhToanBatBuocChonMon: true,
   POS_ThuNganInNhieuBill: false,
-  POS_ThuNganXemLichSu: true,
-  POS_TuDongIn: true,
+  POS_ThuNganXemLichSu: false,
+  POS_TuDongIn: false,
   Perm_ThuNgan_XoaHoaDon: true,
   Perm_ThuNgan_HuyMonDaGui: false,
-  POS_YeuCauMatKhauHuyBill: false,
-  POS_ChoPhepHoanTraMon: false, // Thêm key này
-  Loyalty_TiLeDoiDiem: 1000,
+  POS_YeuCauMatKhauHuyBill: true,
+  POS_ChoPhepHoanTraMon: true,
+  Loyalty_TiLeDoiDiem: 100,
   Loyalty_BatTat: false,
 });
 
@@ -1201,19 +1226,23 @@ const loadingHistory = ref(false);
 
 const loadSettings = async () => {
   try {
-    const keys = "POS_ThuNganInNhieuBill,POS_ThuNganXemLichSu,POS_TuDongIn,Perm_ThuNgan_XoaHoaDon,Perm_ThuNgan_HuyMonDaGui,POS_YeuCauMatKhauHuyBill,POS_ChoPhepHoanTraMon,Loyalty_TiLeDoiDiem,Loyalty_BatTat";
+    const keys = "POS_ChophepGiamGia,POS_GiamGiaMax,POS_HienQR,POS_ThanhToanBatBuocChonMon,POS_ThuNganInNhieuBill,POS_ThuNganXemLichSu,POS_TuDongIn,Perm_ThuNgan_XoaHoaDon,Perm_ThuNgan_HuyMonDaGui,POS_YeuCauMatKhauHuyBill,POS_ChoPhepHoanTraMon,Loyalty_TiLeDoiDiem,Loyalty_BatTat";
     const res = await axios.get("/api/ThietLap/batch", { params: { keys } });
     if (res.data) {
+      settings.value.POS_ChophepGiamGia = res.data.POS_ChophepGiamGia !== "false";
+      settings.value.POS_GiamGiaMax = parseInt(res.data.POS_GiamGiaMax) || 20;
+      settings.value.POS_HienQR = res.data.POS_HienQR !== "false";
+      settings.value.POS_ThanhToanBatBuocChonMon = res.data.POS_ThanhToanBatBuocChonMon !== "false";
       settings.value.POS_ThuNganInNhieuBill = res.data.POS_ThuNganInNhieuBill === "true";
       settings.value.POS_ThuNganXemLichSu = res.data.POS_ThuNganXemLichSu === "true";
-      settings.value.POS_TuDongIn = res.data.POS_TuDongIn !== "false";
+      settings.value.POS_TuDongIn = res.data.POS_TuDongIn === "true";
       settings.value.Perm_ThuNgan_XoaHoaDon = res.data.Perm_ThuNgan_XoaHoaDon !== "false";
       settings.value.Perm_ThuNgan_HuyMonDaGui = res.data.Perm_ThuNgan_HuyMonDaGui === "true";
-      settings.value.POS_YeuCauMatKhauHuyBill = res.data.POS_YeuCauMatKhauHuyBill === "true";
-      settings.value.POS_ChoPhepHoanTraMon = res.data.POS_ChoPhepHoanTraMon === "true"; // Đọc cấu hình hoàn trả
+      settings.value.POS_YeuCauMatKhauHuyBill = res.data.POS_YeuCauMatKhauHuyBill !== "false";
+      settings.value.POS_ChoPhepHoanTraMon = res.data.POS_ChoPhepHoanTraMon !== "false";
       settings.value.Loyalty_BatTat = res.data.Loyalty_BatTat === "true";
       if (res.data.Loyalty_TiLeDoiDiem && !isNaN(res.data.Loyalty_TiLeDoiDiem)) {
-          settings.value.Loyalty_TiLeDoiDiem = parseInt(res.data.Loyalty_TiLeDoiDiem);
+        settings.value.Loyalty_TiLeDoiDiem = parseInt(res.data.Loyalty_TiLeDoiDiem);
       }
     }
   } catch (e) {

@@ -262,6 +262,7 @@
                           >
                         </div>
                         <button
+                          v-if="settings.Perm_Order_HuyMon"
                           class="btn btn-sm btn-outline-danger rounded-circle px-2"
                           @click="handleOrderCancelItem(item)"
                           title="Hủy món"
@@ -298,7 +299,7 @@
                 </button>
               </div>
 
-              <div class="col-4">
+              <div v-if="settings.Perm_Order_ChuyenTach" class="col-4">
                 <button
                   class="btn btn-outline-dark w-100 rounded-3 order-action-btn"
                   @click="handleOrderChuyenBan"
@@ -306,7 +307,7 @@
                   <i class="bi bi-arrow-left-right"></i> Chuyển bàn
                 </button>
               </div>
-              <div class="col-4">
+              <div v-if="settings.Perm_Order_ChuyenTach" class="col-4">
                 <button
                   class="btn btn-outline-dark w-100 rounded-3 order-action-btn"
                   @click="handleOrderTachBan"
@@ -314,7 +315,7 @@
                   <i class="bi bi-subtract"></i> Tách bàn
                 </button>
               </div>
-              <div class="col-4">
+              <div :class="settings.Perm_Order_ChuyenTach ? 'col-4' : 'col-12'">
                 <button
                   class="btn btn-outline-warning w-100 rounded-3 fw-bold order-action-btn"
                   @click="handleOrderBaoCheBien"
@@ -547,6 +548,26 @@ const currentBill = ref(null);
 const loadingBill = ref(false);
 const showCartDetail = ref(true);
 
+const settings = ref({
+  POS_XacNhanGuiBep: false,
+  Perm_Order_HuyMon: true,
+  Perm_Order_ChuyenTach: true,
+});
+
+const loadSettings = async () => {
+  try {
+    const keys = "POS_XacNhanGuiBep,Perm_Order_HuyMon,Perm_Order_ChuyenTach";
+    const res = await axios.get("/api/ThietLap/batch", { params: { keys } });
+    if (res.data) {
+      settings.value.POS_XacNhanGuiBep = res.data.POS_XacNhanGuiBep === "true";
+      settings.value.Perm_Order_HuyMon = res.data.Perm_Order_HuyMon !== "false";
+      settings.value.Perm_Order_ChuyenTach = res.data.Perm_Order_ChuyenTach !== "false";
+    }
+  } catch (e) {
+    console.error("Lỗi load settings trong OrderView", e);
+  }
+};
+
 
 
 let refreshTimer = null;
@@ -770,6 +791,19 @@ const decrementQuantity = (index) => {
 };
 
 const submitOrder = async () => {
+  if (settings.value.POS_XacNhanGuiBep) {
+    const result = await swal.fire({
+      title: "Xác nhận gửi Bếp?",
+      text: `Bạn có chắc chắn muốn gửi ${cart.value.length} món xuống Bếp/Bar cho ${selectedTable.value?.tenBan || 'bàn'}?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Đồng ý gửi",
+      cancelButtonText: "Hủy",
+      confirmButtonColor: "#0dcaf0"
+    });
+    if (!result.isConfirmed) return;
+  }
+
   ordering.value = true;
   try {
     const payload = {
@@ -1012,7 +1046,7 @@ const logout = async () => {
 
 
 const getBranchIdAndFetch = async () => {
-  // --- THÊM ĐOẠN NÀY ĐỂ ĐỒNG BỘ CẤU HÌNH NGÂN HÀNG & MẪU IN TỪ CSDL VỀ MÁY ---
+  await loadSettings();
   try {
     const resConfig = await axios.get("/api/ThietLap/BankConfig");
     if (resConfig.data && resConfig.data.duLieu) {
