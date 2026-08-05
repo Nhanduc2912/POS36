@@ -130,16 +130,23 @@
         <div class="sa-modal-body">
           <div class="mb-3">
             <label>Gói dịch vụ</label>
-            <select v-model="extendGoiDichVu" class="sa-select w-100">
+            <select v-model="extendGoiDichVu" class="sa-select w-100" @change="onGoiChange">
               <option value="">Giữ nguyên gói hiện tại</option>
               <option v-for="p in plans" :key="p.maGoi" :value="p.maGoi">
                 {{ p.tenGoi }} ({{ p.soThang }} tháng — {{ formatVND(p.tongGia) }})
               </option>
             </select>
           </div>
+          <!-- Số tháng: tự động theo gói nếu có chọn gói, hoặc dropdown thủ công nếu "Giữ nguyên" -->
           <div class="mb-4">
             <label>Số tháng gia hạn</label>
-            <select v-model.number="extendMonths" class="sa-select w-100">
+            <!-- Chọn gói cụ thể → khóa tháng theo gói -->
+            <div v-if="extendGoiDichVu" class="sa-select w-100 d-flex align-items-center justify-content-between" style="padding:10px 12px;border:1px solid var(--sa-border);border-radius:8px;background:var(--sa-surface)"  >
+              <span><i class="bi bi-lock-fill me-2 text-warning"></i>{{ selectedPlan?.soThang }} tháng</span>
+              <small style="color:var(--sa-text-faint)">Theo cấu hình gói</small>
+            </div>
+            <!-- Giữ nguyên gói → chọn số tháng gia hạn thủ công -->
+            <select v-else v-model.number="extendMonths" class="sa-select w-100">
               <option :value="1">1 tháng</option>
               <option :value="3">3 tháng</option>
               <option :value="6">6 tháng</option>
@@ -157,7 +164,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, inject } from "vue";
+import { ref, computed, onMounted, inject } from "vue";
 import axios from "axios";
 const swal = inject("$swal");
 const stores = ref([]);
@@ -178,6 +185,16 @@ const statusMap = {
 
 const formatDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—";
 const formatVND = (n) => n ? Number(n).toLocaleString("vi-VN") + "đ" : "0đ";
+
+// Gói đang được chọn trong modal gia hạn
+const selectedPlan = computed(() =>
+  extendGoiDichVu.value ? plans.value.find(p => p.maGoi === extendGoiDichVu.value) : null
+);
+
+// Khi chọn gói khác nhau → auto-set extendMonths theo soThang của gói
+const onGoiChange = () => {
+  if (selectedPlan.value) extendMonths.value = selectedPlan.value.soThang;
+};
 
 const loadStores = async () => {
   try {

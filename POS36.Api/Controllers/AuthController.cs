@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using POS36.Api.Data;
 using POS36.Api.DTOs;
 using POS36.Api.Models;
+using POS36.Api.Services;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -20,13 +21,15 @@ namespace POS36.Api.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly IAuditService _audit;
 
         // BUG #2 FIX: Đã xóa _otpCache (RAM). OTP giờ được lưu vào bảng OtpRequests trong DB.
 
-        public AuthController(AppDbContext context, IConfiguration configuration)
+        public AuthController(AppDbContext context, IConfiguration configuration, IAuditService audit)
         {
             _context = context;
             _configuration = configuration;
+            _audit = audit;
         }
 
         // ==========================================
@@ -201,6 +204,7 @@ namespace POS36.Api.Controllers
             await _context.SaveChangesAsync();
 
             await _context.LogHoatDongAsync(user.ChiNhanhId ?? 0, "Đăng nhập", $"Tài khoản {user.TenDangNhap} đăng nhập thành công vào hệ thống.", user.NhanVien?.TenNhanVien ?? user.TenDangNhap, user.VaiTro, user.CuaHangId);
+            await _audit.GhiLog("DangNhap", $"{user.TenDangNhap} đăng nhập - Vai trò: {user.VaiTro}", "/login");
 
             var jwt = new JwtSecurityTokenHandler().WriteToken(token);
             Log.Information("👤 Tài khoản {TenDangNhap} vừa ĐĂNG NHẬP thành công.", request.TenDangNhap);

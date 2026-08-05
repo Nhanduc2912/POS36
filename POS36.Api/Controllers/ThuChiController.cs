@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using POS36.Api.Data;
 using POS36.Api.Models;
+using POS36.Api.Services;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -14,7 +15,12 @@ namespace POS36.Api.Controllers
     public class ThuChiController : ControllerBase
     {
         private readonly AppDbContext _context;
-        public ThuChiController(AppDbContext context) { _context = context; }
+        private readonly IAuditService _audit;
+        public ThuChiController(AppDbContext context, IAuditService audit)
+        {
+            _context = context;
+            _audit = audit;
+        }
 
         private int GetCuaHangId()
         {
@@ -163,6 +169,7 @@ namespace POS36.Api.Controllers
                 _context.PhieuThuChis.Add(phieu);
                 await _context.SaveChangesAsync();
                 await _context.LogHoatDongAsync(phieu.ChiNhanhId, "Thu & Chi", $"Tạo phiếu {phieu.LoaiPhieu} {phieu.MaChungTu}. Số tiền: {phieu.GiaTri:N0}đ. Người nộp/nhận: {phieu.NguoiNopNhan}. Hạng mục: {phieu.HangMuc}. Lý do: {phieu.LyDo}");
+                await _audit.GhiLog("Tao", $"Tạo phiếu {phieu.LoaiPhieu} [{phieu.MaChungTu}] {phieu.GiaTri:N0}đ - {phieu.HangMuc}", "/thu-chi");
                 return Ok(phieu);
             }
             catch (Exception ex)

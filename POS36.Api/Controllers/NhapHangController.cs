@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using POS36.Api.Data;
 using POS36.Api.Models;
+using POS36.Api.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,7 +34,12 @@ namespace POS36.Api.Controllers
     public class NhapHangController : ControllerBase
     {
         private readonly AppDbContext _context;
-        public NhapHangController(AppDbContext context) { _context = context; }
+        private readonly IAuditService _audit;
+        public NhapHangController(AppDbContext context, IAuditService audit)
+        {
+            _context = context;
+            _audit = audit;
+        }
         // BUG #8 FIX: Không fallback về "1" — throw exception nếu token không hợp lệ
         private int GetCuaHangId()
         {
@@ -203,6 +209,7 @@ namespace POS36.Api.Controllers
 
                 // Ghi nhận nhật ký hoạt động
                 await _context.LogHoatDongAsync(request.ChiNhanhId, "Nhập kho", $"Tạo phiếu nhập hàng {phieu.MaChungTu} (Trạng thái: {request.TrangThai})");
+                await _audit.GhiLog("NhapKho", $"Tạo phiếu nhập [{phieu.MaChungTu}] - {request.ChiTiets.Count} mặt hàng", "/nhap-hang");
 
                 return Ok(new { message = "Đã lưu Phiếu Nhập Hàng thành công!" });
             }
@@ -294,6 +301,7 @@ namespace POS36.Api.Controllers
 
                 // Ghi nhận nhật ký hoạt động
                 await _context.LogHoatDongAsync(phieu.ChiNhanhId, "Xác nhận nhập kho", $"Xác nhận hoàn thành phiếu nhập hàng {phieu.MaChungTu}, tăng tồn kho các mặt hàng.");
+                await _audit.GhiLog("NhapKho", $"Xác nhận phiếu nhập [{phieu.MaChungTu}] - cập nhật tồn kho", $"/nhap-hang/{id}");
 
                 return Ok(new { message = $"Đã xác nhận phiếu nhập {phieu.MaChungTu}. Tồn kho đã được cập nhật!" });
             }
