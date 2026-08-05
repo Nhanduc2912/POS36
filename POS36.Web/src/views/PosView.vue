@@ -1830,7 +1830,7 @@ watch(activeRightTab, (newTab) => {
                 v-if="settings.POS_ThuNganInNhieuBill"
                 @click="handleManualPrint"
                 :disabled="!activeTable || currentOrder.length === 0"
-                class="btn btn-outline-primary fw-bold"
+                class="btn btn-outline-primary fw-bold"w
                 style="width: 25%;"
                 title="In hóa đơn tạm tính"
               >
@@ -1840,7 +1840,7 @@ watch(activeRightTab, (newTab) => {
                 @click="handleThanhToan"
                 class="btn btn-success fw-bold fs-5 text-uppercase flex-grow-1"
               >
-                <i class="bi bi-cash-coin me-2"></i>Thanh toán [F4]
+                <i class="bi bi-cash-coin me-2"></i>Thanh toán
               </button>
             </div>
           </div>
