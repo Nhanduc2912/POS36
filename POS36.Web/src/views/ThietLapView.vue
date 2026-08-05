@@ -596,6 +596,8 @@ const cfg = reactive({
 const cfgBool = reactive({
   POS_ChophepGiamGia: true, POS_TuDongIn: false, POS_XacNhanGuiBep: false, POS_HienQR: true,
   POS_HienQrThuNganOnly: false,
+  POS_ThuNganInNhieuBill: false,
+  POS_ThuNganXemLichSu: false,
   Perm_Order_HuyMon: true,
   Perm_Order_ChuyenTach: true,
   Perm_ThuNgan_XoaHoaDon: true,
