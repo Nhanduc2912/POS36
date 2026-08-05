@@ -261,13 +261,15 @@ namespace POS36.Api.Controllers
                 return BadRequest("Vui lòng nhập địa chỉ email nhận!");
 
             // Ghi log thao tác test
-            await GhiLog("TestEmail", $"Test gửi email đến {dto.To}", "/super-admin/config");
+            await GhiLog("TestEmail", $"Yêu cầu test email đến {dto.To}", "/super-admin/config");
 
-            // Thực tế sẽ gọi SMTP hoặc trả về token cho frontend tự gửi qua EmailJS
+            // Thực tế: EmailJS hoạt động hoàn toàn phía client (browser), không qua server.
+            // API này chỉ dùng để log — frontend phải tự gọi EmailJS SDK với public key.
             return Ok(new
             {
-                message = "Yêu cầu test email đã được ghi nhận. Frontend sẽ gửi qua EmailJS với public key đã cấu hình.",
-                emailJsReady = true,
+                message = "Đã ghi nhận yêu cầu test. Tính năng gửi email tự động sẽ được kích hoạt khi cấu hình EmailJS Public Key trong phần Cấu hình chung.",
+                emailJsReady = false,
+                huongDan = "Để gửi email thực tế, hãy tích hợp EmailJS SDK trong frontend với Public Key từ emailjs.com"
             });
         }
     }

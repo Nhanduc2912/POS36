@@ -350,6 +350,23 @@ namespace POS36.Api.Controllers
             return Ok(new { message = "Cập nhật gói thành công!" });
         }
 
+        [HttpDelete("plans/{id}")]
+        public async Task<IActionResult> DeletePlan(int id)
+        {
+            var plan = await _context.GoiDichVus.FindAsync(id);
+            if (plan == null) return NotFound(new { message = "Không tìm thấy gói dịch vụ!" });
+
+            // Kiểm tra xem có cửa hàng nào đang sử dụng gói này không
+            bool dangDuoc = await _context.CuaHangs.AnyAsync(c => c.GoiDichVu == plan.MaGoi);
+            if (dangDuoc)
+                return BadRequest(new { message = $"Không thể xóa! Đang có cửa hàng sử dụng gói \"{plan.TenGoi}\". Hãy ẩn gói thay vì xóa." });
+
+            _context.GoiDichVus.Remove(plan);
+            await _context.SaveChangesAsync();
+            Log.Information("🗑️ SuperAdmin xóa gói dịch vụ [{Id}] {TenGoi}", id, plan.TenGoi);
+            return Ok(new { message = $"Đã xóa gói \"{plan.TenGoi}\" thành công!" });
+        }
+
         // ==========================================
         // 10. GỬI THÔNG BÁO
         // ==========================================
@@ -392,9 +409,17 @@ namespace POS36.Api.Controllers
             var list = await _context.ThongBaoHeThongs
                 .OrderByDescending(t => t.NgayTao)
                 .Take(50)
+                .Select(t => new
+                {
+                    t.Id, t.TieuDe, t.NoiDung, t.LoaiThongBao, t.NgayTao, t.CuaHangId,
+                    tenCuaHang = t.CuaHangId != null
+                        ? _context.CuaHangs.Where(c => c.Id == t.CuaHangId).Select(c => c.TenCuaHang).FirstOrDefault()
+                        : null
+                })
                 .ToListAsync();
             return Ok(list);
         }
+
 
         // ==========================================
         // 11. AI PHÂN TÍCH DASHBOARD (GEMINI)

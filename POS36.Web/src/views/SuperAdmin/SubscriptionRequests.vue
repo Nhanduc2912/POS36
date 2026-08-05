@@ -150,7 +150,7 @@ const filterStatus = ref("");
 const showUpgrade = ref(false);
 const upgradeStore = ref(null);
 const upgradeGoiDichVu = ref("");
-const upgradeMonths = ref(12);
+const upgradeMonths = ref(6);
 
 const pendingCount = computed(() => subs.value.filter(s => s.trangThai === "ChoThanhToan").length);
 
@@ -197,7 +197,7 @@ const reject = async (id) => {
 const openUpgrade = (store) => {
   upgradeStore.value = store;
   upgradeGoiDichVu.value = "";
-  upgradeMonths.value = 12;
+  upgradeMonths.value = 6;
   showUpgrade.value = true;
 };
 

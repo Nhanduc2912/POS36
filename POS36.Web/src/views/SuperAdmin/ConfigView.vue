@@ -358,8 +358,13 @@ const testEmail = async () => {
   const r = await swal.fire({ title: "Test gửi email", input: "email", inputPlaceholder: "Nhập email nhận...", showCancelButton: true });
   if (!r.isConfirmed) return;
   try {
-    await axios.post("/api/CauHinh/test-email", { to: r.value });
-    swal.fire({ toast: true, position: "top-end", icon: "success", title: "Đã ghi nhận!", timer: 2500, showConfirmButton: false });
+    const res = await axios.post("/api/CauHinh/test-email", { to: r.value });
+    swal.fire({
+      icon: res.data.emailJsReady ? "success" : "info",
+      title: res.data.emailJsReady ? "Đã gửi!" : "Lưu ý",
+      text: res.data.message,
+      confirmButtonText: "Đã hiểu"
+    });
   } catch (e) { swal.fire("Lỗi", "Thất bại", "error"); }
 };
 

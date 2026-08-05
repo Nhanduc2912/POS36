@@ -34,6 +34,11 @@
               @click="toggleActive(p)" :title="p.isActive ? 'Ẩn gói' : 'Hiện gói'">
               <i :class="p.isActive ? 'bi bi-eye-slash' : 'bi bi-eye'"></i>
             </button>
+            <button class="sa-btn-sm sa-btn-danger"
+              style="width:auto;height:auto;padding:6px 10px;border-radius:8px;font-size:.82rem;font-weight:600"
+              @click="deletePlan(p)" title="Xóa gói">
+              <i class="bi bi-trash"></i>
+            </button>
           </div>
         </div>
       </div>
@@ -139,6 +144,27 @@ const toggleActive = async (p) => {
     swal.fire({ toast: true, position: "top-end", icon: "success", title: p.isActive ? "Đã ẩn gói!" : "Đã hiện gói!", timer: 1500, showConfirmButton: false });
     load();
   } catch (e) { swal.fire("Lỗi", "Cập nhật thất bại", "error"); }
+};
+
+const deletePlan = async (p) => {
+  const r = await swal.fire({
+    title: `Xóa gói "${p.tenGoi}"?`,
+    html: `<span class="text-danger"><strong>Lưu ý:</strong> Hành động này không thể hoàn tác!</span><br><small class="text-muted">Các cửa hàng đang dùng gói này sẽ không bị ảnh hưởng.</small>`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Xóa gói",
+    cancelButtonText: "Hủy",
+    confirmButtonColor: "#ef4444",
+  });
+  if (!r.isConfirmed) return;
+  try {
+    await axios.delete(`/api/SuperAdmin/plans/${p.id}`);
+    swal.fire({ toast: true, position: "top-end", icon: "success", title: "Đã xóa gói!", timer: 1500, showConfirmButton: false });
+    load();
+  } catch (e) {
+    const msg = e.response?.data?.message || "Không thể xóa gói này";
+    swal.fire("Đã có lỗi", msg, "error");
+  }
 };
 
 const save = async () => {

@@ -2,7 +2,7 @@
   <div>
     <!-- KPI Cards -->
     <div class="row g-3 mb-4">
-      <div class="col-6 col-xl-3" v-for="card in kpiCards" :key="card.label">
+      <div class="col-6 col-xl" v-for="card in kpiCards" :key="card.label">
         <div class="kpi-card" :style="{ borderLeftColor: card.color }">
           <div class="kpi-icon" :style="{ background: card.color + '1a', color: card.color }">
             <i :class="'bi bi-' + card.icon"></i>
@@ -29,6 +29,7 @@
           </div>
           <div class="chart-bars" v-if="chartData.length">
             <div v-for="(item, i) in chartData" :key="i" class="chart-bar-wrap">
+              <div class="chart-bar-value" v-if="item.value > 0">{{ formatVNDShort(item.value) }}</div>
               <div class="chart-bar" :style="{ height: getBarHeight(item.value) + '%' }" :title="formatVND(item.value)"></div>
               <span class="chart-bar-label">{{ item.label }}</span>
             </div>
@@ -111,14 +112,15 @@ const kpiCards = computed(() => [
   { label: "Tổng cửa hàng", value: data.value.tongCuaHang, icon: "shop", color: "#f59e0b" },
   { label: "Đang hoạt động", value: data.value.dangHoatDong, icon: "check-circle", color: "#22c55e" },
   { label: "Đang dùng thử", value: data.value.dangDungThu, icon: "hourglass-split", color: "#3b82f6" },
-  { label: "Hết hạn / Bị khóa", value: (data.value.daHetHan || 0) + (data.value.biKhoa || 0), icon: "lock", color: "#ef4444" },
+  { label: "Hết hạn (Chỉ đọc)", value: data.value.daHetHan || 0, icon: "calendar-x", color: "#f97316" },
+  { label: "Bị khóa", value: data.value.biKhoa || 0, icon: "lock", color: "#ef4444" },
 ]);
 
 const statusBreakdown = computed(() => [
   { label: "Hoạt động", value: data.value.dangHoatDong, color: "#22c55e" },
   { label: "Dùng thử", value: data.value.dangDungThu, color: "#3b82f6" },
-  { label: "Chỉ đọc", value: data.value.daHetHan, color: "#f59e0b" },
-  { label: "Bị khóa", value: data.value.biKhoa, color: "#ef4444" },
+  { label: "Hết hạn (Chỉ đọc)", value: data.value.daHetHan, color: "#f97316" },
+  { label: "Bị khóa (Vi phạm)", value: data.value.biKhoa, color: "#ef4444" },
 ]);
 
 const chartData = computed(() => data.value.doanhThu12Thang || []);
@@ -131,6 +133,14 @@ const getBarHeight = (val) => {
 const formatVND = (n) => {
   if (!n) return "0đ";
   return Number(n).toLocaleString("vi-VN") + "đ";
+};
+
+const formatVNDShort = (n) => {
+  if (!n) return "";
+  if (n >= 1_000_000_000) return (n / 1_000_000_000).toFixed(1).replace('.0','') + "tỷ";
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(0) + "tr";
+  if (n >= 1_000) return (n / 1_000).toFixed(0) + "k";
+  return n + "đ";
 };
 
 const generateAiReport = async () => {
@@ -221,8 +231,10 @@ onMounted(async () => {
 .ai-report-content ul { padding-left: 18px; }
 
 /* Charts */
-.chart-bars { display: flex; align-items: flex-end; gap: 8px; height: 180px; padding-top: 10px; }
-.chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; }
+.chart-bars { display: flex; align-items: flex-end; gap: 8px; height: 180px; padding-top: 28px; }
+.chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; position: relative; }
+.chart-bar-value { font-size: .58rem; color: var(--sa-accent); font-weight: 700; margin-bottom: 2px; white-space: nowrap; }
 .chart-bar { width: 100%; max-width: 40px; background: linear-gradient(180deg, var(--sa-accent), #d97706); border-radius: 6px 6px 0 0; transition: height 0.6s ease; min-height: 4px; }
+.chart-bar:hover { filter: brightness(1.2); cursor: default; }
 .chart-bar-label { font-size: 0.65rem; color: var(--sa-text-faint); margin-top: 6px; }
 </style>

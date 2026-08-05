@@ -87,7 +87,7 @@
               <div class="notif-body">{{ n.noiDung }}</div>
               <div class="notif-target">
                 <i class="bi bi-shop me-1"></i>
-                {{ n.cuaHangId ? `Cửa hàng #${n.cuaHangId}` : 'Tất cả cửa hàng' }}
+                {{ n.cuaHangId ? (n.tenCuaHang || `Cửa hàng #${n.cuaHangId}`) : 'Tất cả cửa hàng' }}
               </div>
             </div>
             <div v-if="!notifications.length" class="text-center py-5" style="color:var(--sa-text-faint)">
