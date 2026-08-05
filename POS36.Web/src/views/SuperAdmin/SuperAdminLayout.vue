@@ -172,6 +172,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import axios from 'axios';
 import AITerminal from '../../components/AITerminal.vue';
 import { useAIChat } from '../../composables/useAIChat.js';
 
