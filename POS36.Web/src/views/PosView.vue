@@ -942,12 +942,10 @@ const thucHienThanhToanChinhThuc = async (banId, phuongThuc, diemSuDung = 0, dis
 const handleThanhToan = async () => {
   if (!activeTable.value || activeTable.value.trangThai === "Trống") return;
 
-  // Bắt buộc chọn món nếu được bật
-  if (settings.value.POS_ThanhToanBatBuocChonMon) {
-    const tableOrders = ordersByTable.value[activeTable.value.id] || [];
-    if (tableOrders.length === 0 || activeTable.value.tamTinh <= 0) {
-      return swal.fire("Không thể tính tiền", "Bàn chưa có món ăn nào! Vui lòng chọn món trước khi thanh toán.", "warning");
-    }
+  // Nghiệp vụ mặc định: bắt buộc phải có món trước khi thanh toán
+  const tableOrders = ordersByTable.value[activeTable.value.id] || [];
+  if (tableOrders.length === 0 || activeTable.value.tamTinh <= 0) {
+    return swal.fire("Không thể tính tiền", "Bàn chưa có món ăn nào! Vui lòng chọn món trước khi thanh toán.", "warning");
   }
 
   const soTien = activeTable.value.tamTinh;
@@ -1167,7 +1165,7 @@ const settings = ref({
   POS_ChophepGiamGia: true,
   POS_GiamGiaMax: 20,
   POS_HienQR: true,
-  POS_ThanhToanBatBuocChonMon: true,
+  POS_ThanhToanBatBuocChonMon: true, // hardcoded: luôn bật, không thể tắt
   POS_ThuNganInNhieuBill: false,
   POS_ThuNganXemLichSu: false,
   POS_TuDongIn: false,
@@ -1226,13 +1224,12 @@ const loadingHistory = ref(false);
 
 const loadSettings = async () => {
   try {
-    const keys = "POS_ChophepGiamGia,POS_GiamGiaMax,POS_HienQR,POS_ThanhToanBatBuocChonMon,POS_ThuNganInNhieuBill,POS_ThuNganXemLichSu,POS_TuDongIn,Perm_ThuNgan_XoaHoaDon,Perm_ThuNgan_HuyMonDaGui,POS_YeuCauMatKhauHuyBill,POS_ChoPhepHoanTraMon,Loyalty_TiLeDoiDiem,Loyalty_BatTat";
+    const keys = "POS_ChophepGiamGia,POS_GiamGiaMax,POS_HienQR,POS_ThuNganInNhieuBill,POS_ThuNganXemLichSu,POS_TuDongIn,Perm_ThuNgan_XoaHoaDon,Perm_ThuNgan_HuyMonDaGui,POS_YeuCauMatKhauHuyBill,POS_ChoPhepHoanTraMon,Loyalty_TiLeDoiDiem,Loyalty_BatTat";
     const res = await axios.get("/api/ThietLap/batch", { params: { keys } });
     if (res.data) {
       settings.value.POS_ChophepGiamGia = res.data.POS_ChophepGiamGia !== "false";
       settings.value.POS_GiamGiaMax = parseInt(res.data.POS_GiamGiaMax) || 20;
       settings.value.POS_HienQR = res.data.POS_HienQR !== "false";
-      settings.value.POS_ThanhToanBatBuocChonMon = res.data.POS_ThanhToanBatBuocChonMon !== "false";
       settings.value.POS_ThuNganInNhieuBill = res.data.POS_ThuNganInNhieuBill === "true";
       settings.value.POS_ThuNganXemLichSu = res.data.POS_ThuNganXemLichSu === "true";
       settings.value.POS_TuDongIn = res.data.POS_TuDongIn === "true";

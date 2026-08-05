@@ -109,16 +109,6 @@
                   </div>
                 </div>
 
-                <!-- Bắt buộc chọn món trước khi thanh toán -->
-                <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
-                  <div>
-                    <h6 class="fw-bold text-dark mb-1">Bắt buộc phải chọn món trước khi thanh toán</h6>
-                    <p class="text-muted mb-0 small">Ngăn chặn tạo hóa đơn rỗng (0 món / 0đ) khi tính tiền tại quầy thu ngân.</p>
-                  </div>
-                  <div class="form-check form-switch form-switch-lg">
-                    <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_ThanhToanBatBuocChonMon" />
-                  </div>
-                </div>
 
                 <!-- Cho phép hoàn trả món sau thanh toán -->
                 <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
@@ -604,7 +594,6 @@ const cfgBool = reactive({
   Loyalty_BatTat: false, Security_YeuCauPIN: false, Security_AutoLogout: true,
   POS_TuDongKhoaSo: true,
   Perm_ThuNgan_HuyMonDaGui: false,
-  POS_ThanhToanBatBuocChonMon: true,
   POS_ChoPhepHoanTraMon: true,
   POS_YeuCauMatKhauHuyBill: true,
   Kho_ChoPhepBanAm: true,
