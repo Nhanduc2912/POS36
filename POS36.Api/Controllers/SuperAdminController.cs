@@ -50,6 +50,10 @@ namespace POS36.Api.Controllers
             int luotTruyCapHomNay = await _context.LuotTruyCaps
                 .CountAsync(l => l.ThoiGian >= DateTime.Today);
 
+            // Lượt đăng nhập thực tế từ nhật ký hệ thống
+            int luotDangNhap = await _context.NhatKyHeThangs
+                .CountAsync(n => n.ThoiGian >= DateTime.Today && n.HanhDong == "DangNhap");
+
             int donChoXuLy = await _context.LichSuDangKys
                 .CountAsync(l => l.TrangThai == "ChoThanhToan");
 
@@ -74,7 +78,7 @@ namespace POS36.Api.Controllers
             return Ok(new
             {
                 tongCuaHang, dangHoatDong, dangDungThu, daHetHan, biKhoa, sapHetHan,
-                doanhThuThang, doanhThuTong, luotTruyCapHomNay, donChoXuLy,
+                doanhThuThang, doanhThuTong, luotTruyCapHomNay, luotDangNhap, donChoXuLy,
                 dangKyMoi30Ngay,
                 doanhThu12Thang
             });
@@ -287,11 +291,16 @@ namespace POS36.Api.Controllers
         {
             var fromDate = DateTime.Now.AddDays(-days);
 
-            int tongLuot = await _context.LuotTruyCaps.CountAsync(l => l.ThoiGian >= fromDate);
+            // Lượt xem trang Landing Page công khai (không phải người dùng đăng nhập)
+            int luotLandingPage = await _context.LuotTruyCaps.CountAsync(l => l.ThoiGian >= fromDate);
             int mobile = await _context.LuotTruyCaps.CountAsync(l => l.ThoiGian >= fromDate && l.ThietBi == "Mobile");
-            int desktop = tongLuot - mobile;
+            int desktop = luotLandingPage - mobile;
 
-            // Lượt truy cập theo ngày
+            // Lượt đăng nhập thực tế (hoạt động hệ thống)
+            int luotDangNhap = await _context.NhatKyHeThangs
+                .CountAsync(n => n.ThoiGian >= fromDate && n.HanhDong == "DangNhap");
+
+            // Lượt truy cập Landing Page theo ngày
             var luotTheoNgay = await _context.LuotTruyCaps
                 .Where(l => l.ThoiGian >= fromDate)
                 .GroupBy(l => l.ThoiGian.Date)
@@ -299,7 +308,7 @@ namespace POS36.Api.Controllers
                 .OrderBy(x => x.label)
                 .ToListAsync();
 
-            // Top trang được truy cập nhiều nhất
+            // Top trang Landing Page được xem nhiều nhất
             var topPages = await _context.LuotTruyCaps
                 .Where(l => l.ThoiGian >= fromDate)
                 .GroupBy(l => l.Url)
@@ -308,7 +317,65 @@ namespace POS36.Api.Controllers
                 .Take(10)
                 .ToListAsync();
 
-            return Ok(new { tongLuot, mobile, desktop, luotTheoNgay, topPages });
+            // Giờ cao điểm dựa trên NhatKyHeThangs (hoạt động thực tế của người dùng)
+            var rawHourly = await _context.NhatKyHeThangs
+                .Where(n => n.ThoiGian >= fromDate)
+                .GroupBy(n => n.ThoiGian.Hour)
+                .Select(g => new { hour = g.Key, count = g.Count() })
+                .ToListAsync();
+
+            var hourlyUsage = Enumerable.Range(0, 24).Select(h =>
+            {
+                var found = rawHourly.FirstOrDefault(r => r.hour == h);
+                return new { hour = h < 10 ? "0" + h : h.ToString(), count = found?.count ?? 0 };
+            }).ToList<object>();
+
+            // Feature usage từ nhật ký hệ thống
+            var featureRaw = await _context.NhatKyHeThangs
+                .Where(n => n.ThoiGian >= fromDate)
+                .GroupBy(n => n.HanhDong)
+                .Select(g => new { hanhDong = g.Key, count = g.Count() })
+                .OrderByDescending(g => g.count)
+                .ToListAsync();
+
+            var maxFeature = featureRaw.Any() ? featureRaw.Max(f => f.count) : 1;
+            var featureUsage = featureRaw.Select(f => new
+            {
+                name = f.hanhDong,
+                count = f.count,
+                pct = Math.Round((double)f.count / maxFeature * 100, 0)
+            }).ToList<object>();
+
+            // Distinct log action types để dropdown lọc trong UI
+            var logActions = await _context.NhatKyHeThangs
+                .Select(n => n.HanhDong)
+                .Distinct()
+                .OrderBy(a => a)
+                .ToListAsync();
+
+            return Ok(new
+            {
+                tongLuot = luotLandingPage,   // Chú ý: chỉ là lượt xem Landing Page
+                luotDangNhap,                  // Lượt đăng nhập thực tế
+                mobile, desktop,
+                luotTheoNgay, topPages,
+                hourlyUsage, featureUsage,
+                logActions                     // Dùng cho dropdown filter nhật ký
+            });
+        }
+
+        // ==========================================
+        // 8B. LẤY DISTINCT LOG ACTIONS (dùng cho filter dropdown)
+        // ==========================================
+        [HttpGet("log-actions")]
+        public async Task<IActionResult> GetLogActions()
+        {
+            var actions = await _context.NhatKyHeThangs
+                .Select(n => n.HanhDong)
+                .Distinct()
+                .OrderBy(a => a)
+                .ToListAsync();
+            return Ok(actions);
         }
 
         // ==========================================

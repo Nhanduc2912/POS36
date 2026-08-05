@@ -131,10 +131,10 @@
           <div class="mb-3">
             <label>Gói dịch vụ</label>
             <select v-model="extendGoiDichVu" class="sa-select w-100">
-              <option value="">Giữ nguyên</option>
-              <option value="starter">Starter</option>
-              <option value="pro">Pro</option>
-              <option value="ultimate">Ultimate</option>
+              <option value="">Giữ nguyên gói hiện tại</option>
+              <option v-for="p in plans" :key="p.maGoi" :value="p.maGoi">
+                {{ p.tenGoi }} ({{ p.soThang }} tháng — {{ formatVND(p.tongGia) }})
+              </option>
             </select>
           </div>
           <div class="mb-4">
@@ -161,6 +161,7 @@ import { ref, onMounted, inject } from "vue";
 import axios from "axios";
 const swal = inject("$swal");
 const stores = ref([]);
+const plans = ref([]);
 const filterStatus = ref("");
 const searchText = ref("");
 const showDetail = ref(false);
@@ -232,7 +233,14 @@ const doExtend = async () => {
   } catch (e) { swal.fire("Lỗi", "Gia hạn thất bại", "error"); }
 };
 
-onMounted(loadStores);
+onMounted(async () => {
+  await Promise.all([
+    loadStores(),
+    axios.get("/api/SuperAdmin/plans").then(r => {
+      plans.value = r.data.filter(p => p.isActive);
+    }).catch(e => console.error("Lỗi tải gói dịch vụ:", e))
+  ]);
+});
 </script>
 
 <style scoped>

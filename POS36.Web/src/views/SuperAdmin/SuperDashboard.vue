@@ -77,9 +77,12 @@
       </div>
       <div class="col-md-4">
         <div class="dash-card text-center">
-          <i class="bi bi-cursor-fill fs-1 text-info mb-2 d-block"></i>
-          <div class="kpi-value">{{ data.luotTruyCapHomNay }}</div>
-          <div class="kpi-label">Lượt truy cập hôm nay</div>
+          <i class="bi bi-person-check fs-1 text-info mb-2 d-block"></i>
+          <div class="kpi-value">{{ data.luotDangNhap ?? data.luotTruyCapHomNay }}</div>
+          <div class="kpi-label">Lượt đăng nhập hôm nay</div>
+          <div style="font-size:.7rem;color:var(--sa-text-faint);margin-top:2px">
+            <i class="bi bi-info-circle me-1"></i>Theo nhật ký hệ thống
+          </div>
         </div>
       </div>
     </div>
@@ -102,7 +105,7 @@ import axios from "axios";
 const data = ref({
   tongCuaHang: 0, dangHoatDong: 0, dangDungThu: 0, daHetHan: 0, biKhoa: 0,
   sapHetHan: 0, doanhThuThang: 0, doanhThuTong: 0, luotTruyCapHomNay: 0,
-  donChoXuLy: 0, dangKyMoi30Ngay: 0, doanhThu12Thang: [],
+  luotDangNhap: 0, donChoXuLy: 0, dangKyMoi30Ngay: 0, doanhThu12Thang: [],
 });
 
 const aiReport = ref("");

@@ -115,9 +115,9 @@
             <label>Chọn gói</label>
             <select v-model="upgradeGoiDichVu" class="sa-select w-100">
               <option value="">-- Chọn gói --</option>
-              <option value="starter">Starter (900k/6 tháng)</option>
-              <option value="pro">Pro (1.5tr/năm)</option>
-              <option value="ultimate">Ultimate (2.8tr/2 năm)</option>
+              <option v-for="p in plans" :key="p.maGoi" :value="p.maGoi">
+                {{ p.tenGoi }} — {{ formatVND(p.tongGia) }} / {{ p.soThang }} tháng
+              </option>
             </select>
           </div>
           <div class="mb-4">
@@ -146,6 +146,7 @@ const swal = inject("$swal");
 const activeTab = ref("subscriptions");
 const subs = ref([]);
 const trials = ref([]);
+const plans = ref([]);
 const filterStatus = ref("");
 const showUpgrade = ref(false);
 const upgradeStore = ref(null);
@@ -213,7 +214,13 @@ const doUpgrade = async () => {
   } catch (e) { swal.fire("Lỗi", "Nâng cấp thất bại", "error"); }
 };
 
-onMounted(() => { loadSubs(); loadTrials(); });
+onMounted(() => {
+  loadSubs();
+  loadTrials();
+  axios.get("/api/SuperAdmin/plans")
+    .then(r => { plans.value = r.data.filter(p => p.isActive); })
+    .catch(e => console.error("Lời tải gói:", e));
+});
 </script>
 
 <style scoped>

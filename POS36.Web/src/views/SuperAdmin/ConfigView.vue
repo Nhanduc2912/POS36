@@ -110,7 +110,7 @@
       <div class="d-flex gap-2 mb-3 flex-wrap align-items-center">
         <select v-model="logFilter" class="sa-select" @change="resetAndLoadLogs">
           <option value="">Tất cả hành động</option>
-          <option v-for="a in logActions" :key="a" :value="a">{{ a }}</option>
+          <option v-for="a in logActions" :key="a" :value="a">{{ actionLabel(a) }}</option>
         </select>
         <input v-model="logDateFilter" type="date" class="sa-input" @change="resetAndLoadLogs"
           style="color:var(--sa-text);background:var(--sa-surface)" />
@@ -278,7 +278,20 @@ const logFilter = ref("");
 const logDateFilter = ref("");
 const logDetail = ref(null);
 const logsLoading = ref(false);
-const logActions = ["Tao", "Sua", "Xoa", "CauHinh", "KhoaCuaHang", "TestEmail", "DangNhap"];
+const logActions = ref([]);
+
+// Tên thân thiện cho các hành động
+const actionLabel = (a) => ({
+  Tao: "➕ Tạo mới", Sua: "✏️ Sửa", Xoa: "🗑️ Xóa",
+  CauHinh: "⚙️ Cấu hình", KhoaCuaHang: "🔒 Khóa cửa hàng",
+  TuDongKhoa: "🤖 Tự động khóa", TestEmail: "✉️ Test Email",
+  DangNhap: "🔐 Đăng nhập", ThanhToan: "💳 Thanh toán",
+  GoiMon: "🛒 Gọi món", HuyMon: "❌ Hủy món",
+  NhapKho: "📦 Nhập kho", CapNhatBan: "👨‍🏭 Cập nhật bàn",
+  GhepBan: "🔀 Ghép bàn", TachBan: "✂️ Tách bàn",
+  AIChat: "🤖 AI Chat", AIThucThi: "⚡ AI Thực thi",
+  AIHuyLenh: "⏹️ AI Hủy lệnh", AICopilotAsk: "💡 AI Copilot",
+}[a] || a);
 
 const totalPages = computed(() => Math.max(1, Math.ceil(logsTotal.value / logPageSize.value)));
 const pageNumbers = computed(() => {
@@ -327,6 +340,16 @@ const loadLogs = async () => {
 
 const resetAndLoadLogs = () => { logPage.value = 1; loadLogs(); };
 
+const loadLogActions = async () => {
+  try {
+    const r = await axios.get("/api/SuperAdmin/log-actions");
+    logActions.value = r.data;
+  } catch (e) {
+    // Fallback nếu API lỗi
+    logActions.value = ["Tao", "Sua", "Xoa", "CauHinh", "KhoaCuaHang", "ThanhToan", "GoiMon", "HuyMon", "DangNhap", "AIChat"];
+  }
+};
+
 const goToPage = (p) => {
   if (p < 1 || p > totalPages.value) return;
   logPage.value = p;
@@ -370,7 +393,7 @@ const testEmail = async () => {
 
 onMounted(() => {
   loadConfig();
-  // Load logs immediately if starting on logs tab
+  loadLogActions();
   if (activeTab.value === "logs") loadLogs();
 });
 </script>
