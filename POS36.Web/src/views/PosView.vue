@@ -294,6 +294,7 @@ onMounted(async () => {
   // Lắng nghe Webhook báo Tiền về thành công
   connection.on("ThanhToanQRThanhCong", (banId) => {
     swal.close();
+    showQrModal.value = false; // Tắt QR modal ngay lập tức khi thanh toán thành công
     // Lấy lại số điểm đã lưu khi bắt đầu chờ QR
     const pending = pendingPayments.value.find((p) => p.banId === banId);
     const diem = pending?.diemSuDung || 0;
@@ -972,6 +973,9 @@ const thucHienThanhToanChinhThuc = async (banId, phuongThuc, diemSuDung = 0, dis
       url += `&khachHangId=${selectedCustomer.value.id}`;
     }
     const res = await axios.post(url);
+
+    // Tắt hoàn toàn QR Modal nếu bàn vừa mở QR thanh toán thành công
+    showQrModal.value = false;
 
     pendingPayments.value = pendingPayments.value.filter(
       (p) => p.banId !== banId,

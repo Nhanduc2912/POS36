@@ -724,6 +724,7 @@ onMounted(async () => {
     connection.on("ThanhToanQRThanhCong", (banId) => {
       fetchStructure(globalState.value.activeBranchId);
       if (selectedTable.value && selectedTable.value.id === banId) {
+        if (tableModal) tableModal.hide();
         swal.fire({
           toast: true,
           position: "top-end",
