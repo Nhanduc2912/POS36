@@ -151,6 +151,19 @@ namespace POS36.Api
 
                 var app = builder.Build();
 
+                // Tự động kiểm tra và áp dụng tất cả Migrations chưa chạy vào CSDL SQL Server
+                try
+                {
+                    using var scope = app.Services.CreateScope();
+                    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                    db.Database.Migrate();
+                    Log.Information("✅ CSDL SQL Server đã được kiểm tra và cập nhật Migrations mới nhất.");
+                }
+                catch (Exception dbEx)
+                {
+                    Log.Error(dbEx, "⚠️ Không thể tự động áp dụng Migration CSDL khi khởi động");
+                }
+
                 // ========================================================
                 // 3. MIDDLEWARE GIÁM SÁT REQUEST (SIÊU CẤP ĐẲNG CẤP)
                 // ========================================================
