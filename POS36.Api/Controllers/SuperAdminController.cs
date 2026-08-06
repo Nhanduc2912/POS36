@@ -32,7 +32,7 @@ namespace POS36.Api.Controllers
         // Helper: ghi nhật ký vào DB
         private async Task GhiLog(string hanhDong, string moTa, string? url = null, string? chiTiet = null)
         {
-            _context.NhatKyHeThangs.Add(new NhatKyHeThong
+            _context.NhatKyHeThongs.Add(new NhatKyHeThong
             {
                 HanhDong = hanhDong,
                 MoTa = moTa,
@@ -74,7 +74,7 @@ namespace POS36.Api.Controllers
                 .CountAsync(l => l.ThoiGian >= DateTime.Today);
 
             // Lượt đăng nhập thực tế từ nhật ký hệ thống
-            int luotDangNhap = await _context.NhatKyHeThangs
+            int luotDangNhap = await _context.NhatKyHeThongs
                 .CountAsync(n => n.ThoiGian >= DateTime.Today && n.HanhDong == "DangNhap");
 
             int donChoXuLy = await _context.LichSuDangKys
@@ -354,7 +354,7 @@ namespace POS36.Api.Controllers
             int desktop = luotLandingPage - mobile;
 
             // Lượt đăng nhập thực tế (hoạt động hệ thống)
-            int luotDangNhap = await _context.NhatKyHeThangs
+            int luotDangNhap = await _context.NhatKyHeThongs
                 .CountAsync(n => n.ThoiGian >= fromDate && n.HanhDong == "DangNhap");
 
             // Lượt truy cập Landing Page theo ngày
@@ -374,8 +374,8 @@ namespace POS36.Api.Controllers
                 .Take(10)
                 .ToListAsync();
 
-            // Giờ cao điểm dựa trên NhatKyHeThangs (hoạt động thực tế của người dùng)
-            var rawHourly = await _context.NhatKyHeThangs
+            // Giờ cao điểm dựa trên NhatKyHeThongs (hoạt động thực tế của người dùng)
+            var rawHourly = await _context.NhatKyHeThongs
                 .Where(n => n.ThoiGian >= fromDate)
                 .GroupBy(n => n.ThoiGian.Hour)
                 .Select(g => new { hour = g.Key, count = g.Count() })
@@ -388,7 +388,7 @@ namespace POS36.Api.Controllers
             }).ToList<object>();
 
             // Feature usage từ nhật ký hệ thống
-            var featureRaw = await _context.NhatKyHeThangs
+            var featureRaw = await _context.NhatKyHeThongs
                 .Where(n => n.ThoiGian >= fromDate)
                 .GroupBy(n => n.HanhDong)
                 .Select(g => new { hanhDong = g.Key, count = g.Count() })
@@ -404,7 +404,7 @@ namespace POS36.Api.Controllers
             }).ToList<object>();
 
             // Distinct log action types để dropdown lọc trong UI
-            var logActions = await _context.NhatKyHeThangs
+            var logActions = await _context.NhatKyHeThongs
                 .Select(n => n.HanhDong)
                 .Distinct()
                 .OrderBy(a => a)
@@ -427,7 +427,7 @@ namespace POS36.Api.Controllers
         [HttpGet("log-actions")]
         public async Task<IActionResult> GetLogActions()
         {
-            var actions = await _context.NhatKyHeThangs
+            var actions = await _context.NhatKyHeThongs
                 .Select(n => n.HanhDong)
                 .Distinct()
                 .OrderBy(a => a)

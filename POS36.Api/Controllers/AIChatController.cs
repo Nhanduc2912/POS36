@@ -71,7 +71,7 @@ namespace POS36.Api.Controllers
                 if (_sessions[sessionId].Count > 40) _sessions[sessionId].RemoveRange(0, 2);
             }
 
-            _context.NhatKyHeThangs.Add(new NhatKyHeThong
+            _context.NhatKyHeThongs.Add(new NhatKyHeThong
             {
                 HanhDong = "AIChat",
                 MoTa = $"Prompt: \"{Truncate(req.Prompt, 100)}\" => {response.Type}",
@@ -109,7 +109,7 @@ namespace POS36.Api.Controllers
         {
             if (!req.Confirmed)
             {
-                _context.NhatKyHeThangs.Add(new NhatKyHeThong
+                _context.NhatKyHeThongs.Add(new NhatKyHeThong
                 {
                     HanhDong = "AIHuyLenh",
                     MoTa = $"Hủy lệnh: {req.FunctionName}",
@@ -123,7 +123,7 @@ namespace POS36.Api.Controllers
 
             var result = await ExecuteToolAsync(req.FunctionName, req.FunctionArgs ?? "{}");
 
-            _context.NhatKyHeThangs.Add(new NhatKyHeThong
+            _context.NhatKyHeThongs.Add(new NhatKyHeThong
             {
                 HanhDong = "AIThucThi",
                 MoTa = $"Thực thi: {req.FunctionName} => {(result.Success ? "OK" : "FAIL")}",
@@ -192,7 +192,7 @@ namespace POS36.Api.Controllers
             }
             else if (isNhatKy)
             {
-                var logs = await _context.NhatKyHeThangs
+                var logs = await _context.NhatKyHeThongs
                     .OrderByDescending(n => n.ThoiGian).Take(100)
                     .Select(n => new {
                         n.HanhDong, n.MoTa, n.NguoiThucHien, n.IpAddress,
@@ -415,7 +415,7 @@ namespace POS36.Api.Controllers
 
         private async Task<ToolResult> ToolNhatKy(string? tuNgay, string? hanhDong)
         {
-            var q = _context.NhatKyHeThangs.AsQueryable();
+            var q = _context.NhatKyHeThongs.AsQueryable();
             if (DateTime.TryParse(tuNgay, out var from)) q = q.Where(n => n.ThoiGian >= from);
             if (!string.IsNullOrEmpty(hanhDong)) q = q.Where(n => n.HanhDong == hanhDong);
             var logs = await q.OrderByDescending(n => n.ThoiGian).Take(100)
@@ -503,7 +503,7 @@ namespace POS36.Api.Controllers
             }
 
             // Ghi nhận nhật ký hoạt động
-            _context.NhatKyHeThangs.Add(new NhatKyHeThong
+            _context.NhatKyHeThongs.Add(new NhatKyHeThong
             {
                 HanhDong = "AICopilotAsk",
                 MoTa = $"Chủ quán/Nhân viên hỏi AI: \"{Truncate(req.Question, 100)}\"",

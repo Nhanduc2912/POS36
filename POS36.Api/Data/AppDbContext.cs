@@ -68,7 +68,7 @@ namespace POS36.Api.Data
 
         // ===== Phase 6: Config & Audit Log (Global) =====
         public DbSet<CauHinhHeThong> CauHinhHeThangs { get; set; }
-        public DbSet<NhatKyHeThong> NhatKyHeThangs { get; set; }
+        public DbSet<NhatKyHeThong> NhatKyHeThongs { get; set; }
         public DbSet<NhatKyHoatDong> NhatKyHoatDongs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -100,7 +100,7 @@ namespace POS36.Api.Services
 
                 if (logs.Count > 0)
                 {
-                    context.NhatKyHeThangs.AddRange(logs);
+                    context.NhatKyHeThongs.AddRange(logs);
                     await context.SaveChangesAsync(stoppingToken);
                 }
 

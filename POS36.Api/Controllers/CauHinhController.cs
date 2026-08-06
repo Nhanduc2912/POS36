@@ -32,7 +32,7 @@ namespace POS36.Api.Controllers
         // Helper: ghi nhật ký
         private async Task GhiLog(string hanhDong, string moTa, string? url = null, string? chiTiet = null)
         {
-            _context.NhatKyHeThangs.Add(new NhatKyHeThong
+            _context.NhatKyHeThongs.Add(new NhatKyHeThong
             {
                 HanhDong = hanhDong,
                 MoTa = moTa,
@@ -216,7 +216,7 @@ namespace POS36.Api.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50)
         {
-            var query = _context.NhatKyHeThangs.AsQueryable();
+            var query = _context.NhatKyHeThongs.AsQueryable();
 
             if (!string.IsNullOrEmpty(hanhDong))
                 query = query.Where(n => n.HanhDong == hanhDong);
@@ -246,7 +246,7 @@ namespace POS36.Api.Controllers
         [HttpGet("nhat-ky/{id}")]
         public async Task<IActionResult> GetNhatKyDetail(int id)
         {
-            var log = await _context.NhatKyHeThangs.FindAsync(id);
+            var log = await _context.NhatKyHeThongs.FindAsync(id);
             if (log == null) return NotFound("Không tìm thấy bản ghi!");
             return Ok(log);
         }
