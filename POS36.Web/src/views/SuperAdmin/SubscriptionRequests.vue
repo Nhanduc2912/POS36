@@ -113,7 +113,7 @@
         <div class="sa-modal-body">
           <div class="mb-3">
             <label>Chọn gói</label>
-            <select v-model="upgradeGoiDichVu" class="sa-select w-100" @change="onGoiChange">
+            <select v-model="upgradeGoiDichVu" class="sa-select w-100">
               <option value="">-- Chọn gói --</option>
               <option v-for="p in plans" :key="p.maGoi" :value="p.maGoi">
                 {{ p.tenGoi }} — {{ formatVND(p.tongGia) }} / {{ p.soThang }} tháng
@@ -122,12 +122,7 @@
           </div>
           <div class="mb-4">
             <label>Số tháng gia hạn</label>
-            <!-- Gói được chọn → khóa tháng theo gói -->
-            <div v-if="upgradeGoiDichVu" class="d-flex align-items-center justify-content-between" style="padding:10px 12px;border:1px solid var(--sa-border);border-radius:8px;background:var(--sa-surface)">
-              <span><i class="bi bi-lock-fill me-2 text-warning"></i>{{ selectedPlan?.soThang }} tháng</span>
-              <small style="color:var(--sa-text-faint)">Theo cấu hình gói</small>
-            </div>
-            <select v-else v-model.number="upgradeMonths" class="sa-select w-100">
+            <select v-model.number="upgradeMonths" class="sa-select w-100">
               <option :value="6">6 tháng</option>
               <option :value="12">12 tháng</option>
               <option :value="24">24 tháng</option>
@@ -163,16 +158,6 @@ const pendingCount = computed(() => subs.value.filter(s => s.trangThai === "ChoT
 const formatDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—";
 const formatVND = (n) => n ? Number(n).toLocaleString("vi-VN") + "đ" : "0đ";
 const statusText = (s) => ({ ChoThanhToan: "Chờ TT", DaThanhToan: "Đã TT", DaHuy: "Đã hủy" }[s] || s);
-
-// Gói đang được chọn trong modal nâng cấp
-const selectedPlan = computed(() =>
-  upgradeGoiDichVu.value ? plans.value.find(p => p.maGoi === upgradeGoiDichVu.value) : null
-);
-
-// Khi chọn gói → auto-set upgradeMonths theo soThang của gói đó
-const onGoiChange = () => {
-  if (selectedPlan.value) upgradeMonths.value = selectedPlan.value.soThang;
-};
 
 const loadSubs = async () => {
   try {

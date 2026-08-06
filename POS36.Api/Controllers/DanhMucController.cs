@@ -17,13 +17,11 @@ namespace POS36.Api.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ICloudStorageService _cloudStorage;
-        private readonly IAuditService _audit;
 
-        public DanhMucController(AppDbContext context, ICloudStorageService cloudStorage, IAuditService audit)
+        public DanhMucController(AppDbContext context, ICloudStorageService cloudStorage)
         {
             _context = context;
             _cloudStorage = cloudStorage;
-            _audit = audit;
         }
 
 
@@ -81,7 +79,7 @@ namespace POS36.Api.Controllers
 
             _context.DanhMucs.Add(newDanhMuc);
             await _context.SaveChangesAsync();
-            await _audit.GhiLog("Tao", $"Tạo danh mục [{newDanhMuc.Id}] {newDanhMuc.TenDanhMuc}", "/danh-muc");
+
             return Ok(new { message = "Thêm danh mục thành công!", id = newDanhMuc.Id });
         }
 
@@ -100,7 +98,7 @@ namespace POS36.Api.Controllers
 
             danhMuc.TenDanhMuc = request.TenDanhMuc;
             await _context.SaveChangesAsync();
-            await _audit.GhiLog("Sua", $"Sửa danh mục [{id}] {danhMuc.TenDanhMuc}", $"/danh-muc/{id}");
+
             return Ok(new { message = "Cập nhật thành công!" });
         }
 
@@ -121,7 +119,7 @@ namespace POS36.Api.Controllers
             // Nhưng tạm thời ở đây mình cứ cho xóa thẳng để dễ test
             _context.DanhMucs.Remove(danhMuc);
             await _context.SaveChangesAsync();
-            await _audit.GhiLog("Xoa", $"Xóa danh mục [{id}] {danhMuc.TenDanhMuc}", $"/danh-muc/{id}");
+
             return Ok(new { message = "Xóa danh mục thành công!" });
         }
     }

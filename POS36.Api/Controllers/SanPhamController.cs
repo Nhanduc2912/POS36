@@ -19,13 +19,11 @@ namespace POS36.Api.Controllers
     {
         private readonly AppDbContext _context;
         private readonly ICloudStorageService _cloudStorage;
-        private readonly IAuditService _audit;
 
-        public SanPhamController(AppDbContext context, ICloudStorageService cloudStorage, IAuditService audit)
+        public SanPhamController(AppDbContext context, ICloudStorageService cloudStorage)
         {
             _context = context;
             _cloudStorage = cloudStorage;
-            _audit = audit;
         }
 
         private int GetCuaHangId()
@@ -102,8 +100,9 @@ namespace POS36.Api.Controllers
             // Đảo ngược trạng thái (Đang true thành false, đang false thành true)
             sp.TrangThai = !sp.TrangThai;
             await _context.SaveChangesAsync();
+
             await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), "Thực đơn", $"{(sp.TrangThai ? "Kích hoạt" : "Ngừng kích hoạt")} sản phẩm '{sp.TenSanPham}'");
-            await _audit.GhiLog("Sua", $"{(sp.TrangThai ? "Kích hoạt" : "Tắt")} sản phẩm [{id}] {sp.TenSanPham}", $"/san-pham/{id}");
+
             return Ok(new { message = "Đã cập nhật trạng thái!", newStatus = sp.TrangThai });
         }
         // 4. SỬA MÓN ĂN
@@ -133,8 +132,9 @@ namespace POS36.Api.Controllers
             }
 
             await _context.SaveChangesAsync();
+
             await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), "Thực đơn", $"Cập nhật sản phẩm '{sp.TenSanPham}'. Giá bán: {sp.GiaBan:N0}đ");
-            await _audit.GhiLog("Sua", $"Sửa sản phẩm [{id}] {sp.TenSanPham} - Giá: {sp.GiaBan:N0}đ", $"/san-pham/{id}");
+
             return Ok(new { message = "Cập nhật thành công!" });
         }
 
@@ -161,8 +161,9 @@ namespace POS36.Api.Controllers
 
             _context.SanPhams.Remove(sp);
             await _context.SaveChangesAsync();
+
             await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), "Thực đơn", $"Xóa sản phẩm '{sp.TenSanPham}'");
-            await _audit.GhiLog("Xoa", $"Xóa sản phẩm [{id}] {sp.TenSanPham}", $"/san-pham/{id}");
+
             return Ok(new { message = "Xóa thành công!" });
         }
         // DTO nhận dữ liệu từ Form (Có chứa File ảnh)
@@ -208,8 +209,9 @@ namespace POS36.Api.Controllers
 
             _context.SanPhams.Add(newSanPham);
             await _context.SaveChangesAsync();
+
             await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), "Thực đơn", $"Thêm sản phẩm mới '{newSanPham.TenSanPham}' với giá bán {newSanPham.GiaBan:N0}đ");
-            await _audit.GhiLog("Tao", $"Tạo sản phẩm [{newSanPham.Id}] {newSanPham.TenSanPham} - Giá: {newSanPham.GiaBan:N0}đ", "/san-pham");
+
             Log.Information("📦 Đã thêm sản phẩm mới: {TenSanPham} (Giá: {GiaBan} VND)", request.TenSanPham, request.GiaBan);
             return Ok(new { message = "Thêm thành công!", id = newSanPham.Id });
         }
@@ -225,8 +227,9 @@ namespace POS36.Api.Controllers
 
             sp.GiaBan = request.GiaBan;
             await _context.SaveChangesAsync();
+
             await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), "Thực đơn", $"Cập nhật nhanh giá bán sản phẩm '{sp.TenSanPham}' thành {sp.GiaBan:N0}đ");
-            await _audit.GhiLog("Sua", $"Cập nhật giá [{id}] {sp.TenSanPham} → {sp.GiaBan:N0}đ", $"/san-pham/{id}");
+
             return Ok(new { message = "Cập nhật giá thành công!" });
         }
     }

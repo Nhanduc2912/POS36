@@ -115,9 +115,6 @@ namespace POS36.Api
                 builder.Services.AddHttpClient();
                 builder.Services.AddScoped<ICloudStorageService, CloudStorageService>();
 
-                // Audit Logging Service (ghi nhật ký hệ thống dùng chung)
-                builder.Services.AddScoped<IAuditService, AuditService>();
-
                 builder.Services.AddEndpointsApiExplorer();
                 builder.Services.AddSwaggerGen(c =>
                 {

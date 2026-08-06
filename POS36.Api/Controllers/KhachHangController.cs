@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using POS36.Api.Data;
 using POS36.Api.DTOs;
 using POS36.Api.Models;
-using POS36.Api.Services;
 
 namespace POS36.Api.Controllers
 {
@@ -14,12 +13,7 @@ namespace POS36.Api.Controllers
     public class KhachHangController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly IAuditService _audit;
-        public KhachHangController(AppDbContext context, IAuditService audit)
-        {
-            _context = context;
-            _audit = audit;
-        }
+        public KhachHangController(AppDbContext context) { _context = context; }
 
         private int GetCuaHangId() => int.Parse(User.FindFirst("CuaHangId")!.Value);
 
@@ -185,7 +179,6 @@ namespace POS36.Api.Controllers
             var claimChiNhanhId = User.FindFirst("ChiNhanhId");
             int chiNhanhId = claimChiNhanhId != null ? int.Parse(claimChiNhanhId.Value) : 0;
             await _context.LogHoatDongAsync(chiNhanhId, "Khách hàng", $"Thêm mới khách hàng '{newKhach.TenKhachHang}' (SĐT: {newKhach.SoDienThoai})");
-            await _audit.GhiLog("Tao", $"Tạo khách hàng [{newKhach.Id}] {newKhach.TenKhachHang} - {newKhach.SoDienThoai}", "/khach-hang");
 
             return Ok(new
             {
@@ -233,7 +226,6 @@ namespace POS36.Api.Controllers
             var claimChiNhanhId = User.FindFirst("ChiNhanhId");
             int chiNhanhId = claimChiNhanhId != null ? int.Parse(claimChiNhanhId.Value) : 0;
             await _context.LogHoatDongAsync(chiNhanhId, "Khách hàng", $"Cập nhật thông tin khách hàng '{khach.TenKhachHang}' (SĐT: {khach.SoDienThoai})");
-            await _audit.GhiLog("Sua", $"Sửa khách hàng [{id}] {khach.TenKhachHang} - {khach.SoDienThoai}", $"/khach-hang/{id}");
 
             return Ok(new { message = "Cập nhật thông tin khách hàng thành công!" });
         }
@@ -259,7 +251,6 @@ namespace POS36.Api.Controllers
             var claimChiNhanhId = User.FindFirst("ChiNhanhId");
             int chiNhanhId = claimChiNhanhId != null ? int.Parse(claimChiNhanhId.Value) : 0;
             await _context.LogHoatDongAsync(chiNhanhId, "Khách hàng", $"Xóa khách hàng '{khach.TenKhachHang}' (SĐT: {khach.SoDienThoai})");
-            await _audit.GhiLog("Xoa", $"Xóa khách hàng [{id}] {khach.TenKhachHang} - {khach.SoDienThoai}", $"/khach-hang/{id}");
 
             return Ok(new { message = "Xóa khách hàng thành công!" });
         }

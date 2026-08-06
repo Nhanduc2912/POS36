@@ -1830,7 +1830,7 @@ watch(activeRightTab, (newTab) => {
                 v-if="settings.POS_ThuNganInNhieuBill"
                 @click="handleManualPrint"
                 :disabled="!activeTable || currentOrder.length === 0"
-                class="btn btn-outline-primary fw-bold"
+                class="btn btn-outline-primary fw-bold"w
                 style="width: 25%;"
                 title="In hóa đơn tạm tính"
               >

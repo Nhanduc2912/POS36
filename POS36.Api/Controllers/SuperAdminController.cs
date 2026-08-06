@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
 using POS36.Api.Data;
 using POS36.Api.Hubs;
+using POS36.Api.Models;
 using Serilog;
 
 namespace POS36.Api.Controllers
@@ -15,11 +16,33 @@ namespace POS36.Api.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IHubContext<KitchenHub> _hubContext;
+        private readonly IHttpContextAccessor _httpContext;
 
-        public SuperAdminController(AppDbContext context, IHubContext<KitchenHub> hubContext)
+        public SuperAdminController(AppDbContext context, IHubContext<KitchenHub> hubContext, IHttpContextAccessor httpContext)
         {
             _context = context;
             _hubContext = hubContext;
+            _httpContext = httpContext;
+        }
+
+        // Helper: lấy IP client
+        private string? GetClientIp() =>
+            _httpContext.HttpContext?.Connection?.RemoteIpAddress?.ToString();
+
+        // Helper: ghi nhật ký vào DB
+        private async Task GhiLog(string hanhDong, string moTa, string? url = null, string? chiTiet = null)
+        {
+            _context.NhatKyHeThangs.Add(new NhatKyHeThong
+            {
+                HanhDong = hanhDong,
+                MoTa = moTa,
+                UrlLienQuan = url,
+                IpAddress = GetClientIp(),
+                NguoiThucHien = User.Identity?.Name ?? User.FindFirst("TenDangNhap")?.Value ?? "SuperAdmin",
+                ThoiGian = DateTime.Now,
+                ChiTietJson = chiTiet,
+            });
+            await _context.SaveChangesAsync();
         }
 
         // ==========================================
@@ -178,18 +201,27 @@ namespace POS36.Api.Controllers
             var store = await _context.CuaHangs.FindAsync(id);
             if (store == null) return NotFound();
 
+            bool isKhoa;
             if (store.TrangThai == "BiKhoa")
             {
                 store.TrangThai = "HoatDong";
+                isKhoa = false;
                 Log.Information("🔓 SuperAdmin MỞ KHÓA cửa hàng [{Id}] {TenCuaHang}", id, store.TenCuaHang);
             }
             else
             {
                 store.TrangThai = "BiKhoa";
+                isKhoa = true;
                 Log.Warning("🔒 SuperAdmin KHÓA cửa hàng [{Id}] {TenCuaHang}", id, store.TenCuaHang);
             }
 
             await _context.SaveChangesAsync();
+
+            if (isKhoa)
+                await GhiLog("KhoaCuaHang", $"Khóa cửa hàng [{store.TenCuaHang}] (ID: {id})", "/super-admin/stores");
+            else
+                await GhiLog("MoKhoaCuaHang", $"Mở khóa cửa hàng [{store.TenCuaHang}] (ID: {id})", "/super-admin/stores");
+
             return Ok(new { message = $"Cửa hàng đã được chuyển sang trạng thái: {store.TrangThai}" });
         }
 
@@ -202,16 +234,34 @@ namespace POS36.Api.Controllers
             var store = await _context.CuaHangs.FindAsync(id);
             if (store == null) return NotFound();
 
+            int soThangGiaHan = dto.SoThang;
+            string tenGoi = store.GoiDichVu ?? "";
+
+            // Nếu chọn gói mới → bắt buộc dùng số tháng của gói đó, không để tùy nhập
+            if (!string.IsNullOrEmpty(dto.GoiDichVu))
+            {
+                var goiMoi = await _context.GoiDichVus.FirstOrDefaultAsync(g => g.MaGoi == dto.GoiDichVu);
+                if (goiMoi == null)
+                    return BadRequest(new { message = $"Không tìm thấy gói dịch vụ '{dto.GoiDichVu}'!" });
+
+                soThangGiaHan = goiMoi.SoThang; // Lấy số tháng từ gói
+                store.GoiDichVu = goiMoi.MaGoi;
+                tenGoi = goiMoi.TenGoi;
+            }
+
             var ngayBatDau = (store.NgayHetHan > DateTime.Now) ? store.NgayHetHan : DateTime.Now;
-            store.NgayHetHan = ngayBatDau.AddMonths(dto.SoThang);
+            store.NgayHetHan = ngayBatDau.AddMonths(soThangGiaHan);
             store.TrangThai = "HoatDong";
-            if (!string.IsNullOrEmpty(dto.GoiDichVu)) store.GoiDichVu = dto.GoiDichVu;
 
             await _context.SaveChangesAsync();
             Log.Information("⏱️ SuperAdmin gia hạn {SoThang} tháng cho [{Id}] {TenCuaHang} → Hết hạn: {NgayHetHan:dd/MM/yyyy}",
-                dto.SoThang, id, store.TenCuaHang, store.NgayHetHan);
+                soThangGiaHan, id, store.TenCuaHang, store.NgayHetHan);
 
-            return Ok(new { message = $"Đã gia hạn {dto.SoThang} tháng. Hạn mới: {store.NgayHetHan:dd/MM/yyyy}" });
+            await GhiLog("GiaHanCuaHang",
+                $"Gia hạn [{store.TenCuaHang}] gói [{tenGoi}] thêm {soThangGiaHan} tháng → hết hạn: {store.NgayHetHan:dd/MM/yyyy}",
+                $"/super-admin/stores");
+
+            return Ok(new { message = $"Đã gia hạn {soThangGiaHan} tháng (gói: {tenGoi}). Hạn mới: {store.NgayHetHan:dd/MM/yyyy}" });
         }
 
         // ==========================================
@@ -266,6 +316,10 @@ namespace POS36.Api.Controllers
 
             await _context.SaveChangesAsync();
             Log.Information("✅ SuperAdmin duyệt đơn #{Id} cho cửa hàng [{CuaHangId}]", id, sub.CuaHangId);
+            await GhiLog("DuyetDon",
+                $"Duyệt đơn #{id} cửa hàng [{store?.TenCuaHang ?? sub.CuaHangId.ToString()}] gói [{sub.GoiDichVu?.TenGoi}]",
+                $"/super-admin/subscriptions",
+                $"{{\"subId\":{id},\"cuaHangId\":{sub.CuaHangId},\"tenGoi\":\"{sub.GoiDichVu?.TenGoi}\",\"ngayHetHan\":\"{store?.NgayHetHan:dd/MM/yyyy}\"}}");
             return Ok(new { message = "Duyệt đơn thành công! Cửa hàng đã được gia hạn." });
         }
 
@@ -280,6 +334,9 @@ namespace POS36.Api.Controllers
             await _context.SaveChangesAsync();
 
             Log.Information("❌ SuperAdmin từ chối đơn #{Id}", id);
+            await GhiLog("TuChoiDon",
+                $"Từ chối đơn #{id}. Lý do: {sub.GhiChu}",
+                $"/super-admin/subscriptions");
             return Ok(new { message = "Đã từ chối đơn đăng ký." });
         }
 
@@ -393,6 +450,11 @@ namespace POS36.Api.Controllers
         {
             _context.GoiDichVus.Add(plan);
             await _context.SaveChangesAsync();
+            Log.Information("➕ SuperAdmin tạo gói dịch vụ [{MaGoi}] {TenGoi}", plan.MaGoi, plan.TenGoi);
+            await GhiLog("TaoGoiDichVu",
+                $"Tạo gói dịch vụ mới: [{plan.MaGoi}] {plan.TenGoi} — {plan.SoThang} tháng — {plan.TongGia:N0}đ",
+                "/super-admin/plans",
+                $"{{\"maGoi\":\"{plan.MaGoi}\",\"tenGoi\":\"{plan.TenGoi}\",\"soThang\":{plan.SoThang},\"tongGia\":{plan.TongGia}}}");
             return Ok(new { message = "Tạo gói dịch vụ thành công!", id = plan.Id });
         }
 
@@ -414,6 +476,10 @@ namespace POS36.Api.Controllers
             plan.ThuTuHienThi = dto.ThuTuHienThi;
 
             await _context.SaveChangesAsync();
+            Log.Information("✏️ SuperAdmin cập nhật gói [{MaGoi}] {TenGoi}", plan.MaGoi, plan.TenGoi);
+            await GhiLog("SuaGoiDichVu",
+                $"Cập nhật gói [{plan.MaGoi}] {plan.TenGoi} — {plan.SoThang} tháng — IsActive: {plan.IsActive}",
+                "/super-admin/plans");
             return Ok(new { message = "Cập nhật gói thành công!" });
         }
 
@@ -431,6 +497,9 @@ namespace POS36.Api.Controllers
             _context.GoiDichVus.Remove(plan);
             await _context.SaveChangesAsync();
             Log.Information("🗑️ SuperAdmin xóa gói dịch vụ [{Id}] {TenGoi}", id, plan.TenGoi);
+            await GhiLog("XoaGoiDichVu",
+                $"Xóa gói dịch vụ: [{plan.MaGoi}] {plan.TenGoi}",
+                "/super-admin/plans");
             return Ok(new { message = $"Đã xóa gói \"{plan.TenGoi}\" thành công!" });
         }
 
@@ -466,6 +535,9 @@ namespace POS36.Api.Controllers
             string target = dto.CuaHangId.HasValue ? $"cửa hàng [{dto.CuaHangId}]" : "TẤT CẢ cửa hàng";
             Log.Information("📧 SuperAdmin gửi thông báo [{LoaiThongBao}] đến {Target}: {TieuDe}",
                 thongBao.LoaiThongBao, target, thongBao.TieuDe);
+            await GhiLog("GuiThongBao",
+                $"Gửi thông báo [{thongBao.LoaiThongBao}] đến {target}: {thongBao.TieuDe}",
+                "/super-admin/notifications");
 
             return Ok(new { message = "Đã gửi thông báo thành công!" });
         }

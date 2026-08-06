@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using POS36.Api.Data;
 using POS36.Api.DTOs;
 using POS36.Api.Models;
-using POS36.Api.Services;
 
 namespace POS36.Api.Controllers
 {
@@ -14,12 +13,7 @@ namespace POS36.Api.Controllers
     public class NhanVienController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly IAuditService _audit;
-        public NhanVienController(AppDbContext context, IAuditService audit)
-        {
-            _context = context;
-            _audit = audit;
-        }
+        public NhanVienController(AppDbContext context) { _context = context; }
 
         private int GetCuaHangId() => int.Parse(User.FindFirst("CuaHangId")!.Value);
 
@@ -150,7 +144,6 @@ namespace POS36.Api.Controllers
                 await _context.SaveChangesAsync();
 
                 await transaction.CommitAsync();
-                await _audit.GhiLog("Tao", $"Tạo nhân viên [{request.MaNhanVien}] {request.TenNhanVien}", "/nhan-vien");
                 return Ok(new { message = "Thêm nhân viên thành công!" });
             }
             catch (Exception ex)
@@ -198,7 +191,6 @@ namespace POS36.Api.Controllers
             // nv.MaNhanVien = ... ← KHÔNG cho sửa mã NV
 
             await _context.SaveChangesAsync();
-            await _audit.GhiLog("Sua", $"Cập nhật nhân viên [{nv.MaNhanVien}] {nv.TenNhanVien}", $"/nhan-vien/{id}");
             return Ok(new { message = "Cập nhật thành công!" });
         }
 
@@ -224,7 +216,6 @@ namespace POS36.Api.Controllers
             }
 
             await _context.SaveChangesAsync();
-            await _audit.GhiLog("Xoa", $"Xóa mềm nhân viên [{nv.MaNhanVien}] {nv.TenNhanVien}", $"/nhan-vien/{id}");
             return Ok(new { message = "Đã xóa nhân viên và vô hiệu hóa tài khoản thành công!" });
         }
 
@@ -246,7 +237,6 @@ namespace POS36.Api.Controllers
             if (taiKhoan != null) taiKhoan.IsActive = true;
 
             await _context.SaveChangesAsync();
-            await _audit.GhiLog("Sua", $"Khôi phục nhân viên [{nv.MaNhanVien}] {nv.TenNhanVien}", $"/nhan-vien/{id}");
             return Ok(new { message = "Khôi phục nhân viên thành công!" });
         }
 
@@ -261,7 +251,7 @@ namespace POS36.Api.Controllers
 
             taiKhoan.IsActive = !taiKhoan.IsActive;
             await _context.SaveChangesAsync();
-            await _audit.GhiLog("Sua", $"{(taiKhoan.IsActive ? "Kích hoạt" : "Khóa")} tài khoản NV ID={id}", $"/nhan-vien/{id}");
+
             return Ok(new { 
                 message = taiKhoan.IsActive ? "Đã kích hoạt tài khoản thành công!" : "Đã khóa tài khoản thành công!",
                 isActive = taiKhoan.IsActive 
@@ -293,7 +283,7 @@ namespace POS36.Api.Controllers
 
             taiKhoan.QuyenThuNgan = string.IsNullOrWhiteSpace(request.QuyenThuNgan) ? null : request.QuyenThuNgan.Trim();
             await _context.SaveChangesAsync();
-            await _audit.GhiLog("Sua", $"Phân quyền tài khoản Thu ngân ID={id}", $"/nhan-vien/{id}/quyen-admin");
+
             return Ok(new { message = "Đã cập nhật quyền Admin thành công!", quyenThuNgan = taiKhoan.QuyenThuNgan });
         }
     }

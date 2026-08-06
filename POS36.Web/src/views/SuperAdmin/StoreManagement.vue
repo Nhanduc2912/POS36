@@ -122,31 +122,43 @@
 
     <!-- Modal: Gia hạn -->
     <div class="sa-modal-overlay" v-if="showExtend" @click.self="showExtend = false">
-      <div class="sa-modal" style="max-width:420px">
+      <div class="sa-modal" style="max-width:440px">
         <div class="sa-modal-header">
           <h5><i class="bi bi-plus-circle me-2"></i>Gia hạn: {{ extendStore?.tenCuaHang }}</h5>
           <button class="sa-modal-close" @click="showExtend = false">&times;</button>
         </div>
         <div class="sa-modal-body">
+          <!-- Hiện thị thông tin gói hiện tại -->
+          <div class="mb-3 p-2 rounded" style="background:var(--sa-nav-hover-bg);font-size:.82rem;color:var(--sa-text-muted)">
+            <i class="bi bi-info-circle me-1 text-info"></i>
+            Gói hiện tại: <strong style="color:var(--sa-accent)">{{ extendStore?.goiDichVu || 'Trial' }}</strong>
+            &nbsp;&bull;&nbsp; Hết hạn: <strong>{{ formatDate(extendStore?.ngayHetHan) }}</strong>
+          </div>
+
           <div class="mb-3">
-            <label>Gói dịch vụ</label>
-            <select v-model="extendGoiDichVu" class="sa-select w-100" @change="onGoiChange">
+            <label>Chọn gói mới</label>
+            <select v-model="extendGoiDichVu" class="sa-select w-100" @change="onPlanChange">
               <option value="">Giữ nguyên gói hiện tại</option>
               <option v-for="p in plans" :key="p.maGoi" :value="p.maGoi">
                 {{ p.tenGoi }} ({{ p.soThang }} tháng — {{ formatVND(p.tongGia) }})
               </option>
             </select>
           </div>
-          <!-- Số tháng: tự động theo gói nếu có chọn gói, hoặc dropdown thủ công nếu "Giữ nguyên" -->
-          <div class="mb-4">
+
+          <!-- Nếu chọn gói: hiện số tháng tự động, không cho nhập tay -->
+          <div class="mb-3" v-if="selectedPlan">
             <label>Số tháng gia hạn</label>
-            <!-- Chọn gói cụ thể → khóa tháng theo gói -->
-            <div v-if="extendGoiDichVu" class="sa-select w-100 d-flex align-items-center justify-content-between" style="padding:10px 12px;border:1px solid var(--sa-border);border-radius:8px;background:var(--sa-surface)"  >
-              <span><i class="bi bi-lock-fill me-2 text-warning"></i>{{ selectedPlan?.soThang }} tháng</span>
-              <small style="color:var(--sa-text-faint)">Theo cấu hình gói</small>
+            <div class="p-2 rounded d-flex align-items-center gap-2" style="background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3)">
+              <i class="bi bi-calendar-check text-warning fs-5"></i>
+              <span style="font-weight:700;font-size:1.1rem;color:var(--sa-accent)">{{ selectedPlan.soThang }} tháng</span>
+              <span style="font-size:.78rem;color:var(--sa-text-faint)">(theo chu kỳ gói {{ selectedPlan.tenGoi }})</span>
             </div>
-            <!-- Giữ nguyên gói → chọn số tháng gia hạn thủ công -->
-            <select v-else v-model.number="extendMonths" class="sa-select w-100">
+          </div>
+
+          <!-- Khi giữ nguyên gói: cho chọn số tháng thủ công -->
+          <div class="mb-4" v-else>
+            <label>Số tháng gia hạn <span style="font-size:.72rem;color:var(--sa-text-faint)">(gia hạn không đổi gói)</span></label>
+            <select v-model.number="extendMonths" class="sa-select w-100">
               <option :value="1">1 tháng</option>
               <option :value="3">3 tháng</option>
               <option :value="6">6 tháng</option>
@@ -154,6 +166,13 @@
               <option :value="24">24 tháng</option>
             </select>
           </div>
+
+          <!-- Preview ngày hết hạn mới -->
+          <div class="mb-3 text-center" v-if="extendStore" style="font-size:.82rem;color:var(--sa-text-faint)">
+            <i class="bi bi-arrow-right-circle me-1"></i>Hạn mới dự kiến:
+            <strong style="color:#22c55e">{{ previewNewExpiry }}</strong>
+          </div>
+
           <button style="background:var(--sa-accent);border:none;color:#fff;padding:12px;border-radius:8px;font-weight:700;width:100%;cursor:pointer" @click="doExtend">
             <i class="bi bi-check-lg me-1"></i>Xác nhận gia hạn
           </button>
@@ -186,15 +205,22 @@ const statusMap = {
 const formatDate = (d) => d ? new Date(d).toLocaleDateString("vi-VN") : "—";
 const formatVND = (n) => n ? Number(n).toLocaleString("vi-VN") + "đ" : "0đ";
 
-// Gói đang được chọn trong modal gia hạn
+// Gói được chọn hiện tại trong modal gia hạn
 const selectedPlan = computed(() =>
-  extendGoiDichVu.value ? plans.value.find(p => p.maGoi === extendGoiDichVu.value) : null
+  plans.value.find(p => p.maGoi === extendGoiDichVu.value) || null
 );
 
-// Khi chọn gói khác nhau → auto-set extendMonths theo soThang của gói
-const onGoiChange = () => {
-  if (selectedPlan.value) extendMonths.value = selectedPlan.value.soThang;
-};
+// Preview ngày hết hạn mới
+const previewNewExpiry = computed(() => {
+  if (!extendStore.value) return '';
+  const months = selectedPlan.value ? selectedPlan.value.soThang : extendMonths.value;
+  const base = extendStore.value.ngayHetHan && new Date(extendStore.value.ngayHetHan) > new Date()
+    ? new Date(extendStore.value.ngayHetHan)
+    : new Date();
+  const d = new Date(base);
+  d.setMonth(d.getMonth() + months);
+  return d.toLocaleDateString('vi-VN');
+});
 
 const loadStores = async () => {
   try {
@@ -233,21 +259,29 @@ const toggleStatus = async (id) => {
 
 const openExtend = (store) => {
   extendStore.value = store;
-  extendMonths.value = 12;
+  extendMonths.value = 1;
   extendGoiDichVu.value = "";
   showExtend.value = true;
 };
 
+const onPlanChange = () => {
+  // Số tháng sẽ lấy tự động từ gói nếu có chọn gói
+};
+
 const doExtend = async () => {
   try {
-    const res = await axios.post(`/api/SuperAdmin/stores/${extendStore.value.id}/extend`, {
-      soThang: extendMonths.value,
+    const payload = {
+      soThang: selectedPlan.value ? selectedPlan.value.soThang : extendMonths.value,
       goiDichVu: extendGoiDichVu.value || undefined,
-    });
-    swal.fire("Thành công!", res.data.message, "success");
+    };
+    const res = await axios.post(`/api/SuperAdmin/stores/${extendStore.value.id}/extend`, payload);
+    swal.fire("Đã gia hạn!", res.data.message, "success");
     showExtend.value = false;
     loadStores();
-  } catch (e) { swal.fire("Lỗi", "Gia hạn thất bại", "error"); }
+  } catch (e) {
+    const msg = e.response?.data?.message || "Gia hạn thất bại";
+    swal.fire("Lỗi", msg, "error");
+  }
 };
 
 onMounted(async () => {
