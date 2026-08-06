@@ -409,8 +409,22 @@ namespace POS36.Api.Controllers
             }
             if (tuBan.TrangThai != "Đang phục vụ") return BadRequest("Bàn nguồn chưa có khách.");
             if (denBan.TrangThai == "Đang phục vụ") return BadRequest("Bàn đích đang có khách, vui lòng chọn bàn trống.");
-            if (request.DanhSachChiTietId == null || !request.DanhSachChiTietId.Any())
-                return BadRequest("Chưa chọn món nào để tách.");
+
+            // Chuẩn hóa danh sách món cần tách
+            var danhSachSplit = new List<MonTachDto>();
+            if (request.DanhSachMonTach != null && request.DanhSachMonTach.Any())
+            {
+                danhSachSplit = request.DanhSachMonTach.Where(m => m.SoLuongTach > 0).ToList();
+            }
+            else if (request.DanhSachChiTietId != null && request.DanhSachChiTietId.Any())
+            {
+                danhSachSplit = request.DanhSachChiTietId
+                    .Select(id => new MonTachDto { ChiTietId = id, SoLuongTach = int.MaxValue })
+                    .ToList();
+            }
+
+            if (!danhSachSplit.Any())
+                return BadRequest("Chưa chọn món hoặc số lượng để tách.");
 
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -422,15 +436,6 @@ namespace POS36.Api.Controllers
 
                 if (hoaDonGoc == null) return BadRequest("Không tìm thấy hóa đơn bàn nguồn.");
 
-                // Lấy các chi tiết cần tách
-                var monTach = hoaDonGoc.ChiTietHoaDons
-                    .Where(ct => request.DanhSachChiTietId.Contains(ct.Id))
-                    .ToList();
-
-                if (!monTach.Any()) return BadRequest("Không tìm thấy món cần tách trong hóa đơn.");
-
-                decimal tongTienTach = monTach.Sum(ct => ct.DonGia * ct.SoLuong);
-
                 // Tạo hóa đơn mới cho bàn đích
                 var hoaDonMoi = new HoaDon
                 {
@@ -439,23 +444,66 @@ namespace POS36.Api.Controllers
                     BanId = request.DenBanId,
                     NgayTao = DateTime.Now,
                     TrangThai = "Đang phục vụ",
-                    TongTien = tongTienTach
+                    TongTien = 0
                 };
                 _context.HoaDons.Add(hoaDonMoi);
-                await _context.SaveChangesAsync(); // Để lấy Id
+                await _context.SaveChangesAsync(); // Lấy Id
 
-                // Chuyển các chi tiết sang hóa đơn mới
-                foreach (var ct in monTach)
+                decimal tongTienTach = 0;
+                var logItems = new List<string>();
+
+                foreach (var item in danhSachSplit)
                 {
-                    ct.HoaDonId = hoaDonMoi.Id;
+                    var ct = hoaDonGoc.ChiTietHoaDons?.FirstOrDefault(c => c.Id == item.ChiTietId);
+                    if (ct == null) continue;
+
+                    int soLuongTach = Math.Min(item.SoLuongTach, ct.SoLuong);
+                    if (soLuongTach <= 0) continue;
+
+                    decimal tienTach = ct.DonGia * soLuongTach;
+                    tongTienTach += tienTach;
+                    logItems.Add($"{soLuongTach}x {ct.SanPham?.TenSanPham ?? "Món"}");
+
+                    if (soLuongTach >= ct.SoLuong)
+                    {
+                        // Tách toàn bộ số lượng dòng món này
+                        ct.HoaDonId = hoaDonMoi.Id;
+                    }
+                    else
+                    {
+                        // Tách 1 phần số lượng (ví dụ tách 1 trong 2 ly)
+                        ct.SoLuong -= soLuongTach;
+                        var ctMoi = new ChiTietHoaDon
+                        {
+                            HoaDonId = hoaDonMoi.Id,
+                            SanPhamId = ct.SanPhamId,
+                            SoLuong = soLuongTach,
+                            DonGia = ct.DonGia,
+                            GiaVon = ct.GiaVon,
+                            GhiChu = ct.GhiChu,
+                            TrangThaiMon = ct.TrangThaiMon
+                        };
+                        _context.ChiTietHoaDons.Add(ctMoi);
+                    }
                 }
 
+                if (tongTienTach <= 0)
+                {
+                    _context.HoaDons.Remove(hoaDonMoi);
+                    await _context.SaveChangesAsync();
+                    await transaction.RollbackAsync();
+                    return BadRequest("Không có món nào hợp lệ để tách.");
+                }
+
+                hoaDonMoi.TongTien = tongTienTach;
                 hoaDonGoc.TongTien -= tongTienTach;
+                if (hoaDonGoc.TongTien < 0) hoaDonGoc.TongTien = 0;
+
                 denBan.TrangThai = "Đang phục vụ";
 
-                // Nếu bàn gốc không còn món nào thì đặt thành trống
-                var conLai = hoaDonGoc.ChiTietHoaDons.Except(monTach).ToList();
-                if (!conLai.Any())
+                // Kiểm tra xem bàn gốc có còn món nào không
+                bool conMon = hoaDonGoc.ChiTietHoaDons!.Any(c => c.HoaDonId == hoaDonGoc.Id && c.SoLuong > 0);
+                if (!conMon)
                 {
                     hoaDonGoc.TrangThai = "Đã hủy";
                     tuBan.TrangThai = "Trống";
@@ -465,7 +513,7 @@ namespace POS36.Api.Controllers
                 await transaction.CommitAsync();
 
                 // Ghi nhận nhật ký hoạt động chi tiết
-                string chiTietCacMon = string.Join(", ", monTach.Select(ct => $"{ct.SoLuong}x {ct.SanPham?.TenSanPham ?? "Món"}"));
+                string chiTietCacMon = string.Join(", ", logItems);
                 await _context.LogHoatDongAsync(tuBan.KhuVuc?.ChiNhanhId ?? 0, "Tách bàn", $"Tách bàn từ {tuBan.TenBan} sang {denBan.TenBan}. Món tách: {chiTietCacMon}. Tổng tiền tách: {tongTienTach:N0}đ");
 
                 // Dùng "CapNhatBan" thay vì "CoDonHangMoi" để Bếp KHÔNG hiện "có món mới"

@@ -30,11 +30,19 @@ namespace POS36.Api.DTOs
         [Required] public int DenBanId { get; set; }
     }
 
+    public class MonTachDto
+    {
+        [Required] public int ChiTietId { get; set; }
+        [Required] public int SoLuongTach { get; set; }
+    }
+
     public class TachBanDto
     {
         [Required] public int TuBanId { get; set; }
         [Required] public int DenBanId { get; set; }
-        // Danh sách ChiTietId của các món muốn tách sang bàn mới
-        [Required] public List<int> DanhSachChiTietId { get; set; } = new();
+        // Danh sách các món cùng số lượng tách tương ứng
+        public List<MonTachDto>? DanhSachMonTach { get; set; }
+        // Danh sách ChiTietId của các món muốn tách sang bàn mới (tương thích backward)
+        public List<int>? DanhSachChiTietId { get; set; }
     }
 }

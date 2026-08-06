@@ -736,14 +736,18 @@ const handleTachBan = async () => {
     return swal.fire("Hết bàn", "Không còn bàn trống nào để tách sang!", "warning");
   }
 
-  const monCheckboxes = sentItems
+  const monListHtml = sentItems
     .map((i) => `
-      <div class="form-check text-start border-bottom py-1">
-        <input class="form-check-input tach-check" type="checkbox" value="${i.chiTietId}" id="tach-${i.chiTietId}">
-        <label class="form-check-label" for="tach-${i.chiTietId}">
-          <strong>${i.name}</strong> <span class="text-muted">x${i.qty}</span>
-          <span class="float-end text-danger">${(i.price * i.qty).toLocaleString("vi-VN")}đ</span>
-        </label>
+      <div class="d-flex align-items-center justify-content-between border-bottom py-2">
+        <div class="text-start me-2">
+          <div class="fw-bold text-dark" style="font-size:0.9rem;">${i.name}</div>
+          <div class="text-muted" style="font-size:0.75rem;">${(i.price).toLocaleString("vi-VN")}đ/SP • Hiện có: <strong>x${i.qty}</strong></div>
+        </div>
+        <div class="d-flex align-items-center gap-1">
+          <button type="button" class="btn btn-sm btn-outline-secondary px-2 btn-sub-qty" data-id="${i.chiTietId}">-</button>
+          <input type="number" class="form-control form-control-sm text-center font-monospace fw-bold tach-qty-input" id="tach-qty-${i.chiTietId}" data-id="${i.chiTietId}" data-max="${i.qty}" value="0" min="0" max="${i.qty}" style="width: 52px;">
+          <button type="button" class="btn btn-sm btn-outline-primary px-2 btn-add-qty" data-id="${i.chiTietId}" data-max="${i.qty}">+</button>
+        </div>
       </div>`)
     .join("");
 
@@ -751,24 +755,63 @@ const handleTachBan = async () => {
 
   const { value: formVal, isConfirmed } = await swal.fire({
     title: `⚡ Tách bàn từ ${activeTable.value.tenBan}`,
-    width: 500,
+    width: 520,
     html: `
-      <label class="form-label fw-bold mb-1">Tách sang bàn trống:</label>
-      <select id="swal-tach-den-ban" class="form-select mb-3">${optionsBan}</select>
-      <label class="form-label fw-bold mb-1">Chọn món cần tách:</label>
-      <div style="max-height:220px;overflow-y:auto;border:1px solid #dee2e6;border-radius:6px;padding:4px 8px">
-        ${monCheckboxes}
+      <div class="text-start">
+        <label class="form-label fw-bold mb-1">Tách sang bàn trống:</label>
+        <select id="swal-tach-den-ban" class="form-select mb-3">${optionsBan}</select>
+        <label class="form-label fw-bold mb-1">Chọn món & số lượng tách sang bàn mới:</label>
+        <div style="max-height:240px;overflow-y:auto;border:1px solid #dee2e6;border-radius:8px;padding:4px 12px;background:#f8f9fa;">
+          ${monListHtml}
+        </div>
       </div>
     `,
     showCancelButton: true,
     confirmButtonText: "Tách bàn",
     cancelButtonText: "Hủy",
     confirmButtonColor: "#dc3545",
+    didOpen: (modalEl) => {
+      // Bắt sự kiện bấm nút + và - điều chỉnh số lượng tách
+      modalEl.querySelectorAll(".btn-sub-qty").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-id");
+          const input = modalEl.querySelector(`#tach-qty-${id}`);
+          if (input) {
+            let val = parseInt(input.value) || 0;
+            if (val > 0) input.value = val - 1;
+          }
+        });
+      });
+      modalEl.querySelectorAll(".btn-add-qty").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.getAttribute("data-id");
+          const max = parseInt(btn.getAttribute("data-max")) || 1;
+          const input = modalEl.querySelector(`#tach-qty-${id}`);
+          if (input) {
+            let val = parseInt(input.value) || 0;
+            if (val < max) input.value = val + 1;
+          }
+        });
+      });
+    },
     preConfirm: () => {
       const denBanId = parseInt(document.getElementById("swal-tach-den-ban").value);
-      const checked = [...document.querySelectorAll(".tach-check:checked")].map((el) => parseInt(el.value));
-      if (!checked.length) { swal.showValidationMessage("Vui lòng chọn ít nhất 1 món!"); return false; }
-      return { denBanId, danhSachChiTietId: checked };
+      const danhSachMonTach = [...document.querySelectorAll(".tach-qty-input")]
+        .map((input) => {
+          const id = parseInt(input.getAttribute("data-id"));
+          const max = parseInt(input.getAttribute("data-max")) || 1;
+          let val = parseInt(input.value) || 0;
+          if (val > max) val = max;
+          if (val < 0) val = 0;
+          return { chiTietId: id, soLuongTach: val };
+        })
+        .filter((item) => item.soLuongTach > 0);
+
+      if (!danhSachMonTach.length) {
+        swal.showValidationMessage("Vui lòng chọn số lượng lớn hơn 0 cho ít nhất 1 món!");
+        return false;
+      }
+      return { denBanId, danhSachMonTach };
     },
   });
 
@@ -778,10 +821,11 @@ const handleTachBan = async () => {
     await axios.post("/api/HoaDon/tachban", {
       tuBanId: activeTable.value.id,
       denBanId: formVal.denBanId,
-      danhSachChiTietId: formVal.danhSachChiTietId,
+      danhSachMonTach: formVal.danhSachMonTach,
     });
 
     const tenBanMoi = banTrong.find((b) => b.id === formVal.denBanId)?.tenBan || "";
+    const tongSoLuong = formVal.danhSachMonTach.reduce((t, m) => t + m.soLuongTach, 0);
 
     // Refresh lại bàn và đơn hiện tại
     await fetchTables(globalState.value.activeBranchId);
@@ -789,8 +833,8 @@ const handleTachBan = async () => {
 
     swal.fire({
       toast: true, position: "top-end", icon: "success",
-      title: `✅ Đã tách ${formVal.danhSachChiTietId.length} món sang ${tenBanMoi}`,
-      timer: 2000, showConfirmButton: false,
+      title: `✅ Đã tách ${tongSoLuong} sản phẩm sang ${tenBanMoi}`,
+      timer: 2500, showConfirmButton: false,
     });
   } catch (e) {
     swal.fire("Lỗi", e.response?.data || "Không thể tách bàn!", "error");
