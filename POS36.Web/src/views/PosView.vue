@@ -35,6 +35,38 @@ const hasAdminQuyen = computed(() => {
 // --- STATE GIAO DIỆN ---
 const activeRightTab = ref("tables");
 const tables = ref([]);
+const selectedKhuVucId = ref(0); // 0 = Tất cả khu vực
+
+const khuVucList = computed(() => {
+  const map = new Map();
+  (tables.value || []).forEach((ban) => {
+    const id = ban.khuVucId || 0;
+    const name = ban.tenKhuVuc || "Khu vực chung";
+    if (!map.has(id)) {
+      map.set(id, { id, name, total: 0, activeCount: 0 });
+    }
+    const item = map.get(id);
+    item.total++;
+    if (ban.trangThai !== "Trống") item.activeCount++;
+  });
+  return Array.from(map.values());
+});
+
+const groupedTables = computed(() => {
+  const map = new Map();
+  (tables.value || []).forEach((ban) => {
+    const id = ban.khuVucId || 0;
+    if (selectedKhuVucId.value !== 0 && id !== selectedKhuVucId.value) return;
+
+    const name = ban.tenKhuVuc || "Khu vực chung";
+    if (!map.has(id)) {
+      map.set(id, { id, name, tables: [] });
+    }
+    map.get(id).tables.push(ban);
+  });
+  return Array.from(map.values());
+});
+
 const products = ref([]);
 const activeTable = ref(null);
 const ordersByTable = ref({});
@@ -1887,41 +1919,84 @@ watch(activeRightTab, (newTab) => {
 
         <div
           v-if="activeRightTab === 'tables'"
-          class="flex-grow-1 p-3 overflow-auto"
+          class="flex-grow-1 p-3 overflow-auto d-flex flex-column gap-3"
         >
-          <div class="row g-2">
-            <div
-              v-for="ban in tables"
-              :key="ban.id"
-              class="col-xl-2 col-lg-3 col-md-4 col-4"
+          <!-- Filter Thanh Khu Vực (Pills) -->
+          <div class="d-flex align-items-center gap-2 overflow-auto pb-1 flex-shrink-0" v-if="khuVucList.length > 0">
+            <button
+              class="btn btn-sm rounded-pill px-3 fw-bold flex-shrink-0 d-flex align-items-center gap-1 shadow-xs"
+              :class="selectedKhuVucId === 0 ? 'btn-primary' : 'btn-outline-secondary bg-white text-dark'"
+              @click="selectedKhuVucId = 0"
             >
+              <i class="bi bi-grid-fill"></i> Tất cả khu vực
+              <span class="badge rounded-pill ms-1" :class="selectedKhuVucId === 0 ? 'bg-white text-primary' : 'bg-secondary'">{{ tables.length }}</span>
+            </button>
+            <button
+              v-for="kv in khuVucList"
+              :key="kv.id"
+              class="btn btn-sm rounded-pill px-3 fw-bold flex-shrink-0 d-flex align-items-center gap-1 shadow-xs"
+              :class="selectedKhuVucId === kv.id ? 'btn-primary' : 'btn-outline-secondary bg-white text-dark'"
+              @click="selectedKhuVucId = kv.id"
+            >
+              <i class="bi bi-geo-alt-fill text-danger"></i> {{ kv.name }}
+              <span class="badge rounded-pill ms-1" :class="selectedKhuVucId === kv.id ? 'bg-white text-primary' : 'bg-secondary'">
+                <template v-if="kv.activeCount > 0"><span class="text-warning fw-bold">{{ kv.activeCount }}</span>/</template>{{ kv.total }}
+              </span>
+            </button>
+          </div>
+
+          <!-- Danh Sách Bàn Được Phân Nhóm Theo Khu Vực -->
+          <div v-if="groupedTables.length === 0" class="text-center text-muted py-5">
+            <i class="bi bi-inbox fs-1 d-block opacity-25"></i>
+            Chưa có bàn nào trong khu vực này.
+          </div>
+
+          <div v-for="group in groupedTables" :key="group.id" class="khu-vuc-section">
+            <!-- Header Khu Vực -->
+            <div class="d-flex align-items-center gap-2 mb-2 pb-1 border-bottom">
+              <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-2 py-1 fs-6">
+                <i class="bi bi-geo-alt-fill text-danger"></i> {{ group.name }}
+              </span>
+              <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill small fw-normal ms-auto">
+                {{ group.tables.length }} bàn
+              </span>
+            </div>
+
+            <!-- Grid Bàn thuộc Khu Vực -->
+            <div class="row g-2">
               <div
-                @dblclick="openTable(ban)"
-                class="card border-0 text-white cursor-pointer shadow-sm pos-table-card"
-                :class="
-                  ban.trangThai === 'Trống' ? 'bg-secondary' : 'bg-primary'
-                "
+                v-for="ban in group.tables"
+                :key="ban.id"
+                class="col-xl-2 col-lg-3 col-md-4 col-4"
               >
                 <div
-                  class="card-body p-2 d-flex flex-column justify-content-between align-items-center h-100 w-100"
+                  @click="openTable(ban)"
+                  class="card border-0 text-white cursor-pointer shadow-sm pos-table-card"
+                  :class="
+                    ban.trangThai === 'Trống' ? 'bg-secondary' : 'bg-primary'
+                  "
                 >
-                  <div class="d-flex align-items-center justify-content-center flex-grow-1">
-                    <h6 class="fw-bold mb-0 text-center">{{ ban.tenBan }}</h6>
-                  </div>
-                  <div class="w-100 text-center" style="min-height: 38px;">
-                    <div
-                      v-if="ban.trangThai !== 'Trống'"
-                      class="border-top pt-1 border-light border-opacity-25"
-                    >
-                      <small class="d-block fw-bold text-warning"
-                        >{{
-                          ban.tamTinh ? ban.tamTinh.toLocaleString("vi-VN") : "0"
-                        }}đ</small
+                  <div
+                    class="card-body p-2 d-flex flex-column justify-content-between align-items-center h-100 w-100"
+                  >
+                    <div class="d-flex align-items-center justify-content-center flex-grow-1">
+                      <h6 class="fw-bold mb-0 text-center">{{ ban.tenBan }}</h6>
+                    </div>
+                    <div class="w-100 text-center" style="min-height: 38px;">
+                      <div
+                        v-if="ban.trangThai !== 'Trống'"
+                        class="border-top pt-1 border-light border-opacity-25"
                       >
-                      <small class="d-block" style="font-size: 0.75rem"
-                        ><i class="bi bi-clock me-1"></i
-                        >{{ calculateTimeElapsed(ban.timeOpen) }}</small
-                      >
+                        <small class="d-block fw-bold text-warning"
+                          >{{
+                            ban.tamTinh ? ban.tamTinh.toLocaleString("vi-VN") : "0"
+                          }}đ</small
+                        >
+                        <small class="d-block" style="font-size: 0.75rem"
+                          ><i class="bi bi-clock me-1"></i
+                          >{{ calculateTimeElapsed(ban.timeOpen) }}</small
+                        >
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -205,9 +205,13 @@ namespace POS36.Api.Controllers
             var bans = await _context.Bans
                 .Include(b => b.KhuVuc)
                 .Where(b => b.KhuVuc!.ChiNhanhId == chiNhanhId && b.CuaHangId == cuaHangId && b.TrangThai != TrangThaiAn)
+                .OrderBy(b => b.KhuVucId)
+                .ThenBy(b => b.Id)
                 .Select(b => new
                 {
                     b.Id,
+                    b.KhuVucId,
+                    TenKhuVuc = b.KhuVuc != null ? b.KhuVuc.TenKhuVuc : "Khu vực chung",
                     b.TenBan,
                     b.TrangThai,
                     // Tìm cái Hóa Đơn Đang phục vụ của bàn này
@@ -219,6 +223,8 @@ namespace POS36.Api.Controllers
                 .Select(x => new
                 {
                     x.Id,
+                    x.KhuVucId,
+                    x.TenKhuVuc,
                     x.TenBan,
                     x.TrangThai,
                     // Lấy Giờ và Tiền THẬT TẾ từ Hóa Đơn ra

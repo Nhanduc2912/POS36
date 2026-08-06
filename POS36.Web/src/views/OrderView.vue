@@ -51,55 +51,94 @@
           <div class="spinner-border text-info" role="status"></div>
         </div>
 
-        <div v-else>
-          <div class="table-grid p-2">
-            <div
-              v-for="ban in tables"
-              :key="ban.id"
-              class="table-card position-relative shadow-sm rounded-4 text-center d-flex flex-column justify-content-between p-2 mb-0"
-              :class="[
-                ban.trangThai === 'Trống'
-                  ? 'border border-light bg-white text-dark'
-                  : 'bg-warning text-dark border-0 shadow',
-                { 'pulse-animation': hasPendingItems(ban.id) },
-              ]"
-              @click="onTableClick(ban)"
+        <div v-else class="p-2">
+          <!-- Filter Thanh Khu Vực (Pills) dành cho mobile/tablet -->
+          <div class="d-flex align-items-center gap-2 overflow-auto pb-2 mb-2 px-1" v-if="khuVucOrderList.length > 0">
+            <button
+              class="btn btn-sm rounded-pill px-3 fw-bold flex-shrink-0 d-flex align-items-center gap-1 shadow-xs"
+              :class="selectedOrderKhuVucId === 0 ? 'btn-info text-white' : 'btn-outline-secondary bg-white text-dark'"
+              @click="selectedOrderKhuVucId = 0"
             >
-              <div class="d-flex flex-column justify-content-center align-items-center flex-grow-1">
-                <i
-                  class="bi"
-                  :class="
-                    ban.trangThai === 'Trống'
-                      ? 'bi-circle text-muted fs-4 mb-1'
-                      : 'bi-person-fill text-dark fs-4 mb-1'
-                  "
-                ></i>
-                <span class="d-block fw-bold fs-6">{{ ban.tenBan }}</span>
-              </div>
-
-              <div class="w-100" style="min-height: 38px;">
-                <div v-if="ban.trangThai !== 'Trống'" class="mt-1">
-                  <span class="d-block text-danger small fw-bold">{{
-                    formatPrice(ban.tamTinh)
-                  }}</span>
-                  <span
-                    class="d-block text-dark mt-0 fw-bold"
-                    style="font-size: 0.75rem"
-                  >
-                    <i class="bi bi-clock"></i>
-                    {{ calculateTimeElapsed(ban.timeOpen) }}
-                  </span>
-                </div>
-              </div>
-
-              <span
-                v-if="hasPendingItems(ban.id)"
-                class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle"
-              ></span>
-            </div>
+              <i class="bi bi-grid-fill"></i> Tất cả
+              <span class="badge rounded-pill ms-1" :class="selectedOrderKhuVucId === 0 ? 'bg-white text-info' : 'bg-secondary'">{{ tables.length }}</span>
+            </button>
+            <button
+              v-for="kv in khuVucOrderList"
+              :key="kv.id"
+              class="btn btn-sm rounded-pill px-3 fw-bold flex-shrink-0 d-flex align-items-center gap-1 shadow-xs"
+              :class="selectedOrderKhuVucId === kv.id ? 'btn-info text-white' : 'btn-outline-secondary bg-white text-dark'"
+              @click="selectedOrderKhuVucId = kv.id"
+            >
+              <i class="bi bi-geo-alt-fill text-danger"></i> {{ kv.name }}
+              <span class="badge rounded-pill ms-1" :class="selectedOrderKhuVucId === kv.id ? 'bg-white text-info' : 'bg-secondary'">
+                <template v-if="kv.activeCount > 0"><span class="text-warning fw-bold">{{ kv.activeCount }}</span>/</template>{{ kv.total }}
+              </span>
+            </button>
           </div>
-          <div v-if="tables.length === 0" class="text-center text-muted py-5">
-            Chưa có bàn nào
+
+          <!-- Danh sách bàn nhóm theo từng Khu vực -->
+          <div v-if="groupedOrderTables.length === 0" class="text-center text-muted py-5">
+            <i class="bi bi-inbox fs-1 d-block opacity-25"></i>
+            Chưa có bàn nào trong khu vực này.
+          </div>
+
+          <div v-for="group in groupedOrderTables" :key="group.id" class="khu-vuc-group mb-3">
+            <!-- Header Khu Vực -->
+            <div class="d-flex align-items-center justify-content-between px-2 mb-2 pb-1 border-bottom border-light">
+              <span class="badge bg-info bg-opacity-10 text-info fw-bold rounded-pill px-3 py-1 fs-6">
+                <i class="bi bi-geo-alt-fill text-danger me-1"></i>{{ group.name }}
+              </span>
+              <span class="text-muted small">
+                {{ group.tables.length }} bàn
+              </span>
+            </div>
+
+            <div class="table-grid p-1">
+              <div
+                v-for="ban in group.tables"
+                :key="ban.id"
+                class="table-card position-relative shadow-sm rounded-4 text-center d-flex flex-column justify-content-between p-2 mb-0"
+                :class="[
+                  ban.trangThai === 'Trống'
+                    ? 'border border-light bg-white text-dark'
+                    : 'bg-warning text-dark border-0 shadow',
+                  { 'pulse-animation': hasPendingItems(ban.id) },
+                ]"
+                @click="onTableClick(ban)"
+              >
+                <div class="d-flex flex-column justify-content-center align-items-center flex-grow-1">
+                  <i
+                    class="bi"
+                    :class="
+                      ban.trangThai === 'Trống'
+                        ? 'bi-circle text-muted fs-4 mb-1'
+                        : 'bi-person-fill text-dark fs-4 mb-1'
+                    "
+                  ></i>
+                  <span class="d-block fw-bold fs-6">{{ ban.tenBan }}</span>
+                </div>
+
+                <div class="w-100" style="min-height: 38px;">
+                  <div v-if="ban.trangThai !== 'Trống'" class="mt-1">
+                    <span class="d-block text-danger small fw-bold">{{
+                      formatPrice(ban.tamTinh)
+                    }}</span>
+                    <span
+                      class="d-block text-dark mt-0 fw-bold"
+                      style="font-size: 0.75rem"
+                    >
+                      <i class="bi bi-clock"></i>
+                      {{ calculateTimeElapsed(ban.timeOpen) }}
+                    </span>
+                  </div>
+                </div>
+
+                <span
+                  v-if="hasPendingItems(ban.id)"
+                  class="position-absolute top-0 start-100 translate-middle p-2 bg-danger border border-light rounded-circle"
+                ></span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -528,6 +567,38 @@ const tenNhanVien = ref(
   localStorage.getItem("tenNhanVien") || "Nhân viên Order",
 );
 const tables = ref([]);
+const selectedOrderKhuVucId = ref(0);
+
+const khuVucOrderList = computed(() => {
+  const map = new Map();
+  (tables.value || []).forEach((ban) => {
+    const id = ban.khuVucId || 0;
+    const name = ban.tenKhuVuc || "Khu vực chung";
+    if (!map.has(id)) {
+      map.set(id, { id, name, total: 0, activeCount: 0 });
+    }
+    const item = map.get(id);
+    item.total++;
+    if (ban.trangThai !== "Trống") item.activeCount++;
+  });
+  return Array.from(map.values());
+});
+
+const groupedOrderTables = computed(() => {
+  const map = new Map();
+  (tables.value || []).forEach((ban) => {
+    const id = ban.khuVucId || 0;
+    if (selectedOrderKhuVucId.value !== 0 && id !== selectedOrderKhuVucId.value) return;
+
+    const name = ban.tenKhuVuc || "Khu vực chung";
+    if (!map.has(id)) {
+      map.set(id, { id, name, tables: [] });
+    }
+    map.get(id).tables.push(ban);
+  });
+  return Array.from(map.values());
+});
+
 const notificationList = ref([]);
 const products = ref([]);
 const selectedTable = ref(null);
