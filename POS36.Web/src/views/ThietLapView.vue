@@ -122,27 +122,13 @@
                 </div>
 
                 <!-- Bán âm kho -->
-                <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
+                <div class="toggle-item-row py-3 d-flex justify-content-between align-items-center">
                   <div>
                     <h6 class="fw-bold text-dark mb-1">Cho phép bán hàng vượt quá số lượng tồn kho (Bán âm)</h6>
                     <p class="text-muted mb-0 small">Bật chức năng này để Thu ngân và Order tiếp tục tính tiền/thêm món ngay cả khi hết tồn kho thực tế.</p>
                   </div>
                   <div class="form-check form-switch form-switch-lg">
                     <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.Kho_ChoPhepBanAm" />
-                  </div>
-                </div>
-
-                <!-- Cảnh báo hạn mức kho -->
-                <div class="toggle-item-row py-3 d-flex justify-content-between align-items-center">
-                  <div>
-                    <h6 class="fw-bold text-dark mb-1">Ngưỡng cảnh báo sản phẩm sắp hết hàng trong kho</h6>
-                    <p class="text-muted mb-0 small">Hiển thị cảnh báo đỏ trên trang tổng quan và kiểm kê khi số lượng kho xuống dưới ngưỡng này.</p>
-                  </div>
-                  <div style="width: 140px;">
-                    <div class="input-group input-group-sm">
-                      <input type="number" v-model.number="cfg.POS_CanhBaoKho" class="form-control text-center fw-bold" min="0" placeholder="5" />
-                      <span class="input-group-text small">SP</span>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -576,7 +562,7 @@ const tabs = [
 const info = reactive({ tenCuaHang: '', soDienThoai: '', email: '', diaChi: '', logoUrl: '', trangThai: '', ngayHetHan: null, goiDichVu: '' });
 
 const cfg = reactive({
-  POS_GiamGiaMax: '20', POS_CanhBaoKho: '5',
+  POS_GiamGiaMax: '20',
   Loyalty_TiLeKiem: '10000', Loyalty_TiLeDoiDiem: '100',
   Loyalty_NguongDong: '0', Loyalty_NguongBac: '500', Loyalty_NguongVang: '2000',
   Security_TimeoutPhut: '30',
@@ -659,14 +645,7 @@ const validatePosOptions = () => {
     return false;
   }
 
-  // 2. Kiểm tra hạn mức cảnh báo kho
-  const canhBaoKho = parseInt(cfg.POS_CanhBaoKho);
-  if (isNaN(canhBaoKho) || canhBaoKho < 0) {
-    swal.fire('Lỗi cấu hình', 'Cảnh báo hạn mức kho phải là số lớn hơn hoặc bằng 0!', 'warning');
-    return false;
-  }
-
-  // 3. Kiểm tra mã PIN Admin (bắt buộc đúng 4 chữ số)
+  // 2. Kiểm tra mã PIN Admin (bắt buộc đúng 4 chữ số)
   const adminPin = String(cfg.Security_AdminPIN || '').trim();
   if (!/^\d{4}$/.test(adminPin)) {
     swal.fire('Lỗi cấu hình', 'Mã PIN Quản lý/Chủ quán phải đúng 4 chữ số (VD: 1234)!', 'warning');
