@@ -76,12 +76,12 @@ namespace POS36.Api.Middleware
 
             if (int.TryParse(userIdClaim, out int taiKhoanId))
             {
-                var isActive = await db.TaiKhoans
+                var userRecord = await db.TaiKhoans
                     .Where(t => t.Id == taiKhoanId)
-                    .Select(t => t.IsActive)
+                    .Select(t => new { t.IsActive, t.SecurityStamp })
                     .FirstOrDefaultAsync();
 
-                if (!isActive)
+                if (userRecord == null || !userRecord.IsActive)
                 {
                     context.Response.StatusCode = 401;
                     context.Response.ContentType = "application/json";
@@ -89,6 +89,22 @@ namespace POS36.Api.Middleware
                     {
                         code = "ACCOUNT_DISABLED",
                         message = "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản lý!"
+                    }));
+                    return;
+                }
+
+                // Kiểm tra SecurityStamp để thu hồi Token cũ nếu quyền đã thay đổi
+                var tokenSecurityStamp = user.FindFirst("SecurityStamp")?.Value;
+                if (!string.IsNullOrEmpty(userRecord.SecurityStamp) &&
+                    !string.IsNullOrEmpty(tokenSecurityStamp) &&
+                    tokenSecurityStamp != userRecord.SecurityStamp)
+                {
+                    context.Response.StatusCode = 401;
+                    context.Response.ContentType = "application/json";
+                    await context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        code = "TOKEN_REVOKED",
+                        message = "Quyền truy cập của bạn đã được thay đổi. Vui lòng đăng nhập lại để áp dụng quyền mới!"
                     }));
                     return;
                 }

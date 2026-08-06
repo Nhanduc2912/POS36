@@ -172,13 +172,25 @@ namespace POS36.Api.Controllers
                 }
             }
 
+            // Tự động khởi tạo SecurityStamp nếu tài khoản chưa có
+            if (string.IsNullOrEmpty(user.SecurityStamp))
+            {
+                user.SecurityStamp = Guid.NewGuid().ToString();
+            }
+
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.TenDangNhap),
                 new Claim(ClaimTypes.Role, user.VaiTro),
-                new Claim("CuaHangId", user.CuaHangId.ToString())
+                new Claim("CuaHangId", user.CuaHangId.ToString()),
+                new Claim("SecurityStamp", user.SecurityStamp)
             };
+
+            if (user.NhanVienId.HasValue)
+            {
+                claims.Add(new Claim("NhanVienId", user.NhanVienId.Value.ToString()));
+            }
 
             if (user.ChiNhanhId.HasValue)
             {
@@ -209,6 +221,8 @@ namespace POS36.Api.Controllers
                 token = jwt, 
                 role = user.VaiTro, 
                 storeTrangThai,
+                taiKhoanId = user.Id,
+                nhanVienId = user.NhanVienId,
                 tenNhanVien = user.NhanVien?.TenNhanVien ?? user.TenDangNhap,
                 quyenThuNgan = user.QuyenThuNgan ?? ""
             });

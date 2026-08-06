@@ -75,6 +75,34 @@ connection.on("NhanThongBaoHeThong", (tieuDe, noiDung, loaiThongBao) => {
   });
 });
 
+// Lắng nghe sự kiện Đổi quyền Thu ngân / Khóa tài khoản → Ép đăng xuất ngay lập tức
+connection.on("QuyenThuNganDaThayDoi", (data) => {
+  const currentToken = localStorage.getItem("pos36_token");
+  if (!currentToken) return;
+
+  const currentNvId = localStorage.getItem("pos36_nhanVienId");
+  const currentTkId = localStorage.getItem("pos36_taiKhoanId");
+
+  const isMatched = (data.nhanVienId && String(data.nhanVienId) === String(currentNvId)) ||
+                    (data.taiKhoanId && String(data.taiKhoanId) === String(currentTkId));
+
+  if (isMatched && data.forceLogout) {
+    Swal.fire({
+      icon: "warning",
+      title: "Thay đổi quyền truy cập!",
+      text: "Quyền truy cập hoặc trạng thái tài khoản của bạn đã được Chủ cửa hàng cập nhật. Vui lòng đăng nhập lại để áp dụng thay đổi!",
+      confirmButtonText: "Đăng nhập lại",
+      confirmButtonColor: "#0284c7",
+      allowOutsideClick: false,
+      allowEscapeKey: false
+    }).then(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = "/login";
+    });
+  }
+});
+
 // Track xem đã start chưa để tránh start nhiều lần
 let _startPromise = null;
 

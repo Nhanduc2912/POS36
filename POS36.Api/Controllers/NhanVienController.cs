@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.SignalR;
 using POS36.Api.Data;
 using POS36.Api.DTOs;
+using POS36.Api.Hubs;
 using POS36.Api.Models;
 
 namespace POS36.Api.Controllers
@@ -13,7 +15,13 @@ namespace POS36.Api.Controllers
     public class NhanVienController : ControllerBase
     {
         private readonly AppDbContext _context;
-        public NhanVienController(AppDbContext context) { _context = context; }
+        private readonly IHubContext<KitchenHub> _hubContext;
+
+        public NhanVienController(AppDbContext context, IHubContext<KitchenHub> hubContext)
+        {
+            _context = context;
+            _hubContext = hubContext;
+        }
 
         private int GetCuaHangId() => int.Parse(User.FindFirst("CuaHangId")!.Value);
 
@@ -250,7 +258,16 @@ namespace POS36.Api.Controllers
             if (taiKhoan == null) return NotFound(new { message = "Không tìm thấy tài khoản nhân viên!" });
 
             taiKhoan.IsActive = !taiKhoan.IsActive;
+            taiKhoan.SecurityStamp = Guid.NewGuid().ToString(); // Thu hồi token hiện tại
             await _context.SaveChangesAsync();
+
+            // Bắn SignalR thông báo ép đăng xuất nếu bị vô hiệu hóa
+            await _hubContext.Clients.Group($"store_{cuaHangId}").SendAsync("QuyenThuNganDaThayDoi", new {
+                nhanVienId = id,
+                taiKhoanId = taiKhoan.Id,
+                isActive = taiKhoan.IsActive,
+                forceLogout = true
+            });
 
             return Ok(new { 
                 message = taiKhoan.IsActive ? "Đã kích hoạt tài khoản thành công!" : "Đã khóa tài khoản thành công!",
@@ -282,9 +299,18 @@ namespace POS36.Api.Controllers
             if (taiKhoan == null) return NotFound(new { message = "Chỉ có thể phân quyền cho tài khoản Thu ngân!" });
 
             taiKhoan.QuyenThuNgan = string.IsNullOrWhiteSpace(request.QuyenThuNgan) ? null : request.QuyenThuNgan.Trim();
+            taiKhoan.SecurityStamp = Guid.NewGuid().ToString(); // Thu hồi token cũ
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Đã cập nhật quyền Admin thành công!", quyenThuNgan = taiKhoan.QuyenThuNgan });
+            // Phát SignalR thông báo ép đăng xuất ngay lập tức tới máy Thu ngân
+            await _hubContext.Clients.Group($"store_{cuaHangId}").SendAsync("QuyenThuNganDaThayDoi", new {
+                nhanVienId = id,
+                taiKhoanId = taiKhoan.Id,
+                quyenThuNgan = taiKhoan.QuyenThuNgan,
+                forceLogout = true
+            });
+
+            return Ok(new { message = "Đã cập nhật quyền Admin thành công! Hệ thống đã yêu cầu tài khoản Thu ngân đăng xuất để áp dụng quyền mới.", quyenThuNgan = taiKhoan.QuyenThuNgan });
         }
     }
 }

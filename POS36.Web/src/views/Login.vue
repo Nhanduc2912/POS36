@@ -62,6 +62,8 @@ const handleLogin = async () => {
     // Lưu quyền Admin của Thu ngân (nếu có)
     localStorage.setItem("pos36_quyen_thungan", data.quyenThuNgan || "");
     if (data.cuaHangId) localStorage.setItem("cuaHangId", data.cuaHangId);
+    if (data.nhanVienId) localStorage.setItem("pos36_nhanVienId", data.nhanVienId);
+    if (data.taiKhoanId) localStorage.setItem("pos36_taiKhoanId", data.taiKhoanId);
 
     // 3. THÔNG BÁO THÀNH CÔNG
     swal.fire({

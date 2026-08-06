@@ -20,6 +20,9 @@ namespace POS36.Api.Models
         public bool IsActive { get; set; } = true;
         public DateTime? LanDangNhapCuoi { get; set; }
 
+        // === Security Stamp dùng để thu hồi Token (Force Logout khi đổi quyền/khóa tài khoản) ===
+        public string? SecurityStamp { get; set; } = Guid.NewGuid().ToString();
+
         // === Phân quyền Admin cho Thu ngân ===
         // Lưu danh sách quyền dạng chuỗi phân cách bởi dấu phẩy
         // Ví dụ: "view_orders,view_cashbook,view_daily_summary"

@@ -49,10 +49,26 @@ axios.interceptors.response.use(
     // Lỗi cũng phải tắt Loader không là nó xoay mãi
     globalState.value.isLoading = false;
 
-    // NẾU BACKEND BÁO 401 (HẾT HẠN TOKEN HOẶC THIẾU TOKEN) -> ĐÁ VỀ TRANG LOGIN
+    // NẾU BACKEND BÁO 401 (HẾT HẠN TOKEN, ĐỔI QUYỀN HOẶC BỊ KHÓA) -> THÔNG BÁO VÀ ĐÁ VỀ TRANG LOGIN
     if (error.response && error.response.status === 401) {
-      localStorage.clear();
-      window.location.href = "/login";
+      const data = error.response.data;
+      const msg = (data && typeof data === 'object' && data.message)
+        ? data.message
+        : "Phiên đăng nhập đã hết hạn hoặc quyền truy cập của bạn đã thay đổi. Vui lòng đăng nhập lại!";
+
+      Swal.fire({
+        icon: "warning",
+        title: "Phiên đăng nhập hết hạn!",
+        text: msg,
+        confirmButtonText: "Đăng nhập lại",
+        confirmButtonColor: "#0284c7",
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+      }).then(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = "/login";
+      });
     }
 
     // NẾU BACKEND BÁO 403 (HẾT HẠN DÙNG THỬ/GÓI CƯỚC HOẶC BỊ KHÓA)
