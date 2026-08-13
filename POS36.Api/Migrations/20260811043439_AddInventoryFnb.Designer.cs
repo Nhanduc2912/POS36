@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using POS36.Api.Data;
 
@@ -11,9 +12,11 @@ using POS36.Api.Data;
 namespace POS36.Api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260811043439_AddInventoryFnb")]
+    partial class AddInventoryFnb
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -308,34 +311,6 @@ namespace POS36.Api.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("DanhMucs");
-                });
-
-            modelBuilder.Entity("POS36.Api.Models.DanhMucNguyenVatLieu", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("CuaHangId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("HinhAnh")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("TenDanhMuc")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<bool>("TrangThai")
-                        .HasColumnType("bit");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("DanhMucNguyenVatLieus");
                 });
 
             modelBuilder.Entity("POS36.Api.Models.DinhLuong", b =>
@@ -687,15 +662,12 @@ namespace POS36.Api.Migrations
                     b.Property<int>("CuaHangId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("DanhMucNguyenVatLieuId")
+                    b.Property<int?>("DanhMucId")
                         .HasColumnType("int");
 
                     b.Property<string>("DonViTinh")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("GiaVonHienTai")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("NguongCanhBao")
                         .HasColumnType("decimal(18,2)");
@@ -713,7 +685,7 @@ namespace POS36.Api.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DanhMucNguyenVatLieuId");
+                    b.HasIndex("DanhMucId");
 
                     b.ToTable("NguyenVatLieus");
                 });
@@ -1475,12 +1447,12 @@ namespace POS36.Api.Migrations
 
             modelBuilder.Entity("POS36.Api.Models.NguyenVatLieu", b =>
                 {
-                    b.HasOne("POS36.Api.Models.DanhMucNguyenVatLieu", "DanhMucNguyenVatLieu")
-                        .WithMany("NguyenVatLieus")
-                        .HasForeignKey("DanhMucNguyenVatLieuId")
+                    b.HasOne("POS36.Api.Models.DanhMuc", "DanhMuc")
+                        .WithMany()
+                        .HasForeignKey("DanhMucId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.Navigation("DanhMucNguyenVatLieu");
+                    b.Navigation("DanhMuc");
                 });
 
             modelBuilder.Entity("POS36.Api.Models.NhanVien", b =>
@@ -1635,11 +1607,6 @@ namespace POS36.Api.Migrations
             modelBuilder.Entity("POS36.Api.Models.DanhMuc", b =>
                 {
                     b.Navigation("SanPhams");
-                });
-
-            modelBuilder.Entity("POS36.Api.Models.DanhMucNguyenVatLieu", b =>
-                {
-                    b.Navigation("NguyenVatLieus");
                 });
 
             modelBuilder.Entity("POS36.Api.Models.HoaDon", b =>

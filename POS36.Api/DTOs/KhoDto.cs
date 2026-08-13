@@ -11,11 +11,12 @@ namespace POS36.Api.DTOs
         public List<ChiTietPhieuNhapDto> ChiTiets { get; set; } = new();
     }
 
-    // DTO cho từng dòng sản phẩm trong phiếu nhập
+    // DTO cho từng dòng nguyên vật liệu trong phiếu nhập
     public class ChiTietPhieuNhapDto
     {
-        public int SanPhamId { get; set; }
-        public int SoLuong { get; set; }
+        public int NguyenVatLieuId { get; set; }
+        public decimal SoLuong { get; set; }
         public decimal DonGiaNhap { get; set; } // Giá gốc lúc nhập vào
+        public DateTime? NgayHetHan { get; set; } // Hạn sử dụng của lô này
     }
 }

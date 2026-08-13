@@ -40,6 +40,9 @@ namespace POS36.Api.Data
         public DbSet<Ban> Bans { get; set; }
         public DbSet<DanhMuc> DanhMucs { get; set; }
         public DbSet<SanPham> SanPhams { get; set; }
+        public DbSet<DanhMucNguyenVatLieu> DanhMucNguyenVatLieus { get; set; }
+        public DbSet<NguyenVatLieu> NguyenVatLieus { get; set; }
+        public DbSet<DinhLuong> DinhLuongs { get; set; }
 
         // ===== PHÂN HỆ 3: Giao dịch =====
         public DbSet<HoaDon> HoaDons { get; set; }
@@ -103,6 +106,12 @@ namespace POS36.Api.Data
                 GetCurrentCuaHangId() == null || (e.CuaHangId == GetCurrentCuaHangId() && !e.IsDeleted));
 
             modelBuilder.Entity<SanPham>().HasQueryFilter(e =>
+                GetCurrentCuaHangId() == null || e.CuaHangId == GetCurrentCuaHangId());
+
+            modelBuilder.Entity<DanhMucNguyenVatLieu>().HasQueryFilter(e =>
+                GetCurrentCuaHangId() == null || e.CuaHangId == GetCurrentCuaHangId());
+
+            modelBuilder.Entity<NguyenVatLieu>().HasQueryFilter(e =>
                 GetCurrentCuaHangId() == null || e.CuaHangId == GetCurrentCuaHangId());
 
             modelBuilder.Entity<HoaDon>().HasQueryFilter(e =>

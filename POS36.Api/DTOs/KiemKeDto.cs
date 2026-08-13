@@ -17,7 +17,7 @@ namespace POS36.Api.DTOs
 
     public class ChiTietKiemKeDto
     {
-        public int SanPhamId { get; set; }
+        public int NguyenVatLieuId { get; set; }
         public int TonKhoHienTai { get; set; } // Tồn kho trên phần mềm lúc bắt đầu đếm
         public int SoLuongKiemKe { get; set; } // Số lượng thực tế nhân viên đếm được
     }

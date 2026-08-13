@@ -7,11 +7,13 @@ namespace POS36.Api.Models
         [Key]
         public int Id { get; set; }
         public int ChiNhanhId { get; set; }
-        public int SanPhamId { get; set; }
+        public int NguyenVatLieuId { get; set; }
 
-        public int SoLuong { get; set; } // Cứ bán 1 đơn thì trừ đi
+        public decimal SoLuong { get; set; } // Số lượng tồn của lô này
+
+        public DateTime? NgayHetHan { get; set; } // Hạn sử dụng (nếu null thì coi như vô hạn)
 
         public ChiNhanh? ChiNhanh { get; set; }
-        public SanPham? SanPham { get; set; }
+        public NguyenVatLieu? NguyenVatLieu { get; set; }
     }
 }
