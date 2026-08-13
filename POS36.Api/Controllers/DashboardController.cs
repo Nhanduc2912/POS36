@@ -88,14 +88,24 @@ namespace POS36.Api.Controllers
                 int tongBan = bans.Count;
                 int banDangDung = bans.Count(b => b.TrangThai == "Đang phục vụ");
 
-                // 5. CẢNH BÁO TỒN KHO — dùng NgưỡngCanhBao từng sản phẩm (FEAT-2)
-                int canhBaoKho = await _context.TonKhos
-                    .Where(t => t.ChiNhanhId == chiNhanhId)
-                    .Join(_context.SanPhams,
-                        t => t.SanPhamId,
-                        s => s.Id,
-                        (t, s) => new { t.SoLuong, s.NgưỡngCanhBao })
-                    .CountAsync(x => x.SoLuong <= x.NgưỡngCanhBao);
+                // 5. CẢNH BÁO TỒN KHO (Gộp Sắp hết hàng & Sắp hết hạn)
+                var now = DateTime.Now;
+                var allTonKho = await _context.TonKhos
+                    .Include(t => t.NguyenVatLieu)
+                    .Where(t => t.ChiNhanhId == chiNhanhId && t.NguyenVatLieu != null)
+                    .ToListAsync();
+
+                // 5.1 Đếm Nguyên vật liệu sắp hết hàng (Tính theo Tổng Tồn Kho <= Ngưỡng)
+                int canhBaoHetHang = allTonKho
+                    .GroupBy(t => t.NguyenVatLieuId)
+                    .Count(g => g.Sum(t => t.SoLuong) <= g.First().NguyenVatLieu!.NguongCanhBao);
+
+                // 5.2 Đếm Lô sắp hết hạn
+                int canhBaoHetHan = allTonKho
+                    .Count(t => t.SoLuong > 0 && t.NgayHetHan.HasValue 
+                                && (t.NgayHetHan.Value - now).TotalDays <= t.NguyenVatLieu!.SoNgayCanhBaoHetHan);
+
+                int canhBaoKho = canhBaoHetHang + canhBaoHetHan;
 
                 // 6. BIỂU ĐỒ 7 NGÀY — select tối thiểu, không cả bảng
                 var recentOrders = await _context.HoaDons
@@ -106,16 +116,16 @@ namespace POS36.Api.Controllers
                     .ToListAsync();
 
                 var labels = new List<string>();
-                var chartData = new List<decimal>();
+                var doanhThuData = new List<decimal>();
+                var donHangData = new List<int>();
 
                 for (int i = 0; i <= 6; i++)
                 {
                     DateTime date = sevenDaysAgo.AddDays(i);
                     labels.Add(date.ToString("dd/MM"));
-                    decimal dailyTotal = recentOrders
-                        .Where(o => o.NgayThanhToan.HasValue && o.NgayThanhToan.Value.Date == date)
-                        .Sum(o => o.TongTien);
-                    chartData.Add(dailyTotal);
+                    var ordersOnDate = recentOrders.Where(o => o.NgayThanhToan.HasValue && o.NgayThanhToan.Value.Date == date).ToList();
+                    doanhThuData.Add(ordersOnDate.Sum(o => o.TongTien));
+                    donHangData.Add(ordersOnDate.Count);
                 }
 
                 return Ok(new
@@ -132,12 +142,73 @@ namespace POS36.Api.Controllers
                         banDangDung,
                         tongBan
                     },
-                    chart = new { labels, data = chartData }
+                    chart = new { labels, doanhThu = doanhThuData, donHang = donHangData }
                 });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, "Lỗi khi lấy dữ liệu Dashboard: " + ex.Message);
+            }
+        }
+
+        [HttpGet("canhbao-chitiet")]
+        public async Task<IActionResult> GetCanhBaoChiTiet([FromQuery] int chiNhanhId)
+        {
+            try
+            {
+                var branchClaim = User.FindFirst("ChiNhanhId");
+                if (branchClaim != null)
+                {
+                    int userBranchId = int.Parse(branchClaim.Value);
+                    if (chiNhanhId > 0 && chiNhanhId != userBranchId)
+                        return StatusCode(403, "Bạn không có quyền truy cập dữ liệu của chi nhánh khác!");
+                    chiNhanhId = userBranchId;
+                }
+
+                var now = DateTime.Now;
+                var allTonKho = await _context.TonKhos
+                    .Include(t => t.NguyenVatLieu)
+                    .Where(t => t.ChiNhanhId == chiNhanhId && t.NguyenVatLieu != null)
+                    .ToListAsync();
+
+                // 1. Sắp hết hàng
+                var sapHetHang = allTonKho
+                    .GroupBy(t => t.NguyenVatLieuId)
+                    .Select(g => new { 
+                        NguyenVatLieu = g.First().NguyenVatLieu, 
+                        TongTon = g.Sum(t => t.SoLuong) 
+                    })
+                    .Where(x => x.TongTon <= x.NguyenVatLieu!.NguongCanhBao)
+                    .Select(x => new
+                    {
+                        x.NguyenVatLieu!.Id,
+                        x.NguyenVatLieu.TenNguyenVatLieu,
+                        SoLuong = x.TongTon,
+                        NguongCanhBao = x.NguyenVatLieu.NguongCanhBao,
+                        x.NguyenVatLieu.DonViTinh
+                    })
+                    .ToList();
+
+                // 2. Sắp hết hạn
+                var sapHetHan = allTonKho
+                    .Where(t => t.SoLuong > 0 && t.NgayHetHan.HasValue && (t.NgayHetHan.Value - now).TotalDays <= t.NguyenVatLieu!.SoNgayCanhBaoHetHan)
+                    .Select(t => new
+                    {
+                        TonKhoId = t.Id,
+                        t.NguyenVatLieu!.TenNguyenVatLieu,
+                        t.SoLuong,
+                        t.NguyenVatLieu.DonViTinh,
+                        t.NgayHetHan,
+                        SoNgayConLai = Math.Round((t.NgayHetHan!.Value - now).TotalDays, 0)
+                    })
+                    .OrderBy(x => x.SoNgayConLai)
+                    .ToList();
+
+                return Ok(new { SapHetHang = sapHetHang, SapHetHan = sapHetHan });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Lỗi: " + ex.Message);
             }
         }
     }

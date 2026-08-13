@@ -168,7 +168,7 @@
       <div class="col-xl-3 col-md-6">
         <div
           class="card border-0 shadow-sm h-100 card-hover border-start border-danger border-4"
-          @click="router.push('/admin/inventory')"
+          @click="openWarningModal"
         >
           <div class="card-body d-flex align-items-center p-3">
             <i
@@ -196,10 +196,11 @@
               DOANH THU 7 NGÀY QUA
             </h6>
             <select
+              v-model="chartFilter"
               class="form-select form-select-sm w-auto shadow-none fw-bold text-secondary border-0 bg-light"
             >
-              <option>Theo Doanh thu</option>
-              <option>Theo Đơn hàng</option>
+              <option value="doanhThu">Theo Doanh thu</option>
+              <option value="donHang">Theo Đơn hàng</option>
             </select>
           </div>
           <div class="card-body p-4">
@@ -437,6 +438,101 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal Chi tiết Cảnh báo Kho -->
+    <div v-if="showWarningModal" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
+      <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+          <div class="modal-header bg-danger bg-opacity-10 border-0 pb-3">
+            <h5 class="modal-title fw-bold text-danger">
+              <i class="bi bi-exclamation-triangle-fill me-2"></i> CHI TIẾT CẢNH BÁO TỒN KHO
+            </h5>
+            <button type="button" class="btn-close" @click="showWarningModal = false"></button>
+          </div>
+          <div class="modal-body p-0">
+            <!-- Tabs -->
+            <ul class="nav nav-tabs nav-fill bg-light pt-2 px-3 border-bottom-0" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" :class="{ 'active': activeWarningTab === 'hetHang', 'text-danger': warningDetails.sapHetHang.length > 0 }" @click="activeWarningTab = 'hetHang'">
+                  📉 Sắp Hết Hàng ({{ warningDetails.sapHetHang.length }})
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" :class="{ 'active': activeWarningTab === 'hetHan', 'text-warning': warningDetails.sapHetHan.length > 0 }" @click="activeWarningTab = 'hetHan'">
+                  ⏰ Lô Sắp Hết Hạn ({{ warningDetails.sapHetHan.length }})
+                </button>
+              </li>
+            </ul>
+
+            <div class="p-3">
+              <div v-if="isLoadingWarnings" class="text-center py-4">
+                <div class="spinner-border text-danger spinner-border-sm"></div>
+                <span class="ms-2 small text-muted">Đang tải dữ liệu cảnh báo...</span>
+              </div>
+              <div v-else>
+                <!-- Nội dung Tab Sắp Hết Hàng -->
+                <div v-if="activeWarningTab === 'hetHang'">
+                  <div v-if="warningDetails.sapHetHang.length === 0" class="text-center py-4 text-muted">
+                    <i class="bi bi-check-circle-fill fs-2 text-success mb-2 d-block"></i>
+                    Tồn kho an toàn. Không có mặt hàng nào sắp hết.
+                  </div>
+                  <div v-else class="list-group list-group-flush">
+                    <div v-for="(item, idx) in warningDetails.sapHetHang" :key="idx" class="list-group-item px-0 py-3 border-bottom">
+                      <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold text-dark">{{ item.tenNguyenVatLieu }}</span>
+                        <span class="badge bg-danger rounded-pill px-3">{{ item.soLuong }} / {{ item.nguongCanhBao }} {{ item.donViTinh }}</span>
+                      </div>
+                      <div class="progress" style="height: 6px;">
+                        <div class="progress-bar bg-danger" role="progressbar" :style="{ width: Math.min(100, (item.soLuong / item.nguongCanhBao) * 100) + '%' }"></div>
+                      </div>
+                      <small class="text-muted mt-1 d-block">Tổng tồn kho đã chạm đáy ngưỡng an toàn (≤ {{ item.nguongCanhBao }}).</small>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Nội dung Tab Sắp Hết Hạn -->
+                <div v-if="activeWarningTab === 'hetHan'">
+                  <div v-if="warningDetails.sapHetHan.length === 0" class="text-center py-4 text-muted">
+                    <i class="bi bi-emoji-smile fs-2 text-success mb-2 d-block"></i>
+                    Không có lô hàng nào sắp hết hạn.
+                  </div>
+                  <div v-else class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                      <thead class="table-light small text-muted">
+                        <tr>
+                          <th>Nguyên vật liệu</th>
+                          <th class="text-center">Số lượng lô</th>
+                          <th class="text-center">Hết hạn vào</th>
+                          <th class="text-end">Tình trạng</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="(item, idx) in warningDetails.sapHetHan" :key="idx">
+                          <td class="fw-bold text-dark">{{ item.tenNguyenVatLieu }}</td>
+                          <td class="text-center"><span class="badge bg-secondary">{{ item.soLuong }} {{ item.donViTinh }}</span></td>
+                          <td class="text-center fw-semibold">{{ new Date(item.ngayHetHan).toLocaleDateString('vi-VN') }}</td>
+                          <td class="text-end">
+                            <span v-if="item.soNgayConLai <= 0" class="text-danger fw-bold"><i class="bi bi-x-circle-fill me-1"></i>Đã hết hạn</span>
+                            <span v-else class="text-warning fw-bold"><i class="bi bi-exclamation-circle-fill me-1"></i>Còn {{ item.soNgayConLai }} ngày</span>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-0 bg-light">
+            <button class="btn btn-outline-secondary btn-sm px-4 fw-bold" @click="showWarningModal = false">Đóng</button>
+            <button class="btn btn-danger btn-sm px-4 fw-bold" @click="router.push('/admin/ingredients'); showWarningModal = false">
+              Tới trang Nguyên vật liệu <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -472,6 +568,34 @@ const isLoading = ref(true);
 const showOnboarding = ref(false);
 const onboardingStep = ref(1);
 const isSubmittingOnboarding = ref(false);
+
+const showWarningModal = ref(false);
+const activeWarningTab = ref('hetHang');
+const isLoadingWarnings = ref(false);
+const warningDetails = ref({
+  sapHetHang: [],
+  sapHetHan: []
+});
+
+const openWarningModal = async () => {
+  if (!globalState.value.activeBranchId) return;
+  showWarningModal.value = true;
+  isLoadingWarnings.value = true;
+  try {
+    const res = await axios.get(`/api/Dashboard/canhbao-chitiet?chiNhanhId=${globalState.value.activeBranchId}`);
+    warningDetails.value = res.data;
+    if (res.data.sapHetHang.length === 0 && res.data.sapHetHan.length > 0) {
+      activeWarningTab.value = 'hetHan';
+    } else {
+      activeWarningTab.value = 'hetHang';
+    }
+  } catch (error) {
+    console.error("Lỗi lấy chi tiết cảnh báo", error);
+    swal.fire("Lỗi", "Không thể lấy chi tiết cảnh báo", "error");
+  } finally {
+    isLoadingWarnings.value = false;
+  }
+};
 
 const form = ref({
   modelType: "cafe",
@@ -664,6 +788,60 @@ const chartOptions = ref({
   },
 });
 
+const updateChart = () => {
+  if (chartFilter.value === "doanhThu") {
+    chartData.value = {
+      labels: rawChartData.value.labels,
+      datasets: [
+        {
+          label: "Doanh thu",
+          backgroundColor: "#4e73df",
+          hoverBackgroundColor: "#2e59d9",
+          borderRadius: 6,
+          data: rawChartData.value.doanhThu,
+        },
+      ],
+    };
+    chartOptions.value.plugins.tooltip.callbacks.label = function (context) {
+      let label = context.dataset.label || "";
+      if (label) label += ": ";
+      if (context.parsed.y !== null) {
+        label += new Intl.NumberFormat("vi-VN", {
+          style: "currency",
+          currency: "VND",
+        }).format(context.parsed.y);
+      }
+      return label;
+    };
+    chartOptions.value.scales.y.ticks.callback = function (value) {
+      if (value >= 1000000) return value / 1000000 + " Tr";
+      if (value >= 1000) return value / 1000 + " k";
+      return value;
+    };
+  } else {
+    chartData.value = {
+      labels: rawChartData.value.labels,
+      datasets: [
+        {
+          label: "Đơn hàng",
+          backgroundColor: "#1cc88a",
+          hoverBackgroundColor: "#17a673",
+          borderRadius: 6,
+          data: rawChartData.value.donHang,
+        },
+      ],
+    };
+    chartOptions.value.plugins.tooltip.callbacks.label = function (context) {
+      return context.dataset.label + ": " + context.parsed.y + " đơn";
+    };
+    chartOptions.value.scales.y.ticks.callback = function (value) {
+      return value;
+    };
+  }
+};
+
+watch(chartFilter, updateChart);
+
 const fetchDashboardData = async () => {
   if (!globalState.value.activeBranchId) return;
 
@@ -676,18 +854,8 @@ const fetchDashboardData = async () => {
     // Nối dữ liệu từ API vào UI. Nếu API chưa có đủ cột thì tạm thời để giá trị gốc 0
     summary.value = { ...summary.value, ...response.data.summary };
 
-    chartData.value = {
-      labels: response.data.chart.labels,
-      datasets: [
-        {
-          label: "Doanh thu",
-          backgroundColor: "#4e73df",
-          hoverBackgroundColor: "#2e59d9",
-          borderRadius: 6,
-          data: response.data.chart.data,
-        },
-      ],
-    };
+    rawChartData.value = response.data.chart;
+    updateChart();
   } catch (error) {
     console.error("Lỗi lấy dữ liệu dashboard:", error);
   } finally {
