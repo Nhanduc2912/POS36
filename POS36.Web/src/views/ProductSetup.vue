@@ -56,6 +56,59 @@ onMounted(() => {
   fetchProducts();
 });
 
+// --- STATE CÔNG THỨC (ĐỊNH LƯỢNG) ---
+const showRecipeModal = ref(false);
+const currentRecipeProduct = ref(null);
+const allIngredients = ref([]);
+const recipeItems = ref([]);
+
+const fetchAllIngredients = async () => {
+  try {
+    const res = await axios.get("/api/NguyenVatLieu");
+    allIngredients.value = res.data;
+  } catch (error) {
+    console.error("Lỗi tải NVL", error);
+  }
+};
+
+const handleConfigRecipe = async (prod) => {
+  currentRecipeProduct.value = prod;
+  if (allIngredients.value.length === 0) await fetchAllIngredients();
+  try {
+    const res = await axios.get(`/api/SanPham/${prod.id}/dinhluong`);
+    // Map data
+    recipeItems.value = res.data.map(d => ({ nguyenVatLieuId: d.nguyenVatLieuId, soLuong: d.soLuong }));
+    if (recipeItems.value.length === 0) {
+      recipeItems.value.push({ nguyenVatLieuId: "", soLuong: 1 });
+    }
+    showRecipeModal.value = true;
+  } catch (e) {
+    swal.fire("Lỗi", "Không thể lấy công thức", "error");
+  }
+};
+
+const addRecipeItem = () => recipeItems.value.push({ nguyenVatLieuId: "", soLuong: 1 });
+const removeRecipeItem = (index) => recipeItems.value.splice(index, 1);
+
+const getAvailableIngredients = (currentIndex) => {
+  const selectedIds = recipeItems.value
+    .map((item, idx) => idx !== currentIndex ? item.nguyenVatLieuId : null)
+    .filter(id => id);
+  return allIngredients.value.filter(nvl => !selectedIds.includes(nvl.id));
+};
+
+const saveRecipe = async () => {
+  try {
+    // Filter out empty lines
+    const payload = recipeItems.value.filter(x => x.nguyenVatLieuId && x.soLuong > 0);
+    await axios.post(`/api/SanPham/${currentRecipeProduct.value.id}/dinhluong`, payload);
+    swal.fire({ icon: "success", title: "Lưu công thức thành công", timer: 1000, showConfirmButton: false });
+    showRecipeModal.value = false;
+  } catch (e) {
+    swal.fire("Lỗi", "Không thể lưu công thức", "error");
+  }
+};
+
 // --- HÀM THÊM NHÓM (CÓ ẢNH) ---
 const handleAddCategory = async () => {
   swal
@@ -122,10 +175,6 @@ const handleAddProduct = async () => {
       <select id="swal-category" class="form-select mb-3">${categoryOptions}</select>
       <input id="swal-name" class="form-control mb-3" placeholder="Tên hàng hóa (VD: Lẩu Thái)">
       <input id="swal-price" class="form-control mb-3" type="number" placeholder="Giá bán (VNĐ)">
-      <div class="mb-3">
-        <label class="d-block text-start mb-1 small fw-semibold">Ngưỡng cảnh báo tồn kho:</label>
-        <input id="swal-nguong" class="form-control" type="number" value="5" min="0" placeholder="VD: 5 (khi tồn kho &lt;= 5 sẽ cảnh báo)">
-      </div>
       <label class="d-block text-start mb-1 small text-muted">Hình ảnh (Tùy chọn):</label>
       <input id="swal-image" class="form-control" type="file" accept="image/*">
     `,
@@ -145,7 +194,6 @@ const handleAddProduct = async () => {
           danhMucId: catId,
           tenSanPham: name,
           giaBan: price,
-          nguongCanhBao: parseInt(document.getElementById('swal-nguong').value) || 5,
           imageFile: imageFile,
         };
       },
@@ -157,7 +205,6 @@ const handleAddProduct = async () => {
           formData.append("DanhMucId", result.value.danhMucId);
           formData.append("TenSanPham", result.value.tenSanPham);
           formData.append("GiaBan", result.value.giaBan);
-          formData.append("NgưỡngCanhBao", result.value.nguongCanhBao);
           if (result.value.imageFile)
             formData.append("HinhAnhFile", result.value.imageFile);
 
@@ -186,11 +233,8 @@ const handleEditProduct = async (prod) => {
       html: `
       <select id="swal-category-edit" class="form-select mb-3">${categoryOptions}</select>
       <input id="swal-name-edit" class="form-control mb-3" value="${prod.tenSanPham}">
-      <input id="swal-price-edit" class="form-control mb-3" type="number" value="${prod.giaBan}">
-      <div class="mb-3">
-        <label class="d-block text-start mb-1 small fw-semibold">Ngưỡng cảnh báo tồn kho:</label>
-        <input id="swal-nguong-edit" class="form-control" type="number" value="${prod.ngưỡngCanhBao || 5}" min="0">
-        <div class="form-text text-muted small">Hệ thống sẽ cảnh báo khi tồn kho ≤ giá trị này</div>
+      <div class="alert alert-info py-2 small mb-3 text-start">
+        <i class="bi bi-info-circle-fill me-1"></i> Giá bán được quản lý tại trang <b>Bảng giá</b>.
       </div>
       <label class="d-block text-start mb-1 small text-muted">Ảnh mới (Bỏ trống nếu giữ ảnh cũ):</label>
       <input id="swal-image-edit" class="form-control" type="file" accept="image/*">
@@ -200,17 +244,15 @@ const handleEditProduct = async (prod) => {
       preConfirm: () => {
         const catId = document.getElementById("swal-category-edit").value;
         const name = document.getElementById("swal-name-edit").value;
-        const price = document.getElementById("swal-price-edit").value;
         const imageFile = document.getElementById("swal-image-edit").files[0];
-        if (!catId || !name || !price) {
+        if (!catId || !name) {
           swal.showValidationMessage("Vui lòng nhập đủ thông tin!");
           return false;
         }
         return {
           danhMucId: catId,
           tenSanPham: name,
-          giaBan: price,
-          nguongCanhBao: parseInt(document.getElementById('swal-nguong-edit').value) || 5,
+          giaBan: prod.giaBan, // Giữ nguyên giá cũ
           imageFile: imageFile,
         };
       },
@@ -222,7 +264,6 @@ const handleEditProduct = async (prod) => {
           formData.append("DanhMucId", result.value.danhMucId);
           formData.append("TenSanPham", result.value.tenSanPham);
           formData.append("GiaBan", result.value.giaBan);
-          formData.append("NgưỡngCanhBao", result.value.nguongCanhBao);
           if (result.value.imageFile)
             formData.append("HinhAnhFile", result.value.imageFile);
 
@@ -345,8 +386,8 @@ const handleDeleteProduct = (id) => {
                   <th>Mã / Tên hàng hóa</th>
                   <th>Nhóm</th>
                   <th class="text-end">Giá bán</th>
-                  <th class="text-end">Tồn kho</th>
                   <th class="text-center">Đang bán</th>
+                  <th class="text-center" style="width: 100px">Định lượng</th>
                   <th class="text-center" style="width: 100px">Thao tác</th>
                 </tr>
               </thead>
@@ -395,14 +436,7 @@ const handleDeleteProduct = (id) => {
                     }}</span>
                   </td>
                   <td class="text-end fw-bold">
-                    {{ prod.giaBan.toLocaleString("vi-VN") }}
-                  </td>
-                  <td class="text-end">
-                    <span
-                      class="fw-bold"
-                      :class="prod.tonKho > 0 ? 'text-success' : 'text-danger'"
-                      >{{ prod.tonKho }}</span
-                    >
+                    {{ prod.giaBan.toLocaleString("vi-VN") }} ₫
                   </td>
                   <td class="text-center">
                     <div
@@ -417,6 +451,16 @@ const handleDeleteProduct = (id) => {
                         @change="handleToggleStatus(prod)"
                       />
                     </div>
+                  </td>
+                  <td class="text-center">
+                    <button
+                      @click="handleConfigRecipe(prod)"
+                      class="btn btn-sm text-white me-1 shadow-sm"
+                      :class="prod.coDinhLuong ? 'btn-success' : 'btn-danger'"
+                      :title="prod.coDinhLuong ? 'Đã thiết lập định lượng' : 'Chưa có định lượng! Bán hàng sẽ không trừ kho'"
+                    >
+                      <i class="bi" :class="prod.coDinhLuong ? 'bi-diagram-3-fill' : 'bi-exclamation-triangle-fill'"></i>
+                    </button>
                   </td>
                   <td class="text-center">
                     <button
@@ -441,6 +485,56 @@ const handleDeleteProduct = (id) => {
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL CÔNG THỨC (ĐỊNH LƯỢNG) -->
+    <div v-if="showRecipeModal" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5)">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header bg-light">
+            <h5 class="modal-title fw-bold text-dark">
+              <i class="bi bi-diagram-3 text-primary me-2"></i> Thiết lập công thức: {{ currentRecipeProduct?.tenSanPham }}
+            </h5>
+            <button type="button" class="btn-close" @click="showRecipeModal = false"></button>
+          </div>
+          <div class="modal-body">
+            <table class="table table-bordered mb-3">
+              <thead class="table-light">
+                <tr>
+                  <th>Nguyên vật liệu</th>
+                  <th style="width: 150px">Định lượng</th>
+                  <th style="width: 50px"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, index) in recipeItems" :key="index">
+                  <td>
+                    <select class="form-select form-select-sm" v-model="item.nguyenVatLieuId">
+                      <option value="">-- Chọn NVL --</option>
+                      <option v-for="nvl in getAvailableIngredients(index)" :key="nvl.id" :value="nvl.id">
+                        {{ nvl.tenNguyenVatLieu }} ({{ nvl.donViTinh }})
+                      </option>
+                    </select>
+                  </td>
+                  <td>
+                    <input type="number" class="form-control form-control-sm" v-model="item.soLuong" min="0.01" step="0.01">
+                  </td>
+                  <td class="text-center">
+                    <button class="btn btn-sm btn-outline-danger" @click="removeRecipeItem(index)"><i class="bi bi-x"></i></button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <button class="btn btn-sm btn-outline-primary" @click="addRecipeItem">
+              <i class="bi bi-plus"></i> Thêm thành phần
+            </button>
+          </div>
+          <div class="modal-footer border-0">
+            <button class="btn btn-secondary" @click="showRecipeModal = false">Hủy</button>
+            <button class="btn btn-primary fw-bold" @click="saveRecipe"><i class="bi bi-check2"></i> Lưu Công Thức</button>
           </div>
         </div>
       </div>

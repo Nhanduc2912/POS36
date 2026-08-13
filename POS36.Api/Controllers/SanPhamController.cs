@@ -61,7 +61,7 @@ namespace POS36.Api.Controllers
             }
 
             // Kết hợp với bảng Tồn Kho để lấy số lượng thực tế tại Chi nhánh
-            var result = await query.Select(s => new
+            var sanPhams = await query.Select(s => new
             {
                 s.Id,
                 s.TenSanPham,
@@ -69,18 +69,30 @@ namespace POS36.Api.Controllers
                 s.TrangThai,
                 s.DanhMucId,
                 TenDanhMuc = s.DanhMuc != null ? s.DanhMuc.TenDanhMuc : "Khác",
-
                 HinhAnh = s.HinhAnh,
-                GiaVon = _context.ChiTietPhieuNhaps
-                            .Where(ct => ct.SanPhamId == s.Id && ct.PhieuNhap != null && ct.PhieuNhap.ChiNhanhId == chiNhanhId && ct.PhieuNhap.TrangThai == "Hoàn thành")
-                            .Select(ct => (decimal?)ct.DonGiaNhap)
-                            .Average() ?? 0,
-                NgưỡngCanhBao = s.NgưỡngCanhBao, // FEAT-2
-                TonKho = _context.TonKhos
-                            .Where(t => t.SanPhamId == s.Id && t.ChiNhanhId == chiNhanhId)
-                            .Select(t => t.SoLuong)
-                            .FirstOrDefault()
+                NgưỡngCanhBao = s.NgưỡngCanhBao // FEAT-2
             }).ToListAsync();
+
+            // Tính giá vốn server-side: Σ(Định lượng NVL × Giá vốn MAC của NVL đó)
+            var allDinhLuong = await _context.DinhLuongs
+                .Include(d => d.NguyenVatLieu)
+                .Where(d => sanPhams.Select(sp => sp.Id).Contains(d.SanPhamId))
+                .ToListAsync();
+
+            var result = sanPhams.Select(s => new
+            {
+                s.Id,
+                s.TenSanPham,
+                s.GiaBan,
+                s.TrangThai,
+                s.DanhMucId,
+                s.TenDanhMuc,
+                s.HinhAnh,
+                GiaVon = Math.Round((double)allDinhLuong
+                    .Where(d => d.SanPhamId == s.Id && d.NguyenVatLieu != null)
+                    .Sum(d => d.SoLuong * d.NguyenVatLieu!.GiaVonHienTai), 0),
+                CoDinhLuong = allDinhLuong.Any(d => d.SanPhamId == s.Id)
+            }).ToList();
 
             return Ok(result);
         }
@@ -155,9 +167,8 @@ namespace POS36.Api.Controllers
             if (dangDuocGoiMon)
                 return BadRequest("Không thể xóa sản phẩm đang có trong hóa đơn chưa thanh toán!");
 
-            // Xóa luôn các bản ghi Tồn Kho liên quan đến sản phẩm này trước (để tránh lỗi khóa ngoại)
-            var tonKhos = await _context.TonKhos.Where(t => t.SanPhamId == id).ToListAsync();
-            _context.TonKhos.RemoveRange(tonKhos);
+            var dinhLuongs = await _context.DinhLuongs.Where(t => t.SanPhamId == id).ToListAsync();
+            _context.DinhLuongs.RemoveRange(dinhLuongs);
 
             _context.SanPhams.Remove(sp);
             await _context.SaveChangesAsync();
@@ -231,6 +242,69 @@ namespace POS36.Api.Controllers
             await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), "Thực đơn", $"Cập nhật nhanh giá bán sản phẩm '{sp.TenSanPham}' thành {sp.GiaBan:N0}đ");
 
             return Ok(new { message = "Cập nhật giá thành công!" });
+        }
+
+        // ==========================================
+        // QUẢN LÝ ĐỊNH LƯỢNG (RECIPE) CHO SẢN PHẨM
+        // ==========================================
+        [HttpGet("{id}/dinhluong")]
+        public async Task<IActionResult> GetDinhLuong(int id)
+        {
+            int cuaHangId = GetCuaHangId();
+            var checkSp = await _context.SanPhams.FirstOrDefaultAsync(s => s.Id == id && s.CuaHangId == cuaHangId);
+            if (checkSp == null) return NotFound("Sản phẩm không tồn tại!");
+
+            var data = await _context.DinhLuongs
+                .Include(d => d.NguyenVatLieu)
+                .Where(d => d.SanPhamId == id)
+                .Select(d => new {
+                    d.Id, 
+                    d.NguyenVatLieuId, 
+                    d.SoLuong, 
+                    TenNguyenVatLieu = d.NguyenVatLieu != null ? d.NguyenVatLieu.TenNguyenVatLieu : "",
+                    DonViTinh = d.NguyenVatLieu != null ? d.NguyenVatLieu.DonViTinh : ""
+                }).ToListAsync();
+
+            return Ok(data);
+        }
+
+        [Authorize(Roles = "ChuCuaHang")]
+        [HttpPost("{id}/dinhluong")]
+        public async Task<IActionResult> UpdateDinhLuong(int id, [FromBody] List<DinhLuongDto> requests)
+        {
+            int cuaHangId = GetCuaHangId();
+            var sp = await _context.SanPhams.FirstOrDefaultAsync(s => s.Id == id && s.CuaHangId == cuaHangId);
+            if (sp == null) return NotFound("Sản phẩm không tồn tại!");
+
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // Xóa toàn bộ định lượng cũ
+                var oldList = await _context.DinhLuongs.Where(d => d.SanPhamId == id).ToListAsync();
+                _context.DinhLuongs.RemoveRange(oldList);
+
+                // Thêm mới
+                if (requests != null && requests.Any())
+                {
+                    var newList = requests.Select(r => new DinhLuong {
+                        SanPhamId = id,
+                        NguyenVatLieuId = r.NguyenVatLieuId,
+                        SoLuong = r.SoLuong
+                    });
+                    _context.DinhLuongs.AddRange(newList);
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                
+                await _context.LogHoatDongAsync(int.Parse(User.FindFirst("ChiNhanhId")?.Value ?? "0"), "Thực đơn", $"Cập nhật công thức/định lượng cho sản phẩm '{sp.TenSanPham}'");
+                return Ok(new { message = "Cập nhật định lượng thành công!" });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, "Lỗi server: " + ex.Message);
+            }
         }
     }
 }
