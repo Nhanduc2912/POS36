@@ -275,6 +275,13 @@ const userDisplayLabel = computed(() => {
                     ><i class="bi bi-card-list"></i> Thực đơn</router-link
                   >
                 </li>
+                <li v-if="hasQuyen('view_products')">
+                  <router-link
+                    class="dropdown-item fw-bold"
+                    to="/admin/ingredients"
+                    ><i class="bi bi-egg-fried"></i> Nguyên vật liệu</router-link
+                  >
+                </li>
                 <!-- Thiết lập giá: Ẩn với Thu ngân -->
                 <li v-if="!isThuNgan">
                   <router-link class="dropdown-item fw-bold" to="/admin/prices"

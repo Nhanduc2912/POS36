@@ -38,9 +38,9 @@
                 @click="addToCart(p)"
               >
                 <span
-                  ><b>{{ p.maSanPham || "SP" }}</b> - {{ p.tenSanPham }}</span
+                  ><b>NVL-{{ p.id }}</b> - {{ p.tenNguyenVatLieu }}</span
                 >
-                <span class="text-success">{{ formatPrice(p.giaBan) }}</span>
+                <span class="text-success">{{ p.donViTinh }}</span>
               </li>
             </ul>
           </div>
@@ -59,10 +59,11 @@
           >
             <thead class="table-light text-muted">
               <tr>
-                <th class="ps-3" style="width: 15%">Mã hàng</th>
-                <th style="width: 35%">Tên hàng hóa</th>
+                <th class="ps-3" style="width: 10%">Mã NVL</th>
+                <th style="width: 25%">Tên nguyên vật liệu</th>
                 <th class="text-center" style="width: 15%">Số lượng</th>
                 <th class="text-end" style="width: 15%">Giá nhập</th>
+                <th class="text-center" style="width: 15%">Hạn sử dụng</th>
                 <th class="text-end" style="width: 15%">Thành tiền</th>
                 <th class="text-center" style="width: 5%"></th>
               </tr>
@@ -78,8 +79,8 @@
                 :key="item.id"
                 :class="{ 'bg-light': item.soLuong === 0 }"
               >
-                <td class="ps-3 text-muted">{{ item.maSanPham || "SP" }}</td>
-                <td class="fw-bold text-dark">{{ item.tenSanPham }}</td>
+                <td class="ps-3 text-muted">NVL-{{ item.id }}</td>
+                <td class="fw-bold text-dark">{{ item.tenNguyenVatLieu }} <span class="badge bg-light text-dark border">{{ item.donViTinh }}</span></td>
                 <td class="text-center p-1">
                   <input
                     type="number"
@@ -87,6 +88,7 @@
                     :class="{ 'border-danger text-danger': item.soLuong === 0 }"
                     v-model="item.soLuong"
                     min="0"
+                    step="0.1"
                   />
                 </td>
                 <td class="text-end p-1">
@@ -97,11 +99,18 @@
                     min="0"
                   />
                 </td>
+                <td class="text-center p-1">
+                  <input
+                    type="date"
+                    class="form-control form-control-sm text-center"
+                    v-model="item.ngayHetHan"
+                  />
+                </td>
                 <td
                   class="text-end fw-bold"
                   :class="item.soLuong > 0 ? 'text-danger' : 'text-muted'"
                 >
-                  {{ formatPrice(item.soLuong * item.giaNhap) }}
+                  {{ formatPrice(item.soLuong * item.giaNhap) }} ₫
                 </td>
                 <td
                   class="text-center text-danger cursor-pointer"
@@ -184,7 +193,7 @@
               <span class="fw-bold fs-6 text-dark">Tổng tiền hàng</span>
               <span class="fw-bold fs-5 text-danger">{{
                 formatPrice(totalAmount)
-              }}</span>
+              }} ₫</span>
             </div>
             <div class="d-flex justify-content-between align-items-center mb-3">
               <span class="fw-bold text-secondary"
@@ -255,16 +264,17 @@ const totalAmount = computed(() =>
 const filteredProducts = computed(() => {
   if (!searchQuery.value) return [];
   return products.value.filter((p) =>
-    p.tenSanPham.toLowerCase().includes(searchQuery.value.toLowerCase()),
+    p.tenNguyenVatLieu.toLowerCase().includes(searchQuery.value.toLowerCase()),
   );
 });
 
 const fetchProducts = async () => {
   try {
     const res = await axios.get(
-      `/api/KiemKe/san-pham-ton-kho?chiNhanhId=${globalState.value.activeBranchId || 0}`,
+      `/api/NguyenVatLieu`,
     );
-    products.value = res.data;
+    // filter active only
+    products.value = res.data.filter(p => p.trangThai);
   } catch (e) {
     console.error(e);
   }
@@ -279,11 +289,11 @@ const addToCart = (prod) => {
   if (!exist) {
     importList.value.unshift({
       id: prod.id,
-      maSanPham: prod.maSanPham,
-      tenSanPham: prod.tenSanPham,
-      tenDanhMuc: prod.tenDanhMuc,
+      tenNguyenVatLieu: prod.tenNguyenVatLieu,
+      donViTinh: prod.donViTinh,
       soLuong: 0, // Set về 0
       giaNhap: 0, // Set về 0
+      ngayHetHan: null, // Thêm ngày hết hạn
     });
   }
   searchQuery.value = "";
@@ -301,7 +311,7 @@ const hideDropdownDelay = () => {
 
 const addByGroup = async () => {
   const groups = [
-    ...new Set(products.value.map((p) => p.tenDanhMuc || "Khác")),
+    ...new Set(products.value.map((p) => p.danhMucNguyenVatLieu?.tenDanhMuc || "Khác")),
   ];
   const inputOptions = {};
   groups.forEach((g) => {
@@ -319,7 +329,7 @@ const addByGroup = async () => {
 
   if (selectedGroup) {
     const itemsToAdd = products.value.filter(
-      (p) => (p.tenDanhMuc || "Khác") === selectedGroup,
+      (p) => (p.danhMucNguyenVatLieu?.tenDanhMuc || "Khác") === selectedGroup,
     );
     itemsToAdd.forEach((prod) => addToCart(prod)); // Add vào đều mặc định là 0
     swal.fire({
@@ -374,9 +384,10 @@ const savePhieu = async (trangThai) => {
         tienThanhToan: form.value.tienThanhToan,
         // Gửi danh sách đã lọc (loại bỏ các món = 0)
         chiTiets: validItems.map((c) => ({
-          sanPhamId: c.id,
+          nguyenVatLieuId: c.id,
           soLuong: c.soLuong,
-          giaNhap: c.giaNhap,
+          donGiaNhap: c.giaNhap,
+          ngayHetHan: c.ngayHetHan || null,
         })),
       };
 

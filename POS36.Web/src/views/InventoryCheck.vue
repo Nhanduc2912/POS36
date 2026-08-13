@@ -187,8 +187,8 @@
                       >
                         <thead class="table-light text-muted">
                           <tr>
-                            <th>Mã hàng hóa</th>
-                            <th>Tên hàng hóa</th>
+                            <th>Mã NVL</th>
+                            <th>Tên NVL</th>
                             <th class="text-end">Tồn kho</th>
                             <th class="text-end">SL Kiểm kê</th>
                             <th class="text-end">Độ Lệch</th>
@@ -206,12 +206,12 @@
                           </tr>
                           <tr
                             v-for="item in voucherDetails.chiTiets"
-                            :key="item.sanPhamId"
+                            :key="item.nguyenVatLieuId"
                           >
                             <td class="fw-bold text-danger">
-                              {{ item.maSanPham }}
+                              {{ item.maNguyenVatLieu }}
                             </td>
-                            <td>{{ item.tenSanPham }}</td>
+                            <td>{{ item.tenNguyenVatLieu }}</td>
                             <td class="text-end">{{ item.tonKhoHienTai }}</td>
                             <td class="text-end fw-bold text-primary">
                               {{ item.soLuongKiemKe }}
@@ -337,8 +337,8 @@ const exportExcel = (voucher) => {
   // 1. Chuẩn bị dữ liệu: Biến mảng JSON thành định dạng cột của Excel
   const excelData = voucher.chiTiets.map((item, index) => ({
     STT: index + 1,
-    "Mã hàng hóa": item.maSanPham,
-    "Tên hàng hóa": item.tenSanPham,
+    "Mã NVL": item.maNguyenVatLieu,
+    "Tên NVL": item.tenNguyenVatLieu,
     "Tồn kho hệ thống": item.tonKhoHienTai,
     "SL Kiểm kê thực tế": item.soLuongKiemKe,
     "Độ lệch": item.soLuongKiemKe - item.tonKhoHienTai,
@@ -347,8 +347,8 @@ const exportExcel = (voucher) => {
   // 2. Thêm dòng Tổng cộng vào cuối mảng dữ liệu
   excelData.push({
     STT: "TỔNG",
-    "Mã hàng hóa": "",
-    "Tên hàng hóa": "",
+    "Mã NVL": "",
+    "Tên NVL": "",
     "Tồn kho hệ thống": totalDetailTonKho.value,
     "SL Kiểm kê thực tế": totalDetailKiemKe.value,
     "Độ lệch": totalDetailKiemKe.value - totalDetailTonKho.value,

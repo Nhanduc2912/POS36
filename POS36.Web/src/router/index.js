@@ -127,6 +127,11 @@ const routes = [
         component: () => import("../views/ProductSetup.vue"),
       },
       {
+        path: "ingredients",
+        name: "IngredientSetup",
+        component: () => import("../views/IngredientSetup.vue"),
+      },
+      {
         path: "prices",
         name: "PriceSetup",
         component: () => import("../views/PriceSetup.vue"),
@@ -270,6 +275,7 @@ const ROUTE_QUYEN_MAP = {
   "/admin/inventory": "view_inventory",
   "/admin/inventory-create": "view_inventory",
   "/admin/products": "view_products",
+  "/admin/ingredients": "view_products",
   "/admin/ai-report": "view_ai_report",
   // Các route sau luôn mở cho Admin (không cần map)
   "/admin": null,

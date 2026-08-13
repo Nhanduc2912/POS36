@@ -38,7 +38,7 @@
                 @click="addToCheckList(p)"
               >
                 <span
-                  ><b>{{ p.maSanPham || "SP" }}</b> - {{ p.tenSanPham }}</span
+                  ><b>{{ p.maNguyenVatLieu || "NVL" }}</b> - {{ p.tenNguyenVatLieu }}</span
                 >
                 <span class="badge bg-secondary">Tồn: {{ p.tonKho }}</span>
               </li>
@@ -56,23 +56,23 @@
           <table class="table table-hover align-middle mb-0">
             <thead class="table-light text-muted">
               <tr>
-                <th class="ps-3">Mã hàng hóa</th>
-                <th>Tên hàng hóa</th>
+                <th class="ps-3">Mã nguyên vật liệu</th>
+                <th>Tên nguyên vật liệu</th>
                 <th class="text-center">Tồn kho</th>
                 <th class="text-center" style="width: 150px">SL Kiểm kê</th>
                 <th class="text-center" style="width: 50px"></th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(item, index) in checkList" :key="item.sanPhamId">
+              <tr v-for="(item, index) in checkList" :key="item.nguyenVatLieuId">
                 <td class="ps-3 fw-bold text-danger">
-                  {{ item.maSanPham || "SP" }}<br /><span
+                  {{ item.maNguyenVatLieu || "NVL" }}<br /><span
                     class="badge bg-danger small"
-                    >Chai/Lon</span
+                    >Cơ bản</span
                   >
                 </td>
                 <td class="fw-bold">
-                  {{ item.tenSanPham }}<br /><span
+                  {{ item.tenNguyenVatLieu }}<br /><span
                     class="text-muted small fst-italic"
                     ><i class="bi bi-pencil"></i> Ghi chú</span
                   >
@@ -104,6 +104,7 @@
                       class="form-control text-center fw-bold text-primary"
                       v-model="item.soLuongKiemKe"
                       min="0"
+                      step="0.1"
                     />
                     <button
                       class="btn btn-outline-secondary"
@@ -244,9 +245,9 @@ const filteredProducts = computed(() => {
   if (!searchQuery.value) return [];
   return products.value.filter(
     (p) =>
-      p.tenSanPham.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      (p.maSanPham &&
-        p.maSanPham.toLowerCase().includes(searchQuery.value.toLowerCase())),
+      p.tenNguyenVatLieu.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      (p.maNguyenVatLieu &&
+        p.maNguyenVatLieu.toLowerCase().includes(searchQuery.value.toLowerCase())),
   );
 });
 
@@ -271,9 +272,9 @@ const loadEditData = async (id) => {
     statusPhieu.value = data.trangThai || "Đang xử lý";
     
     checkList.value = data.chiTiets.map(c => ({
-      sanPhamId: c.sanPhamId,
-      maSanPham: c.maSanPham,
-      tenSanPham: c.tenSanPham,
+      nguyenVatLieuId: c.nguyenVatLieuId,
+      maNguyenVatLieu: c.maNguyenVatLieu,
+      tenNguyenVatLieu: c.tenNguyenVatLieu,
       tonKhoHienTai: c.tonKhoHienTai,
       soLuongKiemKe: c.soLuongKiemKe
     }));
@@ -299,12 +300,12 @@ const hideDropdownDelay = () => {
 
 // Chọn sản phẩm đưa vào danh sách kiểm kê
 const addToCheckList = (prod) => {
-  const exist = checkList.value.find((c) => c.sanPhamId === prod.id);
+  const exist = checkList.value.find((c) => c.nguyenVatLieuId === prod.id);
   if (!exist) {
     checkList.value.unshift({
-      sanPhamId: prod.id,
-      maSanPham: prod.maSanPham,
-      tenSanPham: prod.tenSanPham,
+      nguyenVatLieuId: prod.id,
+      maNguyenVatLieu: prod.maNguyenVatLieu,
+      tenNguyenVatLieu: prod.tenNguyenVatLieu,
       tonKhoHienTai: prod.tonKho || 0,
       soLuongKiemKe: prod.tonKho || 0, // Mặc định gán bằng tồn kho hệ thống cho nhanh
     });
@@ -350,7 +351,7 @@ const savePhieu = async (trangThai) => {
         ghiChu: ghiChuPhieu.value,
         trangThai: trangThai,
         chiTiets: checkList.value.map((c) => ({
-          sanPhamId: c.sanPhamId,
+          nguyenVatLieuId: c.nguyenVatLieuId,
           tonKhoHienTai: c.tonKhoHienTai,
           soLuongKiemKe: c.soLuongKiemKe,
         })),
@@ -413,11 +414,11 @@ const addByGroup = async () => {
 
     itemsToAdd.forEach((prod) => {
       // Chỉ thêm nếu chưa có trong danh sách kiểm kê
-      if (!checkList.value.find((c) => c.sanPhamId === prod.id)) {
+      if (!checkList.value.find((c) => c.nguyenVatLieuId === prod.id)) {
         checkList.value.unshift({
-          sanPhamId: prod.id,
-          maSanPham: prod.maSanPham,
-          tenSanPham: prod.tenSanPham,
+          nguyenVatLieuId: prod.id,
+          maNguyenVatLieu: prod.maNguyenVatLieu,
+          tenNguyenVatLieu: prod.tenNguyenVatLieu,
           tonKhoHienTai: prod.tonKho || 0,
           soLuongKiemKe: prod.tonKho || 0,
         });

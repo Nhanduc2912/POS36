@@ -115,7 +115,7 @@
                 <td>{{ formatDate(p.ngayNhap) }}</td>
                 <td>{{ parseNhaCungCap(p.ghiChu) }}</td>
                 <td class="text-end fw-bold text-danger">
-                  {{ formatPrice(p.tongTien) }}
+                  {{ formatPrice(p.tongTien) }} ₫
                 </td>
                 <td class="text-center">
                   <span
@@ -157,21 +157,25 @@
                     >
                       <thead class="text-muted">
                         <tr>
-                          <th>Tên hàng hóa</th>
+                          <th>Tên nguyên vật liệu</th>
                           <th class="text-center">SL</th>
+                          <th class="text-center">HSD</th>
                           <th class="text-end">Giá nhập</th>
                           <th class="text-end">Thành tiền</th>
                         </tr>
                       </thead>
                       <tbody>
-                        <tr v-for="mon in p.chiTiets" :key="mon.sanPhamId">
-                          <td class="fw-bold">{{ mon.tenSanPham }}</td>
+                        <tr v-for="mon in p.chiTiets" :key="mon.nguyenVatLieuId">
+                          <td class="fw-bold">{{ mon.tenNguyenVatLieu || "NVL Đã Xóa" }}</td>
                           <td class="text-center">{{ mon.soLuong }}</td>
+                          <td class="text-center text-muted">
+                            {{ mon.ngayHetHan ? formatDate(mon.ngayHetHan) : '---' }}
+                          </td>
                           <td class="text-end text-primary">
-                            {{ formatPrice(mon.donGiaNhap) }}
+                            {{ formatPrice(mon.donGiaNhap) }} ₫
                           </td>
                           <td class="text-end fw-bold text-danger">
-                            {{ formatPrice(mon.soLuong * mon.donGiaNhap) }}
+                            {{ formatPrice(mon.soLuong * mon.donGiaNhap) }} ₫
                           </td>
                         </tr>
                       </tbody>

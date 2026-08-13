@@ -191,7 +191,7 @@ const exportToExcel = () => {
                   <td class="ps-4 fw-bold text-muted">HH-00{{ prod.id }}</td>
                   <td class="fw-bold text-dark">{{ prod.tenSanPham }}</td>
 
-                  <td class="text-end text-muted">{{ prod.giaVon ? prod.giaVon.toLocaleString("vi-VN") : "0" }}</td>
+                  <td class="text-end text-muted">{{ prod.giaVon ? prod.giaVon.toLocaleString("vi-VN") + ' ₫' : "0 ₫" }}</td>
 
                   <td class="text-end pe-4">
                     <div
@@ -229,7 +229,7 @@ const exportToExcel = () => {
                     >
                       <span class="fw-bold me-2">{{
                         prod.giaBan.toLocaleString("vi-VN")
-                      }}</span>
+                      }} ₫</span>
                       <i class="bi bi-pencil-square text-muted small"></i>
                     </div>
                   </td>
