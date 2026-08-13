@@ -158,6 +158,36 @@ namespace POS36.Api
                     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                     db.Database.Migrate();
                     Log.Information("✅ CSDL SQL Server đã được kiểm tra và cập nhật Migrations mới nhất.");
+
+                    // === AUTO-SYNC: Tính giá vốn bình quân gia quyền (MAC) cho NVL chưa có giá vốn ===
+                    var nvlChuaCoGiaVon = db.NguyenVatLieus
+                        .Where(n => n.GiaVonHienTai == 0)
+                        .ToList();
+
+                    if (nvlChuaCoGiaVon.Any())
+                    {
+                        int synced = 0;
+                        foreach (var nvl in nvlChuaCoGiaVon)
+                        {
+                            var lichSuNhap = db.ChiTietPhieuNhaps
+                                .Where(ct => ct.NguyenVatLieuId == nvl.Id)
+                                .Select(ct => new { ct.SoLuong, ct.DonGiaNhap })
+                                .ToList();
+
+                            if (lichSuNhap.Any())
+                            {
+                                decimal tongSL = lichSuNhap.Sum(x => x.SoLuong);
+                                decimal tongGiaTri = lichSuNhap.Sum(x => x.SoLuong * x.DonGiaNhap);
+                                nvl.GiaVonHienTai = tongSL > 0 ? Math.Round(tongGiaTri / tongSL, 2) : 0;
+                                synced++;
+                            }
+                        }
+                        if (synced > 0)
+                        {
+                            db.SaveChanges();
+                            Log.Information($"📊 Đã đồng bộ giá vốn MAC cho {synced} nguyên vật liệu.");
+                        }
+                    }
                 }
                 catch (Exception dbEx)
                 {

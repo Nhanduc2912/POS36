@@ -51,29 +51,56 @@ namespace POS36.Api.Controllers
                     var chiTiet = new ChiTietPhieuNhap
                     {
                         PhieuNhapId = phieuNhap.Id,
-                        SanPhamId = item.SanPhamId,
+                        NguyenVatLieuId = item.NguyenVatLieuId,
                         SoLuong = item.SoLuong,
-                        DonGiaNhap = item.GiaNhap
+                        DonGiaNhap = item.DonGiaNhap,
+                        NgayHetHan = item.NgayHetHan
                     };
                     _context.ChiTietPhieuNhaps.Add(chiTiet);
 
-                    // XỬ LÝ TỒN KHO RIÊNG BIỆT CHO CHI NHÁNH NÀY
+                    // =====================================================
+                    // TÍNH GIÁ VỐN BÌNH QUÂN GIA QUYỀN (Moving Average Cost)
+                    // Công thức: MAC = (Tồn cũ × Giá vốn cũ + SL nhập × Giá nhập) / (Tồn cũ + SL nhập)
+                    // =====================================================
+                    var nvl = await _context.NguyenVatLieus.FindAsync(item.NguyenVatLieuId);
+                    if (nvl != null)
+                    {
+                        // Lấy tổng tồn kho hiện tại TRƯỚC khi cộng thêm (tất cả chi nhánh)
+                        decimal tonKhoCu = await _context.TonKhos
+                            .Where(t => t.NguyenVatLieuId == item.NguyenVatLieuId)
+                            .SumAsync(t => (decimal?)t.SoLuong) ?? 0;
+
+                        decimal giaVonCu = nvl.GiaVonHienTai;
+                        decimal slNhapMoi = item.SoLuong;
+                        decimal giaNhapMoi = item.DonGiaNhap;
+
+                        // Áp dụng công thức MAC
+                        decimal tongGiaTri = (tonKhoCu * giaVonCu) + (slNhapMoi * giaNhapMoi);
+                        decimal tongSoLuong = tonKhoCu + slNhapMoi;
+
+                        nvl.GiaVonHienTai = tongSoLuong > 0
+                            ? Math.Round(tongGiaTri / tongSoLuong, 2)
+                            : giaNhapMoi; // Nếu tồn = 0 thì lấy giá nhập mới
+                    }
+
+                    // XỬ LÝ TỒN KHO RIÊNG BIỆT CHO CHI NHÁNH VÀ NGÀY HẾT HẠN (LÔ)
                     var tonKho = await _context.TonKhos
-                        .FirstOrDefaultAsync(t => t.SanPhamId == item.SanPhamId && t.ChiNhanhId == request.ChiNhanhId);
+                        .FirstOrDefaultAsync(t => t.NguyenVatLieuId == item.NguyenVatLieuId && t.ChiNhanhId == request.ChiNhanhId && t.NgayHetHan == item.NgayHetHan);
 
                     if (tonKho != null)
                     {
-                        // Đã có trong kho chi nhánh này -> Cộng dồn
+                        // Đã có trong kho lô này -> Cộng dồn
                         tonKho.SoLuong += item.SoLuong;
                     }
                     else
                     {
-                        // Chưa từng có trong kho chi nhánh này -> Tạo mới
+                        // Chưa từng có lô này -> Tạo mới
                         var newTonKho = new TonKho
                         {
                             ChiNhanhId = request.ChiNhanhId,
-                            SanPhamId = item.SanPhamId,
-                            SoLuong = item.SoLuong
+                            NguyenVatLieuId = item.NguyenVatLieuId,
+                            SoLuong = item.SoLuong,
+                            NgayHetHan = item.NgayHetHan
                         };
                         _context.TonKhos.Add(newTonKho);
                     }

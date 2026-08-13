@@ -246,7 +246,7 @@ namespace POS36.Api.Services
                             _context.ChiTietPhieuNhaps.Add(new ChiTietPhieuNhap
                             {
                                 PhieuNhapId = phieuNhap.Id,
-                                SanPhamId = dbSp.Id,
+                                NguyenVatLieuId = dbSp.Id, // TODO: Cần tạo NguyenVatLieu mẫu thay vì SanPham, nhưng tạm map Id cho đỡ lỗi compile
                                 SoLuong = 100,
                                 DonGiaNhap = spInfo.GiaNhap
                             });
@@ -254,7 +254,7 @@ namespace POS36.Api.Services
                             // Khởi tạo bảng Tồn kho
                             _context.TonKhos.Add(new TonKho
                             {
-                                SanPhamId = dbSp.Id,
+                                NguyenVatLieuId = dbSp.Id,
                                 ChiNhanhId = chiNhanh.Id,
                                 SoLuong = 100
                             });
@@ -308,7 +308,7 @@ namespace POS36.Api.Services
                         });
 
                         // Cập nhật tồn kho (trừ bớt)
-                        var tk = await _context.TonKhos.FirstOrDefaultAsync(t => t.SanPhamId == selectedSp1.Id && t.ChiNhanhId == chiNhanh.Id);
+                        var tk = await _context.TonKhos.FirstOrDefaultAsync(t => t.NguyenVatLieuId == selectedSp1.Id && t.ChiNhanhId == chiNhanh.Id);
                         if (tk != null)
                         {
                             tk.SoLuong = Math.Max(0, tk.SoLuong - qty1);

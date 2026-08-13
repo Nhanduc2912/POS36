@@ -91,25 +91,35 @@ namespace POS36.Api.Controllers
                     if (sanPham.TrangThai == false)
                         throw new Exception($"'{sanPham.TenSanPham}' hiện đã ngừng bán!");
 
-                    // BUG-06 FIX: Sử dụng pessimistic locking WITH (UPDLOCK, ROWLOCK) để tránh race condition
-                    var tonKho = await _context.TonKhos
-                        .FromSqlRaw("SELECT * FROM TonKhos WITH (UPDLOCK, ROWLOCK) WHERE SanPhamId = {0} AND ChiNhanhId = {1}", mon.SanPhamId, hoaDon.ChiNhanhId)
-                        .FirstOrDefaultAsync();
-
                     bool isChoPhepBanAm = await GetThietLapBoolAsync(cuaHangId, "Kho_ChoPhepBanAm", true);
+                    decimal currentGiaVon = 0;
 
-                    if (!isChoPhepBanAm)
+                    // Tra cứu định lượng để kiểm tra tồn kho (Nghiệp vụ F&B mới)
+                    var dinhLuongs = await _context.DinhLuongs
+                        .Include(d => d.NguyenVatLieu)
+                        .Where(d => d.SanPhamId == mon.SanPhamId)
+                        .ToListAsync();
+
+                    if (dinhLuongs.Any())
                     {
-                        if (tonKho != null && tonKho.SoLuong < mon.SoLuong)
-                            throw new Exception($"'{sanPham.TenSanPham}' chỉ còn {tonKho.SoLuong} trong kho, không đủ để gọi {mon.SoLuong}!");
-                        if (tonKho == null)
-                            throw new Exception($"'{sanPham.TenSanPham}' chưa có trong kho, không thể gọi món!");
-                    }
+                        foreach (var dl in dinhLuongs)
+                        {
+                            decimal soLuongCan = dl.SoLuong * mon.SoLuong;
 
-                    decimal currentGiaVon = await _context.ChiTietPhieuNhaps
-                        .Where(ct => ct.SanPhamId == mon.SanPhamId && ct.PhieuNhap != null && ct.PhieuNhap.ChiNhanhId == hoaDon.ChiNhanhId && ct.PhieuNhap.TrangThai == "Hoàn thành")
-                        .Select(ct => (decimal?)ct.DonGiaNhap)
-                        .AverageAsync() ?? 0;
+                            var tongTonKho = await _context.TonKhos
+                                .Where(t => t.NguyenVatLieuId == dl.NguyenVatLieuId && t.ChiNhanhId == hoaDon.ChiNhanhId)
+                                .SumAsync(t => t.SoLuong);
+
+                            if (!isChoPhepBanAm && tongTonKho < soLuongCan)
+                            {
+                                throw new Exception($"'{sanPham.TenSanPham}' không đủ nguyên liệu ({dl.NguyenVatLieu?.TenNguyenVatLieu} chỉ còn {tongTonKho}, cần {soLuongCan})!");
+                            }
+
+                            // Lấy giá vốn bình quân gia quyền (MAC) đã tính sẵn khi nhập hàng
+                            decimal giaVonNVL = dl.NguyenVatLieu?.GiaVonHienTai ?? 0;
+                            currentGiaVon += (giaVonNVL * dl.SoLuong);
+                        }
+                    }
 
                     var chiTiet = new ChiTietHoaDon
                     {
@@ -598,34 +608,62 @@ namespace POS36.Api.Controllers
                 {
                     foreach (var chiTiet in hoaDon.ChiTietHoaDons)
                     {
-                        // BUG-06 FIX: Sử dụng pessimistic locking WITH (UPDLOCK, ROWLOCK)
-                        var tonKho = await _context.TonKhos
-                            .FromSqlRaw("SELECT * FROM TonKhos WITH (UPDLOCK, ROWLOCK) WHERE SanPhamId = {0} AND ChiNhanhId = {1}", chiTiet.SanPhamId, hoaDon.ChiNhanhId)
-                            .FirstOrDefaultAsync();
+                        var dinhLuongs = await _context.DinhLuongs
+                            .Where(d => d.SanPhamId == chiTiet.SanPhamId)
+                            .ToListAsync();
 
                         bool isChoPhepBanAm = await GetThietLapBoolAsync(cuaHangId, "Kho_ChoPhepBanAm", true);
-                        if (tonKho != null)
+
+                        foreach (var dl in dinhLuongs)
                         {
-                            tonKho.SoLuong -= chiTiet.SoLuong;
-                            if (!isChoPhepBanAm && tonKho.SoLuong < 0)
+                            decimal soLuongCanTru = dl.SoLuong * chiTiet.SoLuong;
+
+                            // Lấy danh sách tồn kho của NVL này, sắp xếp theo NgayHetHan (null để sau cùng)
+                            var danhSachLohang = await _context.TonKhos
+                                .FromSqlRaw("SELECT * FROM TonKhos WITH (UPDLOCK, ROWLOCK) WHERE NguyenVatLieuId = {0} AND ChiNhanhId = {1}", dl.NguyenVatLieuId, hoaDon.ChiNhanhId)
+                                .OrderBy(t => t.NgayHetHan == null ? 1 : 0)
+                                .ThenBy(t => t.NgayHetHan)
+                                .ToListAsync();
+
+                            decimal daTru = 0;
+                            foreach (var lo in danhSachLohang)
                             {
-                                throw new Exception($"'{chiTiet.SanPham?.TenSanPham ?? "Món ăn"}' không đủ tồn kho để thanh toán!");
+                                if (lo.SoLuong > 0)
+                                {
+                                    decimal truLoNay = Math.Min(lo.SoLuong, soLuongCanTru - daTru);
+                                    lo.SoLuong -= truLoNay;
+                                    daTru += truLoNay;
+
+                                    if (daTru >= soLuongCanTru) break;
+                                }
                             }
-                        }
-                        else
-                        {
-                            if (!isChoPhepBanAm)
+
+                            if (daTru < soLuongCanTru)
                             {
-                                throw new Exception($"'{chiTiet.SanPham?.TenSanPham ?? "Món ăn"}' chưa có trong kho, không thể thanh toán!");
+                                if (!isChoPhepBanAm)
+                                {
+                                    throw new Exception($"'{chiTiet.SanPham?.TenSanPham ?? "Món ăn"}' không đủ tồn kho nguyên vật liệu để thanh toán!");
+                                }
+                                else
+                                {
+                                    // Tạo hoặc trừ âm vào một lô không có hạn sử dụng
+                                    var loAm = danhSachLohang.FirstOrDefault(l => l.NgayHetHan == null);
+                                    if (loAm != null)
+                                    {
+                                        loAm.SoLuong -= (soLuongCanTru - daTru);
+                                    }
+                                    else
+                                    {
+                                        _context.TonKhos.Add(new TonKho
+                                        {
+                                            NguyenVatLieuId = dl.NguyenVatLieuId,
+                                            ChiNhanhId = hoaDon.ChiNhanhId,
+                                            SoLuong = -(soLuongCanTru - daTru),
+                                            NgayHetHan = null
+                                        });
+                                    }
+                                }
                             }
-                            
-                            // Tạo tồn kho âm nếu được phép
-                            _context.TonKhos.Add(new TonKho
-                            {
-                                SanPhamId = chiTiet.SanPhamId,
-                                ChiNhanhId = hoaDon.ChiNhanhId,
-                                SoLuong = -chiTiet.SoLuong
-                            });
                         }
                     }
                 }
@@ -1207,23 +1245,34 @@ namespace POS36.Api.Controllers
                         return BadRequest($"Số lượng hoàn trả cho món '{chiTiet.SanPham?.TenSanPham}' vượt quá số lượng hiện tại ({chiTiet.SoLuong})!");
                     }
 
-                    // Hoàn lại kho hàng
-                    var tonKho = await _context.TonKhos
-                        .FromSqlRaw("SELECT * FROM TonKhos WITH (UPDLOCK, ROWLOCK) WHERE SanPhamId = {0} AND ChiNhanhId = {1}", chiTiet.SanPhamId, hoaDon.ChiNhanhId)
-                        .FirstOrDefaultAsync();
+                    // Hoàn lại kho hàng (Nghiệp vụ F&B)
+                    var dinhLuongs = await _context.DinhLuongs
+                        .Where(d => d.SanPhamId == chiTiet.SanPhamId)
+                        .ToListAsync();
 
-                    if (tonKho != null)
+                    foreach (var dl in dinhLuongs)
                     {
-                        tonKho.SoLuong += reqCt.SoLuongTra;
-                    }
-                    else
-                    {
-                        _context.TonKhos.Add(new TonKho
+                        decimal soLuongCanTra = dl.SoLuong * reqCt.SoLuongTra;
+
+                        // Tìm lô gần nhất (không có hạn) hoặc lô bất kỳ để trả lại (Tạm thời trả vào lô mới nhất hoặc null)
+                        var tonKho = await _context.TonKhos
+                            .Where(t => t.NguyenVatLieuId == dl.NguyenVatLieuId && t.ChiNhanhId == hoaDon.ChiNhanhId)
+                            .OrderByDescending(t => t.NgayHetHan) // Tạm trả lại lô mới nhất
+                            .FirstOrDefaultAsync();
+
+                        if (tonKho != null)
                         {
-                            SanPhamId = chiTiet.SanPhamId,
-                            ChiNhanhId = hoaDon.ChiNhanhId,
-                            SoLuong = reqCt.SoLuongTra
-                        });
+                            tonKho.SoLuong += soLuongCanTra;
+                        }
+                        else
+                        {
+                            _context.TonKhos.Add(new TonKho
+                            {
+                                NguyenVatLieuId = dl.NguyenVatLieuId,
+                                ChiNhanhId = hoaDon.ChiNhanhId,
+                                SoLuong = soLuongCanTra
+                            });
+                        }
                     }
 
                     // Tính tiền món trả trước chiết khấu

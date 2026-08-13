@@ -22,9 +22,10 @@ namespace POS36.Api.Controllers
 
     public class ChiTietNhapDto
     {
-        public int SanPhamId { get; set; }
-        public int SoLuong { get; set; }
-        public decimal GiaNhap { get; set; }
+        public int NguyenVatLieuId { get; set; }
+        public decimal SoLuong { get; set; }
+        public decimal DonGiaNhap { get; set; }
+        public DateTime? NgayHetHan { get; set; }
     }
 
     [Route("api/[controller]")]
@@ -63,7 +64,7 @@ namespace POS36.Api.Controllers
 
             var query = _context.PhieuNhaps
                 .Include(p => p.ChiTiets)
-                .ThenInclude(c => c.SanPham)
+                .ThenInclude(c => c.NguyenVatLieu)
                 .Where(p => p.CuaHangId == cuaHangId);
 
             if (chiNhanhId > 0) query = query.Where(p => p.ChiNhanhId == chiNhanhId);
@@ -86,10 +87,11 @@ namespace POS36.Api.Controllers
                 TongTien = p.ChiTiets.Sum(c => c.SoLuong * c.DonGiaNhap),
                 ChiTiets = p.ChiTiets.Select(c => new
                 {
-                    c.SanPhamId,
-                    TenSanPham = c.SanPham != null ? c.SanPham.TenSanPham : "SP đã xóa",
+                    c.NguyenVatLieuId,
+                    TenNguyenVatLieu = c.NguyenVatLieu != null ? c.NguyenVatLieu.TenNguyenVatLieu : "SP đã xóa",
                     c.SoLuong,
-                    c.DonGiaNhap
+                    c.DonGiaNhap,
+                    c.NgayHetHan
                 })
             }).ToListAsync();
 
@@ -122,8 +124,8 @@ namespace POS36.Api.Controllers
             // 2. Xác thực tất cả sản phẩm nhập có thuộc cửa hàng hiện tại hay không
             foreach (var item in request.ChiTiets)
             {
-                var checkSanPham = await _context.SanPhams.AnyAsync(sp => sp.Id == item.SanPhamId && sp.CuaHangId == cuaHangId);
-                if (!checkSanPham) return BadRequest($"Sản phẩm (ID: {item.SanPhamId}) không hợp lệ hoặc không thuộc cửa hàng của bạn!");
+                var checkNguyenVatLieu = await _context.NguyenVatLieus.AnyAsync(sp => sp.Id == item.NguyenVatLieuId && sp.CuaHangId == cuaHangId);
+                if (!checkNguyenVatLieu) return BadRequest($"Sản phẩm (ID: {item.NguyenVatLieuId}) không hợp lệ hoặc không thuộc cửa hàng của bạn!");
             }
 
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -148,23 +150,25 @@ namespace POS36.Api.Controllers
                     _context.ChiTietPhieuNhaps.Add(new ChiTietPhieuNhap
                     {
                         PhieuNhapId = phieu.Id,
-                        SanPhamId = item.SanPhamId,
+                        NguyenVatLieuId = item.NguyenVatLieuId,
                         SoLuong = item.SoLuong,
-                        DonGiaNhap = item.GiaNhap
+                        DonGiaNhap = item.DonGiaNhap,
+                        NgayHetHan = item.NgayHetHan
                     });
 
                     if (request.TrangThai == "Hoàn thành")
                     {
                         var tonKho = await _context.TonKhos
-                            .FirstOrDefaultAsync(t => t.SanPhamId == item.SanPhamId && t.ChiNhanhId == request.ChiNhanhId);
+                            .FirstOrDefaultAsync(t => t.NguyenVatLieuId == item.NguyenVatLieuId && t.ChiNhanhId == request.ChiNhanhId && t.NgayHetHan == item.NgayHetHan);
 
                         if (tonKho == null)
                         {
                             _context.TonKhos.Add(new TonKho
                             {
-                                SanPhamId = item.SanPhamId,
+                                NguyenVatLieuId = item.NguyenVatLieuId,
                                 ChiNhanhId = request.ChiNhanhId,
-                                SoLuong = item.SoLuong
+                                SoLuong = item.SoLuong,
+                                NgayHetHan = item.NgayHetHan
                             });
                         }
                         else
@@ -250,15 +254,16 @@ namespace POS36.Api.Controllers
                 foreach (var item in phieu.ChiTiets)
                 {
                     var tonKho = await _context.TonKhos
-                        .FirstOrDefaultAsync(t => t.SanPhamId == item.SanPhamId && t.ChiNhanhId == phieu.ChiNhanhId);
+                        .FirstOrDefaultAsync(t => t.NguyenVatLieuId == item.NguyenVatLieuId && t.ChiNhanhId == phieu.ChiNhanhId && t.NgayHetHan == item.NgayHetHan);
 
                     if (tonKho == null)
                     {
                         _context.TonKhos.Add(new TonKho
                         {
-                            SanPhamId = item.SanPhamId,
+                            NguyenVatLieuId = item.NguyenVatLieuId,
                             ChiNhanhId = phieu.ChiNhanhId,
-                            SoLuong = item.SoLuong
+                            SoLuong = item.SoLuong,
+                            NgayHetHan = item.NgayHetHan
                         });
                     }
                     else
