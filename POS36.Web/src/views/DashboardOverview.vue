@@ -787,55 +787,103 @@ const chartOptions = ref({
     x: { grid: { display: false } },
   },
 });
+const chartFilter = ref("doanhThu");
+const rawChartData = ref({ labels: [], doanhThu: [], donHang: [] });
 
 const updateChart = () => {
   if (chartFilter.value === "doanhThu") {
     chartData.value = {
-      labels: rawChartData.value.labels,
+      labels: rawChartData.value?.labels || [],
       datasets: [
         {
           label: "Doanh thu",
           backgroundColor: "#4e73df",
           hoverBackgroundColor: "#2e59d9",
           borderRadius: 6,
-          data: rawChartData.value.doanhThu,
+          data: rawChartData.value?.doanhThu || [],
         },
       ],
     };
-    chartOptions.value.plugins.tooltip.callbacks.label = function (context) {
-      let label = context.dataset.label || "";
-      if (label) label += ": ";
-      if (context.parsed.y !== null) {
-        label += new Intl.NumberFormat("vi-VN", {
-          style: "currency",
-          currency: "VND",
-        }).format(context.parsed.y);
+    chartOptions.value = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "rgba(0, 0, 0, 0.8)",
+          padding: 12,
+          titleFont: { size: 14 },
+          bodyFont: { size: 14, weight: "bold" },
+          callbacks: {
+            label: function (context) {
+              let label = context.dataset.label || "";
+              if (label) label += ": ";
+              if (context.parsed.y !== null) {
+                label += new Intl.NumberFormat("vi-VN", {
+                  style: "currency",
+                  currency: "VND",
+                }).format(context.parsed.y);
+              }
+              return label;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { borderDash: [5, 5], color: "#f0f0f0" },
+          ticks: {
+            callback: function (value) {
+              if (value >= 1000000) return value / 1000000 + " Tr";
+              if (value >= 1000) return value / 1000 + " k";
+              return value;
+            }
+          }
+        },
+        x: { grid: { display: false } }
       }
-      return label;
-    };
-    chartOptions.value.scales.y.ticks.callback = function (value) {
-      if (value >= 1000000) return value / 1000000 + " Tr";
-      if (value >= 1000) return value / 1000 + " k";
-      return value;
     };
   } else {
     chartData.value = {
-      labels: rawChartData.value.labels,
+      labels: rawChartData.value?.labels || [],
       datasets: [
         {
           label: "Đơn hàng",
           backgroundColor: "#1cc88a",
           hoverBackgroundColor: "#17a673",
           borderRadius: 6,
-          data: rawChartData.value.donHang,
+          data: rawChartData.value?.donHang || [],
         },
       ],
     };
-    chartOptions.value.plugins.tooltip.callbacks.label = function (context) {
-      return context.dataset.label + ": " + context.parsed.y + " đơn";
-    };
-    chartOptions.value.scales.y.ticks.callback = function (value) {
-      return value;
+    chartOptions.value = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: "rgba(0, 0, 0, 0.8)",
+          padding: 12,
+          titleFont: { size: 14 },
+          bodyFont: { size: 14, weight: "bold" },
+          callbacks: {
+            label: function (context) {
+              return context.dataset.label + ": " + context.parsed.y + " đơn";
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { borderDash: [5, 5], color: "#f0f0f0" },
+          ticks: {
+            callback: function (value) { return value; }
+          }
+        },
+        x: { grid: { display: false } }
+      }
     };
   }
 };

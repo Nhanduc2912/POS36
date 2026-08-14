@@ -189,6 +189,7 @@
                           <tr>
                             <th>Mã NVL</th>
                             <th>Tên NVL</th>
+                            <th>Hạn sử dụng (Lô)</th>
                             <th class="text-end">Tồn kho</th>
                             <th class="text-end">SL Kiểm kê</th>
                             <th class="text-end">Độ Lệch</th>
@@ -197,6 +198,7 @@
                         <tbody>
                           <tr class="fw-bold bg-light">
                             <td>Σ</td>
+                            <td></td>
                             <td></td>
                             <td class="text-end">{{ totalDetailTonKho }}</td>
                             <td class="text-end">{{ totalDetailKiemKe }}</td>
@@ -212,6 +214,7 @@
                               {{ item.maNguyenVatLieu }}
                             </td>
                             <td>{{ item.tenNguyenVatLieu }}</td>
+                            <td class="text-muted">{{ item.ngayHetHan ? formatDate(item.ngayHetHan).split(' ')[0] : '---' }}</td>
                             <td class="text-end">{{ item.tonKhoHienTai }}</td>
                             <td class="text-end fw-bold text-primary">
                               {{ item.soLuongKiemKe }}
@@ -339,6 +342,7 @@ const exportExcel = (voucher) => {
     STT: index + 1,
     "Mã NVL": item.maNguyenVatLieu,
     "Tên NVL": item.tenNguyenVatLieu,
+    "Hạn sử dụng": item.ngayHetHan ? formatDate(item.ngayHetHan).split(' ')[0] : '',
     "Tồn kho hệ thống": item.tonKhoHienTai,
     "SL Kiểm kê thực tế": item.soLuongKiemKe,
     "Độ lệch": item.soLuongKiemKe - item.tonKhoHienTai,
@@ -349,6 +353,7 @@ const exportExcel = (voucher) => {
     STT: "TỔNG",
     "Mã NVL": "",
     "Tên NVL": "",
+    "Hạn sử dụng": "",
     "Tồn kho hệ thống": totalDetailTonKho.value,
     "SL Kiểm kê thực tế": totalDetailKiemKe.value,
     "Độ lệch": totalDetailKiemKe.value - totalDetailTonKho.value,
@@ -364,6 +369,7 @@ const exportExcel = (voucher) => {
     { wch: 5 }, // STT
     { wch: 15 }, // Mã HH
     { wch: 30 }, // Tên HH
+    { wch: 15 }, // HSD
     { wch: 20 }, // Tồn kho
     { wch: 20 }, // SL Kiểm kê
     { wch: 15 }, // Độ lệch

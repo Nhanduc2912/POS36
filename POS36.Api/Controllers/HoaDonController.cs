@@ -920,6 +920,7 @@ namespace POS36.Api.Controllers
                         TongThanhToan = h.TongTien,
                         TienGiam = Math.Max(0, (h.ChiTietHoaDons!.Any() ? h.ChiTietHoaDons!.Sum(ct => ct.SoLuong * ct.DonGia) : 0) - h.TongTien),
                         TrangThai = h.TrangThai,
+                        PhuongThuc = h.PhuongThucThanhToan,
                         GhiChu = h.GhiChu,
                         ChiTiets = h.ChiTietHoaDons!.Select(ct => new
                         {

@@ -32,14 +32,17 @@
               style="top: 100%; max-height: 250px; overflow-y: auto"
             >
               <li
-                v-for="p in filteredProducts"
-                :key="p.id"
-                class="list-group-item list-group-item-action cursor-pointer d-flex justify-content-between"
+                v-for="(p, index) in filteredProducts"
+                :key="p.id + '_' + index"
+                class="list-group-item list-group-item-action cursor-pointer d-flex justify-content-between align-items-center"
                 @click="addToCheckList(p)"
               >
                 <span
-                  ><b>{{ p.maNguyenVatLieu || "NVL" }}</b> - {{ p.tenNguyenVatLieu }}</span
-                >
+                  ><b>{{ p.maNguyenVatLieu || "NVL" }}</b> - {{ p.tenNguyenVatLieu }}
+                  <small v-if="p.ngayHetHan" class="text-danger fw-bold ms-2">
+                    (HSD: {{ new Date(p.ngayHetHan).toLocaleDateString('vi-VN') }})
+                  </small>
+                </span>
                 <span class="badge bg-secondary">Tồn: {{ p.tonKho }}</span>
               </li>
             </ul>
@@ -58,6 +61,7 @@
               <tr>
                 <th class="ps-3">Mã nguyên vật liệu</th>
                 <th>Tên nguyên vật liệu</th>
+                <th>Hạn sử dụng (Lô)</th>
                 <th class="text-center">Tồn kho</th>
                 <th class="text-center" style="width: 150px">SL Kiểm kê</th>
                 <th class="text-center" style="width: 50px"></th>
@@ -76,6 +80,10 @@
                     class="text-muted small fst-italic"
                     ><i class="bi bi-pencil"></i> Ghi chú</span
                   >
+                </td>
+
+                <td>
+                  <input type="date" class="form-control form-control-sm" v-model="item.ngayHetHan" />
                 </td>
 
                 <td class="text-center fs-5">
@@ -275,6 +283,7 @@ const loadEditData = async (id) => {
       nguyenVatLieuId: c.nguyenVatLieuId,
       maNguyenVatLieu: c.maNguyenVatLieu,
       tenNguyenVatLieu: c.tenNguyenVatLieu,
+      ngayHetHan: c.ngayHetHan ? c.ngayHetHan.split('T')[0] : null,
       tonKhoHienTai: c.tonKhoHienTai,
       soLuongKiemKe: c.soLuongKiemKe
     }));
@@ -300,12 +309,14 @@ const hideDropdownDelay = () => {
 
 // Chọn sản phẩm đưa vào danh sách kiểm kê
 const addToCheckList = (prod) => {
-  const exist = checkList.value.find((c) => c.nguyenVatLieuId === prod.id);
+  const prodDate = prod.ngayHetHan ? prod.ngayHetHan.split('T')[0] : null;
+  const exist = checkList.value.find((c) => c.nguyenVatLieuId === prod.id && c.ngayHetHan === prodDate);
   if (!exist) {
     checkList.value.unshift({
       nguyenVatLieuId: prod.id,
       maNguyenVatLieu: prod.maNguyenVatLieu,
       tenNguyenVatLieu: prod.tenNguyenVatLieu,
+      ngayHetHan: prodDate,
       tonKhoHienTai: prod.tonKho || 0,
       soLuongKiemKe: prod.tonKho || 0, // Mặc định gán bằng tồn kho hệ thống cho nhanh
     });
@@ -352,6 +363,7 @@ const savePhieu = async (trangThai) => {
         trangThai: trangThai,
         chiTiets: checkList.value.map((c) => ({
           nguyenVatLieuId: c.nguyenVatLieuId,
+          ngayHetHan: c.ngayHetHan || null,
           tonKhoHienTai: c.tonKhoHienTai,
           soLuongKiemKe: c.soLuongKiemKe,
         })),
@@ -413,12 +425,14 @@ const addByGroup = async () => {
     let addedCount = 0;
 
     itemsToAdd.forEach((prod) => {
-      // Chỉ thêm nếu chưa có trong danh sách kiểm kê
-      if (!checkList.value.find((c) => c.nguyenVatLieuId === prod.id)) {
+      const prodDate = prod.ngayHetHan ? prod.ngayHetHan.split('T')[0] : null;
+      // Chỉ thêm nếu chưa có trong danh sách kiểm kê với cùng lô
+      if (!checkList.value.find((c) => c.nguyenVatLieuId === prod.id && c.ngayHetHan === prodDate)) {
         checkList.value.unshift({
           nguyenVatLieuId: prod.id,
           maNguyenVatLieu: prod.maNguyenVatLieu,
           tenNguyenVatLieu: prod.tenNguyenVatLieu,
+          ngayHetHan: prodDate,
           tonKhoHienTai: prod.tonKho || 0,
           soLuongKiemKe: prod.tonKho || 0,
         });

@@ -99,20 +99,48 @@ namespace POS36.Api.Controllers
                     chiNhanhId = userBranchId;
                 }
 
-                var list = await _context.NguyenVatLieus
-                    .Include(s => s.DanhMucNguyenVatLieu) // Kèm Danh mục để lấy tên nhóm
+                var nvlList = await _context.NguyenVatLieus
+                    .Include(s => s.DanhMucNguyenVatLieu)
                     .Where(s => s.CuaHangId == cuaHangId && s.TrangThai == true)
-                    .Select(s => new
+                    .ToListAsync();
+
+                var nvlIds = nvlList.Select(x => x.Id).ToList();
+                var tonKhos = await _context.TonKhos
+                    .Where(t => t.ChiNhanhId == chiNhanhId && nvlIds.Contains(t.NguyenVatLieuId))
+                    .ToListAsync();
+
+                var list = new System.Collections.Generic.List<object>();
+                foreach (var s in nvlList)
+                {
+                    var tks = tonKhos.Where(t => t.NguyenVatLieuId == s.Id).ToList();
+                    if (tks.Any())
                     {
-                        s.Id,
-                        MaNguyenVatLieu = "SP" + s.Id,
-                        s.TenNguyenVatLieu,
-                        TenDanhMuc = s.DanhMucNguyenVatLieu != null ? s.DanhMucNguyenVatLieu.TenDanhMuc : "Khác", // Lấy Tên nhóm
-                        TonKho = _context.TonKhos
-                            .Where(t => t.NguyenVatLieuId == s.Id && t.ChiNhanhId == chiNhanhId)
-                            .Select(t => t.SoLuong)
-                            .FirstOrDefault()
-                    }).ToListAsync();
+                        foreach (var t in tks)
+                        {
+                            list.Add(new
+                            {
+                                Id = s.Id,
+                                MaNguyenVatLieu = "SP" + s.Id,
+                                TenNguyenVatLieu = s.TenNguyenVatLieu,
+                                TenDanhMuc = s.DanhMucNguyenVatLieu != null ? s.DanhMucNguyenVatLieu.TenDanhMuc : "Khác",
+                                TonKho = t.SoLuong,
+                                NgayHetHan = t.NgayHetHan
+                            });
+                        }
+                    }
+                    else
+                    {
+                        list.Add(new
+                        {
+                            Id = s.Id,
+                            MaNguyenVatLieu = "SP" + s.Id,
+                            TenNguyenVatLieu = s.TenNguyenVatLieu,
+                            TenDanhMuc = s.DanhMucNguyenVatLieu != null ? s.DanhMucNguyenVatLieu.TenDanhMuc : "Khác",
+                            TonKho = 0m,
+                            NgayHetHan = (DateTime?)null
+                        });
+                    }
+                }
 
                 return Ok(list);
             }
@@ -176,6 +204,7 @@ namespace POS36.Api.Controllers
                     {
                         PhieuKiemKeId = phieu.Id,
                         NguyenVatLieuId = item.NguyenVatLieuId,
+                        NgayHetHan = item.NgayHetHan,
                         TonKhoHienTai = item.TonKhoHienTai,
                         SoLuongKiemKe = item.SoLuongKiemKe
                     });
@@ -183,16 +212,19 @@ namespace POS36.Api.Controllers
                     // CHỐT SỔ: NẾU TRẠNG THÁI LÀ "Hoàn thành" -> TIẾN HÀNH CÂN BẰNG KHO
                     if (request.TrangThai == "Hoàn thành")
                     {
+                        // Tìm lô tương ứng
                         var tonKho = await _context.TonKhos
-                            .FirstOrDefaultAsync(t => t.NguyenVatLieuId == item.NguyenVatLieuId && t.ChiNhanhId == request.ChiNhanhId);
+                            .FirstOrDefaultAsync(t => t.NguyenVatLieuId == item.NguyenVatLieuId 
+                                                   && t.ChiNhanhId == request.ChiNhanhId 
+                                                   && t.NgayHetHan == item.NgayHetHan);
 
                         if (tonKho == null)
                         {
-                            // ĐÃ XÓA CuaHangId Ở ĐÂY CHO ĐÚNG THIẾT KẾ DATABASE
                             _context.TonKhos.Add(new TonKho
                             {
                                 NguyenVatLieuId = item.NguyenVatLieuId,
                                 ChiNhanhId = request.ChiNhanhId,
+                                NgayHetHan = item.NgayHetHan,
                                 SoLuong = item.SoLuongKiemKe
                             });
                         }
@@ -248,6 +280,7 @@ namespace POS36.Api.Controllers
                         c.NguyenVatLieuId,
                         MaNguyenVatLieu = "SP" + c.NguyenVatLieuId,
                         TenNguyenVatLieu = c.NguyenVatLieu!.TenNguyenVatLieu,
+                        c.NgayHetHan,
                         c.TonKhoHienTai,
                         c.SoLuongKiemKe
                     })
@@ -314,6 +347,7 @@ namespace POS36.Api.Controllers
                     {
                         PhieuKiemKeId = phieu.Id,
                         NguyenVatLieuId = item.NguyenVatLieuId,
+                        NgayHetHan = item.NgayHetHan,
                         TonKhoHienTai = item.TonKhoHienTai,
                         SoLuongKiemKe = item.SoLuongKiemKe
                     });
@@ -321,7 +355,9 @@ namespace POS36.Api.Controllers
                     if (request.TrangThai == "Hoàn thành")
                     {
                         var tonKho = await _context.TonKhos
-                            .FirstOrDefaultAsync(t => t.NguyenVatLieuId == item.NguyenVatLieuId && t.ChiNhanhId == phieu.ChiNhanhId);
+                            .FirstOrDefaultAsync(t => t.NguyenVatLieuId == item.NguyenVatLieuId 
+                                                   && t.ChiNhanhId == phieu.ChiNhanhId
+                                                   && t.NgayHetHan == item.NgayHetHan);
 
                         if (tonKho == null)
                         {
@@ -329,6 +365,7 @@ namespace POS36.Api.Controllers
                             {
                                 NguyenVatLieuId = item.NguyenVatLieuId,
                                 ChiNhanhId = phieu.ChiNhanhId,
+                                NgayHetHan = item.NgayHetHan,
                                 SoLuong = item.SoLuongKiemKe
                             });
                         }

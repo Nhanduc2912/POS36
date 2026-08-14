@@ -295,7 +295,7 @@
                       v-if="o.trangThai === 'Đã thanh toán'"
                       style="font-size: 0.7rem"
                     >
-                      TIỀN MẶT
+                      {{ o.phuongThuc ? o.phuongThuc.toUpperCase() : 'TIỀN MẶT' }}
                     </div>
                   </td>
                 </tr>

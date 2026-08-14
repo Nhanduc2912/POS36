@@ -6,6 +6,7 @@ namespace POS36.Api.Models
     /// Cấu hình hệ thống Super Admin (key-value store)
     /// NhomCauHinh: General | Payment | Email | System
     /// </summary>
+    [System.ComponentModel.DataAnnotations.Schema.Table("CauHinhHeThongs")]
     public class CauHinhHeThong
     {
         [Key] public int Id { get; set; }
