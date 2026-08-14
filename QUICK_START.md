@@ -150,13 +150,6 @@ Password: Admin123!
 Vai trò: ChuCuaHang
 ```
 
-### Quản Lý
-```
-Username: manager
-Password: Manager123!
-Vai trò: QuanLy
-```
-
 ### Thu Ngân
 ```
 Username: cashier
@@ -164,7 +157,7 @@ Password: Cashier123!
 Vai trò: ThuNgan
 ```
 
-### Phục Vụ
+### Phục Vụ (Order)
 ```
 Username: waiter
 Password: Waiter123!

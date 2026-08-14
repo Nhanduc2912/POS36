@@ -562,19 +562,19 @@ Hệ thống cung cấp hệ thống RESTful API chuẩn hóa, bảo mật bằn
 
 Hệ thống bảo mật nghiêm ngặt thông qua cơ chế kiểm soát quyền truy cập dựa trên vai trò (Role-Based Access Control - RBAC). Dưới đây là bảng ma trận quyền hạn chi tiết:
 
-| Tính Năng Nghiệp Vụ | SuperAdmin | Chủ Cửa Hàng | Quản Lý | Thu Ngân | Phục Vụ | Bếp |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Cấu hình hệ thống SaaS** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Phê duyệt đơn đăng ký/Gia hạn** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Khóa / Mở khóa các Tenant** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Hội thoại AI Agent Tối Cao** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Quản lý chuỗi chi nhánh & Nhân sự** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| **Quản lý kho nguyên vật liệu** | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| **Thiết lập sơ đồ phòng bàn** | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| **Xem Sổ Quỹ Thu Chi** | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| **Thực hiện bán hàng POS & Tính tiền** | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| **Mở bàn & Gọi món (Order)** | ❌ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| **Chế biến & Báo hoàn tất món ăn** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Tính Năng Nghiệp Vụ | SuperAdmin | Chủ Cửa Hàng | Thu Ngân | Phục Vụ (Order) | Bếp |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Cấu hình hệ thống SaaS** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Phê duyệt đơn đăng ký/Gia hạn** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Khóa / Mở khóa các Tenant** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Hội thoại AI Agent Tối Cao** | ✅ | ❌ | ❌ | ❌ | ❌ |
+| **Quản lý chuỗi chi nhánh & Nhân sự** | ❌ | ✅ | ❌ | ❌ | ❌ |
+| **Quản lý kho nguyên vật liệu** | ❌ | ✅ | ❌ | ❌ | ❌ |
+| **Thiết lập sơ đồ phòng bàn** | ❌ | ✅ | ❌ | ❌ | ❌ |
+| **Xem Sổ Quỹ Thu Chi** | ❌ | ✅ | ❌ | ❌ | ❌ |
+| **Thực hiện bán hàng POS & Tính tiền** | ❌ | ✅ | ✅ | ❌ | ❌ |
+| **Mở bàn & Gọi món (Order)** | ❌ | ✅ | ✅ | ✅ | ❌ |
+| **Chế biến & Báo hoàn tất món ăn** | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 ---
 
