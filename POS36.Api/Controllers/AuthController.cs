@@ -183,7 +183,9 @@ namespace POS36.Api.Controllers
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.TenDangNhap),
                 new Claim(ClaimTypes.Role, user.VaiTro),
-                new Claim("CuaHangId", user.CuaHangId.ToString()),
+                // SuperAdmin không bị ràng buộc theo cửa hàng nào
+                // (global query filter trả null → thấy TẤT CẢ dữ liệu)
+                new Claim("CuaHangId", user.VaiTro == "SuperAdmin" ? "0" : user.CuaHangId.ToString()),
                 new Claim("SecurityStamp", user.SecurityStamp)
             };
 
