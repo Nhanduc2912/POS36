@@ -114,7 +114,7 @@ namespace POS36.Api.Controllers
         // GiaVon đã được lưu vào ChiTietHoaDon tại thời điểm gọi món (average cost)
         // ==========================================
         [HttpGet("lai-gop")]
-        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,ThuNgan")]
         public async Task<IActionResult> GetBaoCaoLaiGop(
             [FromQuery] int chiNhanhId,
             [FromQuery] DateTime? tuNgay,

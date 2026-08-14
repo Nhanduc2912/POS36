@@ -12,7 +12,7 @@ namespace POS36.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "ChuCuaHang,Admin,QuanLy")]
+    [Authorize(Roles = "SuperAdmin,ChuCuaHang")]
     public class NhatKyController : ControllerBase
     {
         private readonly AppDbContext _context;

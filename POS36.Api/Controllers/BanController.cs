@@ -28,7 +28,7 @@ namespace POS36.Api.Controllers
         }
 
         [HttpGet("khu-vuc/{khuVucId}")]
-        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan,Order,Bep")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,ThuNgan,Order,Bep")]
         public async Task<IActionResult> GetByKhuVuc(int khuVucId, [FromQuery] bool includeHidden = false)
         {
             int cuaHangId = GetCuaHangId();
@@ -58,7 +58,7 @@ namespace POS36.Api.Controllers
         public class SetHienThiDto { public bool HienThi { get; set; } }
 
         // BUG #12 FIX: Chỉ ChuCuaHang mới được tạo bàn mới
-        [Authorize(Roles = "ChuCuaHang,QuanLy,Admin")]
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateBanDto req)
         {
@@ -92,7 +92,7 @@ namespace POS36.Api.Controllers
             return Ok(newTable);
         }
 
-        [Authorize(Roles = "ChuCuaHang,QuanLy,Admin")]
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateBanDto req)
         {
@@ -125,7 +125,7 @@ namespace POS36.Api.Controllers
             return Ok(ban);
         }
 
-        [Authorize(Roles = "ChuCuaHang,QuanLy,Admin")]
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> SoftDelete(int id)
         {
@@ -146,7 +146,7 @@ namespace POS36.Api.Controllers
             return Ok(new { message = "Đã ẩn bàn thành công." });
         }
 
-        [Authorize(Roles = "ChuCuaHang,QuanLy,Admin")]
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpPut("{id}/hien-thi")]
         public async Task<IActionResult> SetHienThi(int id, [FromBody] SetHienThiDto req)
         {
@@ -186,7 +186,7 @@ namespace POS36.Api.Controllers
         }
 
         [HttpGet("danh-sach-pos")]
-        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin,QuanLy,ThuNgan,Order,Bep")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang,ThuNgan,Order,Bep")]
         public async Task<IActionResult> GetDanhSachPos([FromQuery] int chiNhanhId)
         {
             int cuaHangId = GetCuaHangId();
@@ -243,7 +243,7 @@ namespace POS36.Api.Controllers
         }
 
         // BUG #12 FIX: Chỉ ChuCuaHang mới được tạo nhành nhiều bàn
-        [Authorize(Roles = "ChuCuaHang,QuanLy,Admin")]
+        [Authorize(Roles = "ChuCuaHang")]
         [HttpPost("tao-nhanh")]
         public async Task<IActionResult> TaoBanNhanh([FromBody] TaoBanNhanhDto request)
         {

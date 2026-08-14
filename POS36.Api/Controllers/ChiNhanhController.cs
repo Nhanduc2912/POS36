@@ -35,7 +35,7 @@ namespace POS36.Api.Controllers
         public class CreateChiNhanhDto { public string TenChiNhanh { get; set; } = string.Empty; }
 
         [HttpPost]
-        [Authorize(Roles = "ChuCuaHang,Admin")]
+        [Authorize(Roles = "ChuCuaHang")]
         public async Task<IActionResult> Create([FromBody] CreateChiNhanhDto request)
         {
             var cuaHangId = int.Parse(User.FindFirst("CuaHangId")!.Value);

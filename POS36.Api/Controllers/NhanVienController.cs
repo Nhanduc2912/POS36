@@ -249,7 +249,7 @@ namespace POS36.Api.Controllers
         }
 
         // 6. TOGGLE TRẠNG THÁI HOẠT ĐỘNG (Kích hoạt/Vô hiệu hóa tài khoản)
-        [Authorize(Roles = "ChuCuaHang,Admin,QuanLy")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang")]
         [HttpPut("{id}/toggle-active")]
         public async Task<IActionResult> ToggleActive(int id)
         {

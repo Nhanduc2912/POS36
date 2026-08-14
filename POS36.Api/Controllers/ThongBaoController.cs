@@ -10,7 +10,7 @@ namespace POS36.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "ChuCuaHang,Admin,QuanLy")]
+    [Authorize(Roles = "SuperAdmin,ChuCuaHang,ThuNgan,Order,Bep")]
     public class ThongBaoController : ControllerBase
     {
         private readonly AppDbContext _context;

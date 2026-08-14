@@ -139,7 +139,7 @@ namespace POS36.Api.Controllers
 
         // ── POST /api/AIChat/report ─────────────────────────────────────
         // Thu thập dữ liệu thực từ DB → gửi cho Gemini AI tự tạo HTML
-        [Authorize(Roles = "SuperAdmin,ChuCuaHang,Admin")]
+        [Authorize(Roles = "SuperAdmin,ChuCuaHang")]
         [HttpPost("report")]
         public async Task<IActionResult> GenerateReport([FromBody] ReportRequest req)
         {
