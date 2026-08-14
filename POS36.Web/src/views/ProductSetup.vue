@@ -9,6 +9,11 @@ const swal = inject("$swal");
 const backendUrl = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
   ? "http://localhost:5098"
   : `http://${window.location.hostname}:5098`;
+
+// Quyền quản lý hàng hóa: chỉ Chủ cửa hàng (khớp backend [Authorize(Roles="ChuCuaHang")])
+// ThuNgan có quyền view_products → chỉ XEM, không thêm/sửa/xóa
+const userRole = localStorage.getItem("pos36_role") || "";
+const canManage = userRole === "ChuCuaHang";
 const getImageUrl = (path) => {
   if (!path) return null;
   if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) {
@@ -319,6 +324,7 @@ const handleDeleteProduct = (id) => {
               ><i class="bi bi-funnel"></i> NHÓM HÀNG</span
             >
             <button
+              v-if="canManage"
               @click="handleAddCategory"
               class="btn btn-sm btn-outline-warning rounded-circle p-1 lh-1"
             >
@@ -371,11 +377,13 @@ const handleDeleteProduct = (id) => {
               HÓA
             </h5>
             <button
+              v-if="canManage"
               @click="handleAddProduct"
               class="btn btn-success btn-sm fw-bold px-4 rounded-pill shadow-sm"
             >
               <i class="bi bi-plus-circle me-1"></i> THÊM MỚI
             </button>
+            <span v-else class="badge bg-light text-muted border rounded-pill px-3 py-2">Chỉ xem</span>
           </div>
 
           <div class="card-body p-0 table-responsive">
@@ -440,6 +448,7 @@ const handleDeleteProduct = (id) => {
                   </td>
                   <td class="text-center">
                     <div
+                      v-if="canManage"
                       class="form-check form-switch d-flex justify-content-center m-0"
                     >
                       <input
@@ -451,9 +460,11 @@ const handleDeleteProduct = (id) => {
                         @change="handleToggleStatus(prod)"
                       />
                     </div>
+                    <span v-else class="text-muted small">{{ prod.trangThai ? "Đang bán" : "Ngừng bán" }}</span>
                   </td>
                   <td class="text-center">
                     <button
+                      v-if="canManage"
                       @click="handleConfigRecipe(prod)"
                       class="btn btn-sm text-white me-1 shadow-sm"
                       :class="prod.coDinhLuong ? 'btn-success' : 'btn-danger'"
@@ -461,15 +472,18 @@ const handleDeleteProduct = (id) => {
                     >
                       <i class="bi" :class="prod.coDinhLuong ? 'bi-diagram-3-fill' : 'bi-exclamation-triangle-fill'"></i>
                     </button>
+                    <span v-else class="badge bg-light text-muted border">{{ prod.coDinhLuong ? "Có định lượng" : "Chưa định lượng" }}</span>
                   </td>
                   <td class="text-center">
                     <button
+                      v-if="canManage"
                       @click="handleEditProduct(prod)"
                       class="btn btn-sm btn-light text-primary me-1"
                     >
                       <i class="bi bi-pencil-square"></i>
                     </button>
                     <button
+                      v-if="canManage"
                       @click="handleDeleteProduct(prod.id)"
                       class="btn btn-sm btn-light text-danger"
                     >
