@@ -31,9 +31,10 @@ namespace POS36.Api.Controllers
         {
             // BUG-05 FIX: Xác thực API Key từ header Authorization của SePay
             var authHeader = Request.Headers["Authorization"].ToString();
-            var configuredKey = _configuration["SePay:ApiKey"] ?? "sepay_webhook_secret_key_2026_xyz";
+            var configuredKey = _configuration["SePay:ApiKey"];
 
-            if (string.IsNullOrEmpty(authHeader) || !authHeader.Equals($"Apikey {configuredKey}", StringComparison.OrdinalIgnoreCase))
+            // Nếu chưa cấu hình SePay:ApiKey → không nhận webhook (fail-closed)
+            if (string.IsNullOrEmpty(configuredKey) || string.IsNullOrEmpty(authHeader) || !authHeader.Equals($"Apikey {configuredKey}", StringComparison.OrdinalIgnoreCase))
             {
                 Log.Warning("⚠️ Webhook SePay: Không có quyền truy cập hoặc sai API Key. Header: {Header}", authHeader);
                 return Unauthorized(new { success = false, message = "Không có quyền truy cập!" });
@@ -134,4 +135,4 @@ namespace POS36.Api.Controllers
         public string transferType { get; set; } = string.Empty;
         public string gateway { get; set; } = string.Empty;
     }
-}
+}
