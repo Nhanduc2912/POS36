@@ -61,7 +61,6 @@ const handleLogin = async () => {
     );
     // Lưu quyền Admin của Thu ngân (nếu có)
     localStorage.setItem("pos36_quyen_thungan", data.quyenThuNgan || "");
-    if (data.cuaHangId) localStorage.setItem("cuaHangId", data.cuaHangId);
     if (data.nhanVienId) localStorage.setItem("pos36_nhanVienId", data.nhanVienId);
     if (data.taiKhoanId) localStorage.setItem("pos36_taiKhoanId", data.taiKhoanId);
 
@@ -78,7 +77,7 @@ const handleLogin = async () => {
     const role = data.role;
     if (role === "SuperAdmin") {
       window.location.href = "/super-admin/";
-    } else if (role === "Admin" || role === "QuanLy" || role === "ChuCuaHang") {
+    } else if (role === "ChuCuaHang") {
       window.location.href = "/admin/";
     } else if (role === "ThuNgan") {
       window.location.href = "/pos";

@@ -223,10 +223,16 @@ const bannerInfo = computed(() => {
   return { text: "", cls: "" };
 });
 
-// Tên hiển thị cho Thu ngân
+// Tên hiển thị cho nhân viên
 const userDisplayLabel = computed(() => {
   if (isThuNgan) return `${tenNhanVien} (Thu ngân)`;
-  return "Admin";
+  const tenRole =
+    userRole === "ChuCuaHang"
+      ? "Chủ cửa hàng"
+      : userRole === "SuperAdmin"
+        ? "Quản trị viên"
+        : userRole || "Admin";
+  return `${tenNhanVien} (${tenRole})`;
 });
 </script>
 

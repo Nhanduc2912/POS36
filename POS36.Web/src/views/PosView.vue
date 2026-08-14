@@ -22,8 +22,7 @@ import AiCopilot from "../components/AiCopilot.vue";
 // --- THÔNG TIN NHÂN VIÊN & PHÂN QUYỀN ---
 const tenNhanVien = ref(localStorage.getItem("tenNhanVien") || "Nhân viên");
 const userRole = localStorage.getItem("pos36_role") || "ThuNgan";
-const isThuNgan =
-  userRole === "ThuNgan" || userRole === "Admin" || userRole === "QuanLy";
+const isThuNgan = userRole === "ThuNgan";
 
 // Thu ngân có quyền vào Admin không
 const hasAdminQuyen = computed(() => {
@@ -967,7 +966,7 @@ const logout = async () => {
 // --- HÀM THỰC HIỆN THANH TOÁN CHÍNH THỨC ---
 const thucHienThanhToanChinhThuc = async (banId, phuongThuc, diemSuDung = 0, discountPercent = 0) => {
   try {
-    let url = `/api/HoaDon/thanhtoan/${banId}?phuongThuc=${phuongThuc}&diemSuDung=${diemSuDung}`;
+    let url = `/api/HoaDon/thanhtoan/${banId}?phuongThuc=${encodeURIComponent(phuongThuc)}&diemSuDung=${diemSuDung}`;
     if (discountPercent > 0) url += `&discountPercent=${discountPercent}`;
     if (selectedCustomer.value) {
       url += `&khachHangId=${selectedCustomer.value.id}`;

@@ -178,8 +178,8 @@
                 <span v-if="log.vaiTro === 'ChuCuaHang'" class="badge bg-danger rounded-pill px-3 py-2 fw-normal">
                   <i class="bi bi-person-fill-lock me-1"></i> Chủ Quán
                 </span>
-                <span v-else-if="log.vaiTro === 'QuanLy' || log.vaiTro === 'Admin'" class="badge bg-primary rounded-pill px-3 py-2 fw-normal">
-                  <i class="bi bi-shield-fill me-1"></i> Quản Lý
+                <span v-else-if="log.vaiTro === 'SuperAdmin'" class="badge bg-dark rounded-pill px-3 py-2 fw-normal">
+                  <i class="bi bi-shield-lock-fill me-1"></i> Quản Trị Viên
                 </span>
                 <span v-else-if="log.vaiTro === 'ThuNgan'" class="badge bg-success rounded-pill px-3 py-2 fw-normal">
                   <i class="bi bi-cash-coin me-1"></i> Thu Ngân

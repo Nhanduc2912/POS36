@@ -241,19 +241,19 @@ const routes = [
     path: "/pos",
     name: "PosSystem",
     component: () => import("../views/PosView.vue"),
-    meta: { requiresAuth: true, roles: ["ChuCuaHang", "Admin", "QuanLy", "ThuNgan", "SuperAdmin"] },
+    meta: { requiresAuth: true, roles: ["ChuCuaHang", "ThuNgan", "SuperAdmin"] },
   },
   {
     path: "/order",
     name: "StaffOrder",
     component: () => import("../views/OrderView.vue"),
-    meta: { requiresAuth: true, roles: ["ChuCuaHang", "Admin", "QuanLy", "Order", "SuperAdmin"] },
+    meta: { requiresAuth: true, roles: ["ChuCuaHang", "Order", "SuperAdmin"] },
   },
   {
     path: "/kitchen",
     name: "KitchenDisplay",
     component: () => import("../views/KitchenView.vue"),
-    meta: { requiresAuth: true, roles: ["ChuCuaHang", "Admin", "QuanLy", "Bep", "SuperAdmin"] },
+    meta: { requiresAuth: true, roles: ["ChuCuaHang", "Bep", "SuperAdmin"] },
   },
 ];
 
@@ -325,8 +325,6 @@ router.beforeEach((to, from) => {
     }
 
     if (
-      role !== "Admin" &&
-      role !== "QuanLy" &&
       role !== "ChuCuaHang" &&
       role !== "SuperAdmin"
     ) {
@@ -348,9 +346,7 @@ router.beforeEach((to, from) => {
     if (role === "Order") return "/order";
     if (role === "Bep") return "/kitchen";
     if (
-      role === "Admin" ||
       role === "ChuCuaHang" ||
-      role === "QuanLy" ||
       role === "SuperAdmin"
     ) {
       return "/admin";
