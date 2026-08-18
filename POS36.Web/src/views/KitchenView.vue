@@ -1,8 +1,8 @@
 <template>
-  <div class="kitchen-container bg-dark text-white vh-100 d-flex flex-column font-monospace">
+  <div class="kitchen-container bg-light text-dark vh-100 d-flex flex-column">
 
     <!-- ===== HEADER ===== -->
-    <div class="px-4 py-2 bg-black d-flex justify-content-between align-items-center border-bottom border-secondary shadow">
+    <div class="px-4 py-2 bg-white d-flex justify-content-between align-items-center border-bottom shadow-sm">
       <div class="d-flex align-items-center gap-3">
         <h4 class="mb-0 fw-bold text-danger">
           <i class="bi bi-fire me-2"></i>BẾP TRUNG TÂM
@@ -10,14 +10,14 @@
         <!-- Tab pending / history -->
         <div class="btn-group btn-group-sm" role="group">
           <button @click="activeTab = 'pending'" class="btn fw-bold px-3"
-            :class="activeTab === 'pending' ? 'btn-danger' : 'btn-outline-secondary text-light'">
+            :class="activeTab === 'pending' ? 'btn-danger' : 'btn-outline-secondary'">
             <i class="bi bi-hourglass-split me-1"></i>ĐANG CHỜ
             <span class="badge rounded-pill ms-1" :class="activeTab === 'pending' ? 'bg-white text-danger' : 'bg-danger'">
               {{ totalPendingCount }}
             </span>
           </button>
           <button @click="activeTab = 'history'" class="btn fw-bold px-3"
-            :class="activeTab === 'history' ? 'btn-success' : 'btn-outline-secondary text-light'">
+            :class="activeTab === 'history' ? 'btn-success' : 'btn-outline-secondary'">
             <i class="bi bi-check2-all me-1"></i>LỊCH SỬ ({{ historyItems.length }})
           </button>
         </div>
@@ -44,21 +44,21 @@
         <!-- Nút chuyển chế độ hiển thị -->
         <div class="btn-group btn-group-sm" v-if="activeTab === 'pending'">
           <button @click="displayMode = 'list'" class="btn px-3"
-            :class="displayMode === 'list' ? 'btn-info text-dark fw-bold' : 'btn-outline-secondary text-light'"
+            :class="displayMode === 'list' ? 'btn-info text-dark fw-bold' : 'btn-outline-secondary'"
             title="Hiển thị danh sách">
             <i class="bi bi-list-ul"></i>
           </button>
           <button @click="displayMode = 'grid'" class="btn px-3"
-            :class="displayMode === 'grid' ? 'btn-info text-dark fw-bold' : 'btn-outline-secondary text-light'"
+            :class="displayMode === 'grid' ? 'btn-info text-dark fw-bold' : 'btn-outline-secondary'"
             title="Hiển thị theo bàn">
             <i class="bi bi-grid-3x3-gap"></i>
           </button>
         </div>
         <!-- Nút thiết lập -->
-        <button class="btn btn-outline-warning btn-sm fw-bold" @click="showSettings = true" v-if="activeTab === 'pending'">
+        <button class="btn btn-outline-warning text-dark btn-sm fw-bold" @click="showSettings = true" v-if="activeTab === 'pending'">
           <i class="bi bi-gear-fill me-1"></i>Thiết lập
         </button>
-        <button @click="logout" class="btn btn-outline-light btn-sm">
+        <button @click="logout" class="btn btn-outline-danger btn-sm">
           <i class="bi bi-power"></i>
         </button>
       </div>
@@ -85,6 +85,9 @@
 
         <!-- ===== CHẾ ĐỘ: DANH SÁCH (list) ===== -->
         <div v-else-if="displayMode === 'list'" class="list-mode fade-in">
+          <h5 class="fw-bold text-danger mb-3 border-bottom pb-2">
+            <i class="bi bi-list-check me-2"></i>CÁC BÀN CÓ ĐƠN ORDER
+          </h5>
           <div v-for="group in groupedByTable" :key="group.banId" class="mb-3">
             <div class="table-group-card rounded-3 overflow-hidden shadow-lg">
               <!-- Header bàn -->
@@ -139,8 +142,8 @@
 
                   <!-- Tên món -->
                   <div class="flex-grow-1">
-                    <div class="fw-bold text-white fs-6">{{ item.tenMon }}</div>
-                    <div v-if="item.ghiChu" class="text-warning small fst-italic">
+                    <div class="fw-bold text-dark fs-6">{{ item.tenMon }}</div>
+                    <div v-if="item.ghiChu" class="text-danger small fst-italic">
                       <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ item.ghiChu }}
                     </div>
                   </div>
@@ -166,27 +169,33 @@
         </div>
 
         <!-- ===== CHẾ ĐỘ: LƯỚI BÀN (grid) ===== -->
-        <div v-else-if="displayMode === 'grid'" class="row g-3 fade-in">
-          <div v-for="ban in allTablesForGrid" :key="ban.id" class="col-xl-3 col-lg-4 col-md-6">
-            <div class="card border-0 shadow-lg h-100 rounded-3 overflow-hidden"
-              :class="[
-                ban.hasItems ? 'bg-secondary' : 'bg-dark border border-secondary',
-                ban.hasItems && (ban.items.some(i => i.ghiChu) || ban.ghiChuHoaDon) ? 'border-warning-glow' : ''
-              ]">
-
-              <!-- Header bàn -->
-              <div class="card-header d-flex justify-content-between align-items-center py-2 border-0"
-                :class="ban.hasItems ? 'bg-black bg-opacity-40' : 'bg-black bg-opacity-20'">
+        <div v-else-if="displayMode === 'grid'" class="fade-in">
+          <div v-for="zone in groupedByZoneGrid" :key="zone.id" class="mb-4">
+            <h5 class="fw-bold text-secondary mb-3 border-bottom pb-2">
+              <i class="bi bi-geo-alt-fill me-2"></i>{{ zone.tenKhuVuc }}
+            </h5>
+            <div class="row g-3">
+              <div v-for="ban in zone.tables" :key="ban.id" class="col-xl-3 col-lg-4 col-md-6">
+                <div class="card border-0 shadow-sm h-100 rounded-3 overflow-hidden"
+                  :class="[
+                    ban.hasItems ? 'bg-white border-primary border' : 'bg-light border border-secondary border-opacity-25',
+                    ban.hasItems && (ban.items.some(i => i.ghiChu) || ban.ghiChuHoaDon) ? 'border-warning-glow' : ''
+                  ]">
+    
+                  <!-- Header bàn -->
+                  <div class="card-header d-flex justify-content-between align-items-center py-2 border-bottom"
+                    :class="ban.hasItems ? 'bg-primary bg-opacity-10' : 'bg-transparent'">
                 <div class="d-flex align-items-center gap-2">
-                  <span class="fw-bold" :class="ban.hasItems ? 'text-warning fs-6' : 'text-muted'">
+                  <span class="fw-bold" :class="ban.hasItems ? 'text-primary fs-6' : 'text-dark'">
                     {{ ban.tenBan }}
+                    <small v-if="ban.tenKhuVuc" class="text-secondary fw-normal ms-1" style="font-size: 0.78rem;">({{ ban.tenKhuVuc }})</small>
                   </span>
                   <span v-if="ban.hasItems && (ban.items.some(i => i.ghiChu) || ban.ghiChuHoaDon)" class="badge bg-warning text-dark px-1.5 py-0.5 rounded-pill" style="font-size: 0.65rem;" :title="'Yêu cầu: ' + (ban.ghiChuHoaDon || 'Món có ghi chú')">
                     <i class="bi bi-exclamation-circle-fill"></i>
                   </span>
                   <span v-if="ban.hasItems" class="badge bg-danger rounded-pill">{{ ban.items.length }}</span>
                 </div>
-                <span v-if="!ban.hasItems" class="badge bg-dark text-muted border border-secondary">Trống</span>
+                <span v-if="!ban.hasItems" class="badge bg-white text-muted border shadow-sm fw-normal">Trống</span>
                 <span v-else class="badge" :class="ban.maxWait > 15 ? 'bg-danger pulse' : 'bg-info text-dark'">
                   {{ ban.maxWait }}ph
                 </span>
@@ -204,7 +213,7 @@
                   <i class="bi bi-journal-text me-1"></i>HD: {{ ban.ghiChuHoaDon }}
                 </div>
                 <div v-for="item in ban.items" :key="item.chiTietId"
-                  class="py-1 border-bottom border-dark"
+                  class="py-1 border-bottom"
                   :class="{ 'text-muted': isChecked(item.chiTietId) }">
                   <div class="d-flex align-items-center gap-2">
                     <!-- Checkbox (per-item mode) -->
@@ -227,7 +236,7 @@
                     </button>
                   </div>
                   <!-- Hiển thị ghi chú món (nếu có) trên Grid -->
-                  <div v-if="item.ghiChu" class="text-warning small fst-italic ms-4" style="font-size: 0.72rem; line-height: 1.1;">
+                  <div v-if="item.ghiChu" class="text-danger small fst-italic ms-4" style="font-size: 0.72rem; line-height: 1.1;">
                     <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ item.ghiChu }}
                   </div>
                 </div>
@@ -248,15 +257,17 @@
               </div>
             </div>
           </div>
+            </div>
+          </div>
         </div>
       </template>
 
       <!-- TAB: LỊCH SỬ -->
       <div v-else-if="activeTab === 'history'" class="fade-in">
-        <div class="bg-secondary rounded-3 p-3 shadow">
+        <div class="bg-white rounded-3 p-3 shadow-sm border">
           <div class="table-responsive">
-            <table class="table table-dark table-hover mb-0 align-middle">
-              <thead>
+            <table class="table table-hover mb-0 align-middle">
+              <thead class="table-light">
                 <tr class="text-muted small text-uppercase">
                   <th>Thời gian xong</th>
                   <th>Bàn</th>
@@ -268,8 +279,8 @@
               </thead>
               <tbody>
                 <tr v-for="h in historyItems" :key="h.chiTietId">
-                  <td class="text-info fw-bold small">{{ h.thoiGianXong }}</td>
-                  <td class="text-warning fw-bold">{{ h.tenBan }}</td>
+                  <td class="text-primary fw-bold small">{{ h.thoiGianXong }}</td>
+                  <td class="text-dark fw-bold">{{ h.tenBan }}</td>
                   <td class="fw-bold">{{ h.tenMon }}</td>
                   <td class="text-center"><span class="badge bg-warning text-dark fs-6">{{ h.soLuong }}</span></td>
                   <td class="fst-italic text-secondary small">{{ h.ghiChu || "—" }}</td>
@@ -287,8 +298,8 @@
 
     <!-- ===== MODAL THIẾT LẬP ===== -->
     <div v-if="showSettings" class="modal-backdrop-custom" @click.self="showSettings = false">
-      <div class="settings-modal bg-dark text-white rounded-3 shadow-lg p-4 fade-in" style="width:480px;max-width:95vw">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="settings-modal bg-white text-dark rounded-3 shadow-lg p-4 fade-in" style="width:480px;max-width:95vw">
+        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-2">
           <h5 class="fw-bold mb-0">
             <i class="bi bi-gear-fill text-warning me-2"></i>Thiết lập Màn hình Bếp
           </h5>
@@ -299,13 +310,13 @@
 
         <!-- Chế độ hoàn thành -->
         <div class="mb-4">
-          <label class="text-warning fw-bold mb-2 d-block">
+          <label class="text-dark fw-bold mb-2 d-block">
             <i class="bi bi-check2-square me-1"></i>Chế độ hoàn thành món
           </label>
           <div class="row g-2">
             <div class="col-6">
               <div class="setting-option rounded-3 p-3 text-center cursor-pointer border border-2"
-                :class="completionMode === 'item' ? 'border-success bg-success bg-opacity-25' : 'border-secondary bg-secondary bg-opacity-10'"
+                :class="completionMode === 'item' ? 'border-success bg-success bg-opacity-10' : 'border-light bg-light'"
                 @click="completionMode = 'item'; checkedItems = {}">
                 <i class="bi bi-check2-square fs-2 d-block mb-2" :class="completionMode === 'item' ? 'text-success' : 'text-muted'"></i>
                 <div class="fw-bold small" :class="completionMode === 'item' ? 'text-success' : 'text-secondary'">Tick từng món</div>
@@ -314,7 +325,7 @@
             </div>
             <div class="col-6">
               <div class="setting-option rounded-3 p-3 text-center cursor-pointer border border-2"
-                :class="completionMode === 'table' ? 'border-warning bg-warning bg-opacity-25' : 'border-secondary bg-secondary bg-opacity-10'"
+                :class="completionMode === 'table' ? 'border-warning bg-warning bg-opacity-10' : 'border-light bg-light'"
                 @click="completionMode = 'table'; checkedItems = {}">
                 <i class="bi bi-table fs-2 d-block mb-2" :class="completionMode === 'table' ? 'text-warning' : 'text-muted'"></i>
                 <div class="fw-bold small" :class="completionMode === 'table' ? 'text-warning' : 'text-secondary'">Xong cả bàn</div>
@@ -326,13 +337,13 @@
 
         <!-- Chế độ hiển thị -->
         <div class="mb-4">
-          <label class="text-warning fw-bold mb-2 d-block">
+          <label class="text-dark fw-bold mb-2 d-block">
             <i class="bi bi-layout-three-columns me-1"></i>Chế độ hiển thị
           </label>
           <div class="row g-2">
             <div class="col-6">
               <div class="setting-option rounded-3 p-3 text-center cursor-pointer border border-2"
-                :class="displayMode === 'list' ? 'border-info bg-info bg-opacity-25' : 'border-secondary bg-secondary bg-opacity-10'"
+                :class="displayMode === 'list' ? 'border-info bg-info bg-opacity-10' : 'border-light bg-light'"
                 @click="displayMode = 'list'">
                 <i class="bi bi-list-ul fs-2 d-block mb-2" :class="displayMode === 'list' ? 'text-info' : 'text-muted'"></i>
                 <div class="fw-bold small" :class="displayMode === 'list' ? 'text-info' : 'text-secondary'">Danh sách dọc</div>
@@ -341,7 +352,7 @@
             </div>
             <div class="col-6">
               <div class="setting-option rounded-3 p-3 text-center cursor-pointer border border-2"
-                :class="displayMode === 'grid' ? 'border-info bg-info bg-opacity-25' : 'border-secondary bg-secondary bg-opacity-10'"
+                :class="displayMode === 'grid' ? 'border-info bg-info bg-opacity-10' : 'border-light bg-light'"
                 @click="displayMode = 'grid'">
                 <i class="bi bi-grid-3x3-gap fs-2 d-block mb-2" :class="displayMode === 'grid' ? 'text-info' : 'text-muted'"></i>
                 <div class="fw-bold small" :class="displayMode === 'grid' ? 'text-info' : 'text-secondary'">Sơ đồ bàn</div>
@@ -455,6 +466,25 @@ const allTablesForGrid = computed(() => {
     if (!a.hasItems && b.hasItems) return 1;
     return b.maxWait - a.maxWait;
   });
+});
+
+// Nhóm danh sách Grid theo khu vực
+const groupedByZoneGrid = computed(() => {
+  const map = {};
+  for (const ban of allTablesForGrid.value) {
+    const zoneName = ban.tenKhuVuc || "Khu Vực Chung";
+    const zoneId = ban.khuVucId || 0;
+    if (!map[zoneId]) {
+      map[zoneId] = {
+        id: zoneId,
+        tenKhuVuc: zoneName,
+        tables: []
+      };
+    }
+    map[zoneId].tables.push(ban);
+  }
+  // Sắp xếp Khu vực theo tên (Khu vực chính trước)
+  return Object.values(map).sort((a, b) => a.tenKhuVuc.localeCompare(b.tenKhuVuc));
 });
 
 // Tổng số món đang chờ
@@ -647,24 +677,25 @@ onUnmounted(() => {
 
 <style scoped>
 /* --- LAYOUT --- */
-.kitchen-container { font-family: 'Courier New', monospace; }
+.kitchen-container { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
 .cursor-pointer { cursor: pointer; }
 
 /* --- TABLE GROUP CARD (list mode) --- */
 .table-group-card {
-  background: #2a2a2a;
-  border: 1px solid #444;
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
 }
 .table-header {
-  background: linear-gradient(90deg, #1a1a1a, #333);
-  border-bottom: 2px solid #555;
+  background: linear-gradient(90deg, #f8f9fa, #ffffff);
+  border-bottom: 2px solid #e0e0e0;
 }
 .list-item {
-  background: #2a2a2a;
+  background: #ffffff;
+  border-top: 1px solid #e0e0e0 !important;
   transition: background 0.2s;
 }
-.list-item:hover { background: #333; }
-.list-item.item-checked { background: #1e3a1e; opacity: 0.8; }
+.list-item:hover { background: #f8f9fa; }
+.list-item.item-checked { background: #e8f5e9; }
 
 /* --- QTY BADGE --- */
 .qty-badge {

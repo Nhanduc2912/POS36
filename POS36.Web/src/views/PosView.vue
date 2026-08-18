@@ -352,7 +352,8 @@ onMounted(async () => {
       toast: true,
       position: "top-end",
       icon: "success",
-      title: `🍽️ Bếp báo xong: ${data.tenMon} - Bàn ${data.tenBan}`,
+      title: `🍽️ Bếp báo xong: <span class="text-danger">${data.tenMon}</span>`,
+      html: `<div class="fw-bold mt-1 text-primary" style="font-size: 1.1em">Khu vực: ${data.tenKhuVuc} — Bàn: ${data.tenBan}</div>`,
       showConfirmButton: false,
       timer: 3500,
     });

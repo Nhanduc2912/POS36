@@ -839,7 +839,7 @@ namespace POS36.Api.Controllers
 
             var chiTiet = await _context.ChiTietHoaDons
                 .Include(c => c.SanPham)
-                .Include(c => c.HoaDon).ThenInclude(h => h.Ban)
+                .Include(c => c.HoaDon).ThenInclude(h => h.Ban).ThenInclude(b => b.KhuVuc)
                 .FirstOrDefaultAsync(c => c.Id == chiTietId);
             if (chiTiet == null) return NotFound();
 
@@ -861,7 +861,8 @@ namespace POS36.Api.Controllers
             await _hubContext.Clients.Group($"store_{storeId}").SendAsync("MonAnDaXong", new
             {
                 banId = chiTiet.HoaDon!.BanId,
-                tenBan = chiTiet.HoaDon.Ban!.TenBan,
+                tenBan = chiTiet.HoaDon.Ban?.TenBan ?? "Mang về",
+                tenKhuVuc = chiTiet.HoaDon.Ban?.KhuVuc?.TenKhuVuc ?? "Giao đi",
                 tenMon = $"{chiTiet.SoLuong}x {tenMon} — Đã xong"
             });
 
