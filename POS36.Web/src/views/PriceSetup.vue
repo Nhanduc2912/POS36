@@ -191,7 +191,21 @@ const exportToExcel = () => {
                   <td class="ps-4 fw-bold text-muted">HH-00{{ prod.id }}</td>
                   <td class="fw-bold text-dark">{{ prod.tenSanPham }}</td>
 
-                  <td class="text-end text-muted">{{ prod.giaVon ? prod.giaVon.toLocaleString("vi-VN") + ' ₫' : "0 ₫" }}</td>
+                  <td class="text-end" :class="(!prod.coDinhLuong || !prod.giaVon) ? 'text-danger' : 'text-muted'">
+                    <template v-if="!prod.coDinhLuong">
+                      <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 rounded-pill px-2 py-1" style="font-size:0.72rem" title="Hãy vào Thực đơn → Chọn SP → Thiết lập định lượng NVL">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>Chưa set NVL
+                      </span>
+                    </template>
+                    <template v-else-if="!prod.giaVon || prod.giaVon <= 0">
+                      <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 rounded-pill px-2 py-1" style="font-size:0.72rem" title="Có định lượng nhưng NVL chưa có phiếu nhập kho → giá vốn chưa tính được">
+                        <i class="bi bi-clock-history me-1"></i>Chờ nhập kho
+                      </span>
+                    </template>
+                    <template v-else>
+                      {{ prod.giaVon.toLocaleString("vi-VN") + ' ₫' }}
+                    </template>
+                  </td>
 
                   <td class="text-end pe-4">
                     <div

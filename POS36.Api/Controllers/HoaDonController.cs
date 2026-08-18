@@ -119,6 +119,20 @@ namespace POS36.Api.Controllers
                             decimal giaVonNVL = dl.NguyenVatLieu?.GiaVonHienTai ?? 0;
                             currentGiaVon += (giaVonNVL * dl.SoLuong);
                         }
+
+                        // Có định lượng nhưng tất cả NVL chưa có phiếu nhập (giá vốn = 0) → đánh dấu -1
+                        if (currentGiaVon == 0)
+                            currentGiaVon = -1;
+                    }
+                    else
+                    {
+                        // SP CHƯA CÓ ĐỊNH LƯỢNG NVL
+                        if (!isChoPhepBanAm)
+                        {
+                            throw new Exception($"'{sanPham.TenSanPham}' chưa được thiết lập định lượng nguyên vật liệu! Hãy vào Thực đơn → chọn sản phẩm → Thiết lập định lượng, hoặc bật 'Cho phép bán âm' trong Cài đặt.");
+                        }
+                        // Bật bán âm → vẫn cho bán, đánh dấu giá vốn = -1 (chưa tính được)
+                        currentGiaVon = -1;
                     }
 
                     var chiTiet = new ChiTietHoaDon

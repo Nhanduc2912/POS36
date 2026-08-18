@@ -77,13 +77,18 @@
 
     <template v-else>
       <!-- CẢNH BÁO nếu có SP chưa có giá vốn -->
-      <div v-if="data.tongQuan.sanPhamChuaTinhVon > 0" class="alert alert-warning border-0 shadow-sm rounded-4 d-flex gap-3 align-items-center mb-4 p-3 animated-shake">
-        <div class="icon-warning-box bg-warning bg-opacity-25 rounded-circle p-2 text-warning d-inline-flex">
+      <div v-if="data.tongQuan.sanPhamChuaTinhVon > 0" class="alert alert-warning border-0 shadow-sm rounded-4 d-flex gap-3 align-items-start mb-4 p-3 animated-shake">
+        <div class="icon-warning-box bg-warning bg-opacity-25 rounded-circle p-2 text-warning d-inline-flex flex-shrink-0">
           <i class="bi bi-exclamation-triangle-fill fs-5"></i>
         </div>
         <div>
-          <h6 class="fw-bold mb-0 text-dark-orange">Cảnh báo dữ liệu giá vốn</h6>
-          <span class="small text-secondary">{{ data.tongQuan.luuY }}</span>
+          <h6 class="fw-bold mb-1 text-dark-orange">Cảnh báo dữ liệu giá vốn</h6>
+          <span class="small text-secondary d-block">{{ data.tongQuan.luuY }}</span>
+          <span class="small text-muted d-block mt-1">
+            <i class="bi bi-info-circle me-1"></i>
+            Các SP được đánh dấu <span class="badge bg-danger bg-opacity-10 text-danger" style="font-size:0.7rem">Chưa tính vốn</span> trong bảng bên dưới.
+            Hãy vào <strong>Thực đơn → Thiết lập Định lượng NVL</strong> và tạo <strong>Phiếu nhập kho</strong> để hệ thống tính giá vốn chính xác.
+          </span>
         </div>
       </div>
 
@@ -208,17 +213,27 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(sp, idx) in filteredProducts" :key="idx" class="transition-all">
+              <tr v-for="(sp, idx) in filteredProducts" :key="idx" class="transition-all" :class="{'table-warning bg-opacity-25': sp.chuaCoDinhLuong}">
                 <td class="ps-4 text-secondary">{{ idx + 1 }}</td>
-                <td class="fw-bold text-dark">{{ sp.tenSanPham }}</td>
+                <td class="fw-bold text-dark">
+                  {{ sp.tenSanPham }}
+                  <span v-if="sp.chuaCoDinhLuong" class="badge bg-danger bg-opacity-10 text-danger ms-2" style="font-size:0.65rem; vertical-align:middle;">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>Chưa tính vốn
+                  </span>
+                </td>
                 <td class="text-center font-monospace text-secondary fw-semibold">{{ sp.soLuongBan }}</td>
                 <td class="text-end font-monospace fw-semibold text-dark">{{ formatVND(sp.doanhThu) }}</td>
-                <td class="text-end font-monospace text-warning">{{ formatVND(sp.giaVon) }}</td>
-                <td class="text-end font-monospace fw-bold" :class="sp.laiGop >= 0 ? 'text-success' : 'text-danger'">
-                  {{ sp.laiGop >= 0 ? '+' : '' }}{{ formatVND(sp.laiGop) }}
+                <td class="text-end font-monospace" :class="sp.chuaCoDinhLuong ? 'text-danger fst-italic' : 'text-warning'">
+                  {{ sp.chuaCoDinhLuong ? 'N/A' : formatVND(sp.giaVon) }}
+                </td>
+                <td class="text-end font-monospace fw-bold" :class="sp.chuaCoDinhLuong ? 'text-muted fst-italic' : (sp.laiGop >= 0 ? 'text-success' : 'text-danger')">
+                  {{ sp.chuaCoDinhLuong ? 'N/A' : ((sp.laiGop >= 0 ? '+' : '') + formatVND(sp.laiGop)) }}
                 </td>
                 <td class="text-center pe-4">
-                  <span class="badge rounded-pill px-3 py-1.5 font-monospace"
+                  <span v-if="sp.chuaCoDinhLuong" class="badge rounded-pill px-3 py-1.5 bg-secondary bg-opacity-10 text-muted fst-italic" style="font-size:0.75rem">
+                    N/A
+                  </span>
+                  <span v-else class="badge rounded-pill px-3 py-1.5 font-monospace"
                         :class="sp.tiLeLaiGop >= 50 ? 'bg-success bg-opacity-10 text-success' : sp.tiLeLaiGop >= 20 ? 'bg-warning bg-opacity-10 text-dark-orange' : 'bg-danger bg-opacity-10 text-danger'">
                     {{ sp.tiLeLaiGop }}%
                   </span>
@@ -232,12 +247,21 @@
             </tbody>
             <tfoot class="table-light fw-bold" v-if="filteredProducts.length > 0">
               <tr>
-                <td colspan="2" class="ps-4">TỔNG CỘNG HÀNG</td>
-                <td class="text-center font-monospace text-secondary">{{ totalQtySold }}</td>
-                <td class="text-end font-monospace text-dark">{{ formatVND(data.tongQuan.tongDoanhThu) }}</td>
+                <td colspan="2" class="ps-4">TỔNG CỘNG (SP đã tính vốn)</td>
+                <td class="text-center font-monospace text-secondary">{{ totalQtySoldCoVon }}</td>
+                <td class="text-end font-monospace text-dark">{{ formatVND(data.tongQuan.tongDoanhThuCoVon || data.tongQuan.tongDoanhThu) }}</td>
                 <td class="text-end font-monospace text-warning">{{ formatVND(data.tongQuan.tongGiaVon) }}</td>
                 <td class="text-end font-monospace text-success">{{ formatVND(data.tongQuan.tongLaiGop) }}</td>
                 <td class="text-center pe-4 text-purple font-monospace" style="color:#7c3aed">{{ data.tongQuan.tiLeLaiGop }}%</td>
+              </tr>
+              <tr v-if="data.tongQuan.sanPhamChuaTinhVon > 0" class="table-warning">
+                <td colspan="2" class="ps-4 fst-italic text-muted small">
+                  <i class="bi bi-exclamation-triangle text-warning me-1"></i>
+                  {{ data.tongQuan.sanPhamChuaTinhVon }} SP chưa tính vốn (đã loại khỏi tổng)
+                </td>
+                <td class="text-center font-monospace text-muted small">{{ totalQtySoldChuaVon }}</td>
+                <td class="text-end font-monospace text-muted small">{{ formatVND(data.tongQuan.doanhThuChuaTinhVon) }}</td>
+                <td colspan="3" class="text-center text-muted small fst-italic">— Chưa đủ dữ liệu —</td>
               </tr>
             </tfoot>
           </table>
@@ -315,10 +339,16 @@ const filteredProducts = computed(() => {
   return data.value.theoSanPham.filter(sp => sp.tenSanPham.toLowerCase().includes(s));
 });
 
-// Tính tổng số lượng đã bán
-const totalQtySold = computed(() => {
+// Tính tổng số lượng đã bán (chỉ SP có vốn)
+const totalQtySoldCoVon = computed(() => {
   if (!filteredProducts.value.length) return 0;
-  return filteredProducts.value.reduce((sum, sp) => sum + sp.soLuongBan, 0);
+  return filteredProducts.value.filter(sp => !sp.chuaCoDinhLuong).reduce((sum, sp) => sum + sp.soLuongBan, 0);
+});
+
+// Tổng SL SP chưa có vốn
+const totalQtySoldChuaVon = computed(() => {
+  if (!filteredProducts.value.length) return 0;
+  return filteredProducts.value.filter(sp => sp.chuaCoDinhLuong).reduce((sum, sp) => sum + sp.soLuongBan, 0);
 });
 
 // Lấy danh sách chi nhánh

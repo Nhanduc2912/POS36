@@ -157,11 +157,15 @@ namespace POS36.Api.Controllers
                 })
                 .ToListAsync();
 
-            // Tính tổng lãi gộp
+            // Tính tổng lãi gộp — CHỈ tính cho SP đã có giá vốn hợp lệ (> 0)
+            var chiTietCoVon = chiTiets.Where(ct => ct.GiaVon > 0).ToList();
+            var chiTietChuaCoVon = chiTiets.Where(ct => ct.GiaVon <= 0).ToList();
+
             decimal tongDoanhThu = chiTiets.Sum(ct => ct.SoLuong * ct.DonGia);
-            decimal tongGiaVon = chiTiets.Sum(ct => ct.SoLuong * (decimal)ct.GiaVon);
-            decimal tongLaiGop = tongDoanhThu - tongGiaVon;
-            double tiLeLaiGop = tongDoanhThu > 0 ? (double)(tongLaiGop / tongDoanhThu * 100) : 0;
+            decimal tongDoanhThuCoVon = chiTietCoVon.Sum(ct => ct.SoLuong * ct.DonGia);
+            decimal tongGiaVon = chiTietCoVon.Sum(ct => ct.SoLuong * (decimal)ct.GiaVon);
+            decimal tongLaiGop = tongDoanhThuCoVon - tongGiaVon;
+            double tiLeLaiGop = tongDoanhThuCoVon > 0 ? (double)(tongLaiGop / tongDoanhThuCoVon * 100) : 0;
 
             // Lãi gộp theo từng sản phẩm
             var laiGopTheoSanPham = chiTiets
@@ -171,18 +175,26 @@ namespace POS36.Api.Controllers
                     TenSanPham = g.Key.TenSanPham,
                     SoLuongBan = g.Sum(ct => ct.SoLuong),
                     DoanhThu = g.Sum(ct => ct.SoLuong * ct.DonGia),
-                    GiaVon = g.Sum(ct => ct.SoLuong * (decimal)ct.GiaVon),
-                    LaiGop = g.Sum(ct => ct.SoLuong * (ct.DonGia - (decimal)ct.GiaVon)),
-                    TiLeLaiGop = g.Sum(ct => ct.SoLuong * ct.DonGia) > 0
-                        ? Math.Round((double)(g.Sum(ct => ct.SoLuong * (ct.DonGia - (decimal)ct.GiaVon))
-                                             / g.Sum(ct => ct.SoLuong * ct.DonGia) * 100), 1)
-                        : 0.0
+                    // Nếu tất cả chi tiết của SP này đều có giá vốn ≤ 0 → chưa tính được
+                    ChuaCoDinhLuong = g.All(ct => ct.GiaVon <= 0),
+                    GiaVon = g.Any(ct => ct.GiaVon <= 0)
+                        ? 0m // Không tính giá vốn nếu chưa đủ dữ liệu
+                        : g.Sum(ct => ct.SoLuong * (decimal)ct.GiaVon),
+                    LaiGop = g.Any(ct => ct.GiaVon <= 0)
+                        ? 0m
+                        : g.Sum(ct => ct.SoLuong * (ct.DonGia - (decimal)ct.GiaVon)),
+                    TiLeLaiGop = g.Any(ct => ct.GiaVon <= 0)
+                        ? -1.0 // -1 = N/A (chưa tính được)
+                        : (g.Sum(ct => ct.SoLuong * ct.DonGia) > 0
+                            ? Math.Round((double)(g.Sum(ct => ct.SoLuong * (ct.DonGia - (decimal)ct.GiaVon))
+                                                 / g.Sum(ct => ct.SoLuong * ct.DonGia) * 100), 1)
+                            : 0.0)
                 })
                 .OrderByDescending(x => x.LaiGop)
                 .ToList();
 
-            // Biểu đồ lãi gộp theo ngày (7 ngày gần nhất nếu không truyền kỳ)
-            var laiGopTheoNgay = chiTiets
+            // Biểu đồ lãi gộp theo ngày (chỉ tính SP có giá vốn hợp lệ)
+            var laiGopTheoNgay = chiTietCoVon
                 .Where(ct => ct.NgayBan.HasValue)
                 .GroupBy(ct => ct.NgayBan!.Value.Date)
                 .Select(g => new
@@ -202,12 +214,17 @@ namespace POS36.Api.Controllers
                     TuNgay = start.ToString("dd/MM/yyyy"),
                     DenNgay = end.ToString("dd/MM/yyyy"),
                     TongDoanhThu = tongDoanhThu,
+                    TongDoanhThuCoVon = tongDoanhThuCoVon,
                     TongGiaVon = tongGiaVon,
                     TongLaiGop = tongLaiGop,
                     TiLeLaiGop = Math.Round(tiLeLaiGop, 1),
-                    SanPhamChuaTinhVon = chiTiets.Count(ct => ct.GiaVon == 0),
-                    LuuY = chiTiets.Any(ct => ct.GiaVon == 0)
-                        ? "Một số sản phẩm chưa có phiếu nhập kho — giá vốn = 0, lãi gộp có thể bị phóng đại."
+                    SanPhamChuaTinhVon = chiTietChuaCoVon
+                        .Select(ct => ct.SanPhamId)
+                        .Distinct()
+                        .Count(),
+                    DoanhThuChuaTinhVon = chiTietChuaCoVon.Sum(ct => ct.SoLuong * ct.DonGia),
+                    LuuY = chiTietChuaCoVon.Any()
+                        ? $"Có {chiTietChuaCoVon.Select(ct => ct.SanPhamId).Distinct().Count()} sản phẩm chưa có định lượng/phiếu nhập — đã loại khỏi phép tính lãi gộp. Doanh thu chưa tính vốn: {chiTietChuaCoVon.Sum(ct => ct.SoLuong * ct.DonGia):N0}₫."
                         : null
                 },
                 TheoSanPham = laiGopTheoSanPham,
