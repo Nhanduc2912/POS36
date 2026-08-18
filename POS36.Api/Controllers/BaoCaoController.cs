@@ -48,8 +48,8 @@ namespace POS36.Api.Controllers
             }
 
             // 1. Xử lý thời gian
-            DateTime start = tuNgay ?? DateTime.Today;
-            DateTime end = denNgay ?? DateTime.Today.AddDays(1).AddTicks(-1);
+            DateTime start = (tuNgay ?? DateTime.Today).Date;
+            DateTime end = (denNgay ?? DateTime.Today).Date.AddDays(1).AddTicks(-1);
 
             await _context.LogHoatDongAsync(chiNhanhId, "Báo cáo bán hàng", $"Xem báo cáo doanh thu tổng quan từ ngày {start:dd/MM/yyyy} đến ngày {end:dd/MM/yyyy}");
 
@@ -133,8 +133,8 @@ namespace POS36.Api.Controllers
                 chiNhanhId = userBranchId;
             }
 
-            DateTime start = tuNgay ?? DateTime.Today;
-            DateTime end = denNgay ?? DateTime.Today.AddDays(1).AddTicks(-1);
+            DateTime start = (tuNgay ?? DateTime.Today).Date;
+            DateTime end = (denNgay ?? DateTime.Today).Date.AddDays(1).AddTicks(-1);
 
             await _context.LogHoatDongAsync(chiNhanhId, "Báo cáo Lãi gộp", $"Xem báo cáo lãi gộp từ ngày {start:dd/MM/yyyy} đến ngày {end:dd/MM/yyyy}");
 

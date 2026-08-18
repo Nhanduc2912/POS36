@@ -575,17 +575,6 @@ const addItem = async (prod) => {
   }
 
   activeTable.value.tamTinh = totalAmount.value;
-
-  if (isThuNgan) {
-    const success = await saveNewOrdersToDatabase();
-    if (success) {
-      if (activeTable.value.trangThai === "Trống") {
-        activeTable.value.trangThai = "Đang phục vụ";
-        activeTable.value.timeOpen = new Date().toISOString();
-      }
-      tables.value = [...tables.value];
-    }
-  }
 };
 
 const handleBaoCheBien = async () => {
@@ -1020,13 +1009,27 @@ const thucHienThanhToanChinhThuc = async (banId, phuongThuc, diemSuDung = 0, dis
 
 // --- XỬ LÝ THANH TOÁN ---
 const handleThanhToan = async () => {
-  if (!activeTable.value || activeTable.value.trangThai === "Trống") return;
+  if (!activeTable.value) return;
 
   // Nghiệp vụ mặc định: bắt buộc phải có món trước khi thanh toán
   const tableOrders = ordersByTable.value[activeTable.value.id] || [];
   if (tableOrders.length === 0 || activeTable.value.tamTinh <= 0) {
     return swal.fire("Không thể tính tiền", "Bàn chưa có món ăn nào! Vui lòng chọn món trước khi thanh toán.", "warning");
   }
+
+  // Auto-gửi bếp nếu có món chưa gửi (Thu ngân thêm món nhưng chưa bấm "Báo chế biến")
+  const unsentItems = tableOrders.filter((i) => !i.isSent);
+  if (unsentItems.length > 0) {
+    const success = await saveNewOrdersToDatabase();
+    if (!success) return; // Lỗi gửi bếp (VD: SP chưa có định lượng) → chặn thanh toán
+    if (activeTable.value.trangThai === "Trống") {
+      activeTable.value.trangThai = "Đang phục vụ";
+      activeTable.value.timeOpen = new Date().toISOString();
+    }
+    tables.value = [...tables.value];
+  }
+
+  if (activeTable.value.trangThai === "Trống") return;
 
   const soTien = activeTable.value.tamTinh;
   const banId = activeTable.value.id;
