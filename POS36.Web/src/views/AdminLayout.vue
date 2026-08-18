@@ -543,12 +543,6 @@ const userDisplayLabel = computed(() => {
                     <h6 class="dropdown-header text-muted fw-bold">HỆ THỐNG</h6>
                   </li>
                   <!-- Chỉ hiển thị các mục nhạy cảm với Admin thực sự, ẩn với Thu ngân -->
-                  <li v-if="!isThuNgan">
-                    <router-link class="dropdown-item" to="/admin/store-info"
-                      ><i class="bi bi-shop-window me-2 text-muted"></i> Thông
-                      tin cửa hàng</router-link
-                    >
-                  </li>
                   <li>
                     <router-link class="dropdown-item" to="/admin/profile"
                       ><i class="bi bi-person-vcard me-2 text-muted"></i> Thông

@@ -197,16 +197,6 @@
                     <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_HienQR" />
                   </div>
                 </div>
-
-                <div class="toggle-item-row py-3 d-flex justify-content-between align-items-center" :class="{'opacity-50': !cfgBool.POS_HienQR}">
-                  <div>
-                    <h6 class="fw-bold text-dark mb-1">Chỉ hiển thị mã QR trên màn hình Thu ngân (Thu ngân Only)</h6>
-                    <p class="text-muted mb-0 small">Không hiện popup QR trên thiết bị di động của Nhân viên Order để tránh làm gián đoạn công việc.</p>
-                  </div>
-                  <div class="form-check form-switch form-switch-lg">
-                    <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_HienQrThuNganOnly" :disabled="!cfgBool.POS_HienQR" />
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -267,13 +257,24 @@
               </div>
 
               <!-- Quyền 5 -->
-              <div class="toggle-item-row py-3 d-flex justify-content-between align-items-center">
+              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
                 <div>
                   <h6 class="fw-bold text-dark mb-1">Yêu cầu xác thực PIN Quản lý khi hủy món cuối / xóa bàn</h6>
                   <p class="text-muted mb-0 small">Yêu cầu nhập mã bảo mật khi Thu ngân muốn xóa bàn hoặc hủy toàn bộ món ăn trong đơn hàng.</p>
                 </div>
                 <div class="form-check form-switch form-switch-lg">
                   <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_YeuCauMatKhauHuyBill" />
+                </div>
+              </div>
+
+              <!-- Mã PIN Admin -->
+              <div class="toggle-item-row py-3 d-flex justify-content-between align-items-center" :class="{'opacity-50': !cfgBool.POS_YeuCauMatKhauHuyBill}">
+                <div>
+                  <h6 class="fw-bold text-dark mb-1">Mã PIN xác thực của Chủ cửa hàng / Quản lý (4 chữ số)</h6>
+                  <p class="text-muted mb-0 small">Mật mã PIN 4 chữ số dùng để phê duyệt các thao tác nhạy cảm (hủy bàn, hủy món đã gửi bếp, hoàn tiền).</p>
+                </div>
+                <div style="width: 140px;">
+                  <input type="text" maxlength="4" v-model="cfg.Security_AdminPIN" class="form-control text-center font-monospace fw-bold fs-6 border-primary" placeholder="1234" :disabled="!cfgBool.POS_YeuCauMatKhauHuyBill" />
                 </div>
               </div>
             </div>
@@ -456,87 +457,7 @@
           </div>
         </div>
 
-        <!-- TAB 5: Bảo mật & Gói dịch vụ -->
-        <div v-show="activeTab === 'security'" class="tab-pane-content">
-          <div class="card border-0 shadow-sm rounded-3 p-4 mb-4">
-            <h5 class="fw-bold text-primary mb-4 pb-2 border-bottom d-flex align-items-center gap-2">
-              <i class="bi bi-shield-lock-fill fs-4"></i> Bảo Mật Vận Hành & Quản Lý Mã PIN
-            </h5>
 
-            <div class="toggle-list-group mb-4">
-              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="fw-bold text-dark mb-1">Mã PIN xác thực nhanh của Chủ cửa hàng / Quản lý (4 chữ số)</h6>
-                  <p class="text-muted mb-0 small">Mật mã PIN 4 chữ số dùng để phê duyệt các thao tác nhạy cảm (Xóa bàn, hủy món đã gửi bếp, hoàn tiền).</p>
-                </div>
-                <div style="width: 140px;">
-                  <input type="text" maxlength="4" v-model="cfg.Security_AdminPIN" class="form-control text-center font-monospace fw-bold fs-6 border-primary" placeholder="1234" />
-                </div>
-              </div>
-
-              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="fw-bold text-dark mb-1">Yêu cầu nhập mã PIN nhân viên khi giao dịch</h6>
-                  <p class="text-muted mb-0 small">Nhân viên cần xác nhận mật mã PIN cá nhân khi thực hiện các giao dịch trên hệ thống.</p>
-                </div>
-                <div class="form-check form-switch form-switch-lg">
-                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.Security_YeuCauPIN" />
-                </div>
-              </div>
-
-              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="fw-bold text-dark mb-1">Tự động đăng xuất tài khoản khi treo màn hình</h6>
-                  <p class="text-muted mb-0 small">Khóa màn hình làm việc của thu ngân khi không phát hiện tương tác sau khoảng thời gian nhất định.</p>
-                </div>
-                <div class="form-check form-switch form-switch-lg">
-                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.Security_AutoLogout" />
-                </div>
-              </div>
-
-              <div class="toggle-item-row py-3 border-bottom d-flex justify-content-between align-items-center" v-if="cfgBool.Security_AutoLogout">
-                <div>
-                  <h6 class="fw-bold text-dark mb-1">Thời gian tự động khóa màn hình (Phút)</h6>
-                  <p class="text-muted mb-0 small">Khoảng thời gian chờ trước khi hệ thống tự động đăng xuất tài khoản (tối thiểu 1 phút, tối đa 120 phút).</p>
-                </div>
-                <div style="width: 140px;">
-                  <div class="input-group input-group-sm">
-                    <input type="number" v-model.number="cfg.Security_TimeoutPhut" class="form-control text-center fw-bold" min="1" max="120" placeholder="30" />
-                    <span class="input-group-text small">Phút</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="toggle-item-row py-3 d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 class="fw-bold text-dark mb-1">Tự động khóa sổ doanh thu lúc 23:59 hàng ngày</h6>
-                  <p class="text-muted mb-0 small">Khóa tất cả hóa đơn đã bán của ngày cũ, đảm bảo tính minh bạch kế toán và chống gian lận.</p>
-                </div>
-                <div class="form-check form-switch form-switch-lg">
-                  <input class="form-check-input" type="checkbox" role="switch" v-model="cfgBool.POS_TuDongKhoaSo" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Gói dịch vụ SaaS -->
-          <div class="card border-0 shadow-sm rounded-3 p-4 bg-gradient-brand text-white">
-            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
-              <i class="bi bi-info-circle-fill fs-4"></i> Trạng Thái Thuê Bao Phần Mềm
-            </h5>
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-              <div>
-                <span class="badge bg-white text-primary rounded-pill fw-bold px-3 py-2 fs-6 mb-2 d-inline-block">
-                  GÓI: {{ info.goiDichVu ? info.goiDichVu.toUpperCase() : 'DÙNG THỬ' }}
-                </span>
-                <p class="mb-0 fs-6">Hạn sử dụng dịch vụ: <strong class="text-warning">{{ formatDate(info.ngayHetHan) }}</strong></p>
-              </div>
-              <router-link to="/admin/subscription" class="btn btn-warning fw-bold px-4 rounded-pill shadow d-flex align-items-center gap-2">
-                <i class="bi bi-arrow-up-circle-fill fs-5"></i> NÂNG CẤP GÓI DỊCH VỤ
-              </router-link>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -556,7 +477,6 @@ const tabs = [
   { key: 'pos', label: 'Tùy chọn POS', icon: 'sliders' },
   { key: 'permission', label: 'Phân quyền', icon: 'shield-lock' },
   { key: 'loyalty', label: 'Tích điểm', icon: 'star' },
-  { key: 'security', label: 'Bảo mật', icon: 'shield' },
 ];
 
 const info = reactive({ tenCuaHang: '', soDienThoai: '', email: '', diaChi: '', logoUrl: '', trangThai: '', ngayHetHan: null, goiDichVu: '' });
@@ -565,20 +485,17 @@ const cfg = reactive({
   POS_GiamGiaMax: '20',
   Loyalty_TiLeKiem: '10000', Loyalty_TiLeDoiDiem: '100',
   Loyalty_NguongDong: '0', Loyalty_NguongBac: '500', Loyalty_NguongVang: '2000',
-  Security_TimeoutPhut: '30',
   Security_AdminPIN: '1234',
 });
 
 const cfgBool = reactive({
   POS_ChophepGiamGia: true, POS_TuDongIn: false, POS_XacNhanGuiBep: false, POS_HienQR: true,
-  POS_HienQrThuNganOnly: false,
   POS_ThuNganInNhieuBill: false,
   POS_ThuNganXemLichSu: false,
   Perm_Order_HuyMon: true,
   Perm_Order_ChuyenTach: true,
   Perm_ThuNgan_XoaHoaDon: true,
-  Loyalty_BatTat: false, Security_YeuCauPIN: false, Security_AutoLogout: true,
-  POS_TuDongKhoaSo: true,
+  Loyalty_BatTat: false,
   Perm_ThuNgan_HuyMonDaGui: false,
   POS_ChoPhepHoanTraMon: true,
   POS_YeuCauMatKhauHuyBill: true,
@@ -645,18 +562,11 @@ const validatePosOptions = () => {
     return false;
   }
 
-  // 2. Kiểm tra mã PIN Admin (bắt buộc đúng 4 chữ số)
-  const adminPin = String(cfg.Security_AdminPIN || '').trim();
-  if (!/^\d{4}$/.test(adminPin)) {
-    swal.fire('Lỗi cấu hình', 'Mã PIN Quản lý/Chủ quán phải đúng 4 chữ số (VD: 1234)!', 'warning');
-    return false;
-  }
-
-  // 4. Kiểm tra thời gian timeout nếu bật auto logout
-  if (cfgBool.Security_AutoLogout) {
-    const timeoutPhut = parseInt(cfg.Security_TimeoutPhut);
-    if (isNaN(timeoutPhut) || timeoutPhut < 1 || timeoutPhut > 120) {
-      swal.fire('Lỗi cấu hình', 'Thời gian tự động khóa màn hình phải từ 1 đến 120 phút!', 'warning');
+  // 2. Kiểm tra mã PIN Admin nếu bật yêu cầu PIN
+  if (cfgBool.POS_YeuCauMatKhauHuyBill) {
+    const adminPin = String(cfg.Security_AdminPIN || '').trim();
+    if (!/^\d{4}$/.test(adminPin)) {
+      swal.fire('Lỗi cấu hình', 'Mã PIN Quản lý/Chủ quán phải đúng 4 chữ số (VD: 1234)!', 'warning');
       return false;
     }
   }
