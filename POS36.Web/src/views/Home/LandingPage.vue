@@ -23,7 +23,7 @@ onMounted(async () => {
     <main class="main-content">
       <!-- ====== Hero Section ====== -->
       <section class="hero-section container">
-        <div class="row align-items-center min-vh-75">
+        <div class="row align-items-center min-vh-75 pt-5">
           <div class="col-lg-6 text-center text-lg-start mb-5 mb-lg-0 pe-lg-5">
             <h1
               class="display-3 fw-black text-dark lh-sm mb-4 font-headline tracking-tighter"
