@@ -46,5 +46,27 @@ namespace POS36.Api.Controllers
             await _context.SaveChangesAsync();
             return Ok(newArea);
         }
+
+        public class UpdateKhuVucDto { public string TenKhuVuc { get; set; } = string.Empty; }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateKhuVucDto req)
+        {
+            int cuaHangId = GetCuaHangId();
+
+            // Xác thực khu vực thuộc cửa hàng hiện tại
+            var khuVuc = await _context.KhuVucs
+                .Include(k => k.ChiNhanh)
+                .FirstOrDefaultAsync(k => k.Id == id && k.CuaHangId == cuaHangId);
+
+            if (khuVuc == null) return NotFound("Không tìm thấy khu vực!");
+
+            if (string.IsNullOrWhiteSpace(req.TenKhuVuc))
+                return BadRequest("Tên khu vực không được để trống!");
+
+            khuVuc.TenKhuVuc = req.TenKhuVuc.Trim();
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Cập nhật khu vực thành công!", tenKhuVuc = khuVuc.TenKhuVuc });
+        }
     }
 }

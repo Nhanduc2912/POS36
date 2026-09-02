@@ -33,17 +33,31 @@
           </div>
           <div class="card-body p-2">
             <div class="list-group list-group-flush">
-              <button
+              <div
                 v-for="area in areas"
                 :key="area.id"
-                @click="selectedAreaId = area.id"
-                class="list-group-item list-group-item-action border-0 rounded-3 mb-1 fw-bold"
-                :class="{
-                  'active bg-primary text-white': selectedAreaId === area.id,
-                }"
+                class="area-item-wrapper mb-1 rounded-3 d-flex align-items-center"
+                :class="{ 'active-area': selectedAreaId === area.id }"
               >
-                <i class="bi bi-geo-alt-fill me-2"></i> {{ area.tenKhuVuc }}
-              </button>
+                <button
+                  @click="selectedAreaId = area.id"
+                  class="list-group-item list-group-item-action border-0 rounded-3 fw-bold flex-grow-1 bg-transparent"
+                  :class="{ 'text-white': selectedAreaId === area.id }"
+                  style="border-radius: 0.375rem !important;"
+                >
+                  <i class="bi bi-geo-alt-fill me-2"></i>
+                  <span class="area-label">{{ area.tenKhuVuc }}</span>
+                </button>
+                <!-- Nút sửa khu vực, ẩn cho đến khi hover -->
+                <button
+                  @click.stop="handleEditArea(area)"
+                  class="btn btn-sm btn-edit-area me-1"
+                  title="Đổi tên khu vực"
+                  style="width:26px;height:26px;padding:0;flex-shrink:0;"
+                >
+                  <i class="bi bi-pencil" style="font-size:11px"></i>
+                </button>
+              </div>
               <div
                 v-if="areas.length === 0"
                 class="text-center text-muted mt-3 small"
@@ -298,6 +312,48 @@ const handleAddArea = async () => {
   }
 };
 
+// --- SỬA KHU VỰC ---
+const handleEditArea = async (area) => {
+  const { value: newName } = await swal.fire({
+    title: `Đổi tên khu vực`,
+    html: `
+      <div class="text-start">
+        <label class="form-label fw-semibold mb-1">Tên khu vực</label>
+        <input id="swal-area-edit-name" class="form-control" value="${area.tenKhuVuc}" placeholder="VD: Tầng 1, Sân vườn...">
+      </div>
+    `,
+    showCancelButton: true,
+    confirmButtonText: '<i class="bi bi-check2"></i> Cập nhật',
+    cancelButtonText: 'Hủy',
+    confirmButtonColor: '#0d6efd',
+    preConfirm: () => {
+      const name = document.getElementById("swal-area-edit-name").value.trim();
+      if (!name) {
+        swal.showValidationMessage("Tên khu vực không được để trống!");
+        return false;
+      }
+      return name;
+    },
+  });
+
+  if (newName && newName !== area.tenKhuVuc) {
+    try {
+      await axios.put(`/api/KhuVuc/${area.id}`, { tenKhuVuc: newName });
+      swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: "Đã cập nhật tên khu vực",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+      fetchAreas();
+    } catch (e) {
+      swal.fire("Lỗi", e.response?.data || "Không thể cập nhật khu vực!", "error");
+    }
+  }
+};
+
 // --- QUẢN LÝ BÀN (THÊM, SỬA, XÓA) ---
 const handleAddTable = async () => {
   if (!selectedAreaId.value)
@@ -406,5 +462,47 @@ const toggleTableVisibility = async (table, event) => {
 <style scoped>
 .table-hover tbody tr:hover {
   background-color: #f8f9fa;
+}
+
+/* === KHU VỰC SIDEBAR === */
+.area-item-wrapper {
+  transition: background 0.15s;
+  border-left: 3px solid transparent;
+}
+.area-item-wrapper:hover {
+  background-color: rgba(13, 110, 253, 0.06);
+}
+.area-item-wrapper.active-area {
+  background-color: #0d6efd;
+  border-left: 3px solid #0a58ca;
+}
+.area-item-wrapper.active-area .list-group-item {
+  color: #fff !important;
+}
+.area-item-wrapper .btn-edit-area {
+  opacity: 0;
+  transition: opacity 0.15s;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.area-item-wrapper:hover .btn-edit-area {
+  opacity: 1;
+}
+.area-item-wrapper.active-area .btn-edit-area {
+  color: rgba(255,255,255,0.85);
+}
+.area-item-wrapper.active-area .btn-edit-area:hover {
+  background: rgba(255,255,255,0.2);
+}
+.area-item-wrapper:not(.active-area) .btn-edit-area {
+  color: #0d6efd;
+}
+.area-item-wrapper:not(.active-area) .btn-edit-area:hover {
+  background: #e7f0ff;
 }
 </style>

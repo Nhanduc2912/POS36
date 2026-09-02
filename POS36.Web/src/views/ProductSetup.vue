@@ -114,6 +114,80 @@ const saveRecipe = async () => {
   }
 };
 
+// --- HÀM SỬA NHÓM HÀNG ---
+const handleEditCategory = async (cat) => {
+  swal
+    .fire({
+      title: `Chỉnh Sửa Nhóm: ${cat.tenDanhMuc}`,
+      html: `
+      <div class="text-start">
+        <label class="form-label fw-semibold mb-1">Tên nhóm hàng</label>
+        <input id="swal-cat-edit-name" class="form-control mb-3" value="${cat.tenDanhMuc}" placeholder="Tên nhóm">
+        <label class="form-label fw-semibold mb-1">Ảnh mới <span class="text-muted fw-normal">(để trống giữ ảnh cũ)</span></label>
+        <input id="swal-cat-edit-image" class="form-control" type="file" accept="image/*">
+      </div>
+    `,
+      showCancelButton: true,
+      confirmButtonText: '<i class="bi bi-check2"></i> Cập nhật',
+      cancelButtonText: 'Hủy',
+      confirmButtonColor: '#f37021',
+      preConfirm: () => {
+        const name = document.getElementById("swal-cat-edit-name").value.trim();
+        const file = document.getElementById("swal-cat-edit-image").files[0];
+        if (!name) {
+          swal.showValidationMessage("Vui lòng nhập tên nhóm!");
+          return false;
+        }
+        return { tenDanhMuc: name, imageFile: file };
+      },
+    })
+    .then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          const formData = new FormData();
+          formData.append("TenDanhMuc", result.value.tenDanhMuc);
+          if (result.value.imageFile)
+            formData.append("HinhAnhFile", result.value.imageFile);
+
+          await axios.put(`/api/DanhMuc/${cat.id}`, formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+          swal.fire({ icon: "success", title: "Cập nhật nhóm thành công!", timer: 1200, showConfirmButton: false });
+          fetchCategories();
+        } catch (e) {
+          swal.fire("Lỗi", "Không thể cập nhật nhóm hàng!", "error");
+        }
+      }
+    });
+};
+
+// --- HÀM XÓA NHÓM HÀNG ---
+const handleDeleteCategory = (cat) => {
+  swal
+    .fire({
+      title: `Xóa nhóm "${cat.tenDanhMuc}"?`,
+      html: `<div class="text-muted small">Nhóm hàng không còn hàng hóa nào mới được xóa.</div>`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      confirmButtonText: "Đồng ý xóa",
+      cancelButtonText: "Hủy",
+    })
+    .then(async (result) => {
+      if (result.isConfirmed) {
+        try {
+          await axios.delete(`/api/DanhMuc/${cat.id}`);
+          swal.fire({ icon: "success", title: "Đã xóa nhóm hàng!", timer: 1200, showConfirmButton: false });
+          if (selectedCategoryId.value === cat.id) selectedCategoryId.value = 0;
+          fetchCategories();
+        } catch (e) {
+          const msg = e.response?.data?.message || "Không thể xóa nhóm hàng!";
+          swal.fire("Không thể xóa", msg, "error");
+        }
+      }
+    });
+};
+
 // --- HÀM THÊM NHÓM (CÓ ẢNH) ---
 const handleAddCategory = async () => {
   swal
@@ -341,27 +415,51 @@ const handleDeleteProduct = (id) => {
                 <i class="bi bi-grid-fill me-2 text-muted"></i> Tất cả
               </button>
 
-              <button
+              <div
                 v-for="cat in categories"
                 :key="cat.id"
-                @click="selectedCategoryId = cat.id"
-                class="list-group-item list-group-item-action border-0 py-2 fw-medium text-uppercase category-item d-flex align-items-center"
+                class="category-item-wrapper d-flex align-items-center border-0"
                 :class="{ 'active-cat': selectedCategoryId === cat.id }"
               >
-                <div
-                  class="me-2 overflow-hidden rounded-circle bg-light border d-flex align-items-center justify-content-center"
-                  style="width: 28px; height: 28px; min-width: 28px"
+                <button
+                  @click="selectedCategoryId = cat.id"
+                  class="list-group-item list-group-item-action border-0 py-2 fw-medium text-uppercase category-item d-flex align-items-center flex-grow-1 bg-transparent"
+                  style="border-radius: 0 !important;"
                 >
-                  <img
-                    v-if="cat.hinhAnh"
-                    :src="getImageUrl(cat.hinhAnh)"
-                    class="w-100 h-100"
-                    style="object-fit: cover"
-                  />
-                  <i v-else class="bi bi-tag-fill text-secondary small"></i>
+                  <div
+                    class="me-2 overflow-hidden rounded-circle bg-light border d-flex align-items-center justify-content-center"
+                    style="width: 28px; height: 28px; min-width: 28px"
+                  >
+                    <img
+                      v-if="cat.hinhAnh"
+                      :src="getImageUrl(cat.hinhAnh)"
+                      class="w-100 h-100"
+                      style="object-fit: cover"
+                    />
+                    <i v-else class="bi bi-tag-fill text-secondary small"></i>
+                  </div>
+                  <span class="cat-name flex-grow-1 text-truncate">{{ cat.tenDanhMuc }}</span>
+                </button>
+                <!-- Nút Sửa & Xóa (chỉ hiện với ChuCuaHang) -->
+                <div v-if="canManage" class="cat-actions d-flex gap-1 pe-2">
+                  <button
+                    @click.stop="handleEditCategory(cat)"
+                    class="btn btn-sm btn-edit-cat p-0"
+                    title="Sửa nhóm hàng"
+                    style="width:24px;height:24px;line-height:1;"
+                  >
+                    <i class="bi bi-pencil" style="font-size:11px"></i>
+                  </button>
+                  <button
+                    @click.stop="handleDeleteCategory(cat)"
+                    class="btn btn-sm btn-delete-cat p-0"
+                    title="Xóa nhóm hàng"
+                    style="width:24px;height:24px;line-height:1;"
+                  >
+                    <i class="bi bi-trash" style="font-size:11px"></i>
+                  </button>
                 </div>
-                {{ cat.tenDanhMuc }}
-              </button>
+              </div>
             </div>
           </div>
         </div>
@@ -557,6 +655,26 @@ const handleDeleteProduct = (id) => {
 </template>
 
 <style scoped>
+.category-item-wrapper {
+  transition: all 0.15s;
+  border-left: 4px solid transparent;
+}
+.category-item-wrapper:hover {
+  background-color: #f8f9fa;
+}
+.category-item-wrapper.active-cat {
+  color: #f37021;
+  font-weight: bold;
+  background-color: #fff3ed;
+  border-left: 4px solid #f37021;
+}
+.category-item-wrapper .cat-actions {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.category-item-wrapper:hover .cat-actions {
+  opacity: 1;
+}
 .category-item {
   font-size: 13px;
   color: #495057;
@@ -564,14 +682,34 @@ const handleDeleteProduct = (id) => {
   padding-left: 20px;
 }
 .category-item:hover {
-  background-color: #f8f9fa;
   color: #f37021;
 }
-.active-cat {
+.active-cat .category-item {
   color: #f37021 !important;
-  font-weight: bold !important;
-  background-color: #fff3ed !important;
-  border-left: 4px solid #f37021 !important;
+}
+.btn-edit-cat {
+  color: #0d6efd;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-edit-cat:hover {
+  background: #e7f0ff;
+}
+.btn-delete-cat {
+  color: #dc3545;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-delete-cat:hover {
+  background: #fde8ea;
 }
 .table th {
   font-weight: 600;

@@ -83,27 +83,41 @@ namespace POS36.Api.Controllers
             return Ok(new { message = "Thêm danh mục thành công!", id = newDanhMuc.Id });
         }
 
-        // 3. SỬA TÊN DANH MỤC
-        // BUG #12 FIX: Chỉ ChuCuaHang mới được sửa danh mục
+        // 3. SỬA DANH MỤC (Tên + Ảnh tùy chọn)
+        // Lớp DTO riêng cho sửa (tương tự Create nhưng đặt tên khác để tránh trùng)
+        public class UpdateDanhMucDto
+        {
+            public string TenDanhMuc { get; set; } = string.Empty;
+            public IFormFile? HinhAnhFile { get; set; }
+        }
+
         [Authorize(Roles = "ChuCuaHang")]
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateDanhMuc(int id, DanhMucDto request)
+        public async Task<IActionResult> UpdateDanhMuc(int id, [FromForm] UpdateDanhMucDto request)
         {
             int cuaHangId = GetCuaHangId();
 
             var danhMuc = await _context.DanhMucs
-                .FirstOrDefaultAsync(d => d.Id == id && d.CuaHangId == cuaHangId);
+                .FirstOrDefaultAsync(d => d.Id == id && d.CuaHangId == cuaHangId && !d.IsDeleted);
 
             if (danhMuc == null) return NotFound("Không tìm thấy danh mục này!");
 
             danhMuc.TenDanhMuc = request.TenDanhMuc;
+
+            // Nếu có ảnh mới thì upload và cập nhật
+            if (request.HinhAnhFile != null)
+            {
+                string? newImagePath = await UploadImageAsync(request.HinhAnhFile);
+                if (newImagePath != null)
+                    danhMuc.HinhAnh = newImagePath;
+            }
+
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Cập nhật thành công!" });
+            return Ok(new { message = "Cập nhật danh mục thành công!", hinhAnh = danhMuc.HinhAnh });
         }
 
-        // 4. XÓA DANH MỤC
-        // BUG #12 FIX: Chỉ ChuCuaHang mới được xóa danh mục
+        // 4. XÓA MỀM DANH MỤC
         [Authorize(Roles = "ChuCuaHang")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDanhMuc(int id)
@@ -111,16 +125,23 @@ namespace POS36.Api.Controllers
             int cuaHangId = GetCuaHangId();
 
             var danhMuc = await _context.DanhMucs
-                .FirstOrDefaultAsync(d => d.Id == id && d.CuaHangId == cuaHangId);
+                .Include(d => d.SanPhams)
+                .FirstOrDefaultAsync(d => d.Id == id && d.CuaHangId == cuaHangId && !d.IsDeleted);
 
             if (danhMuc == null) return NotFound("Không tìm thấy danh mục này!");
 
-            // Thực tế hệ thống lớn ít khi XÓA CỨNG, họ thường dùng cờ "IsDeleted = true" (Xóa mềm)
-            // Nhưng tạm thời ở đây mình cứ cho xóa thẳng để dễ test
-            _context.DanhMucs.Remove(danhMuc);
+            // Kiểm tra xem danh mục có sản phẩm nào không
+            bool coSanPhamConTon = danhMuc.SanPhams != null && danhMuc.SanPhams.Any();
+            if (coSanPhamConTon)
+                return BadRequest(new { message = "Không thể xóa! Nhóm hàng này vẫn còn hàng hóa. Hãy chuyển hoặc xóa hàng hóa trước." });
+
+            // Xóa mềm
+            danhMuc.IsDeleted = true;
+            danhMuc.NgayXoa = DateTime.Now;
+            danhMuc.NguoiXoa = User.FindFirst("TenDangNhap")?.Value ?? User.Identity?.Name;
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Xóa danh mục thành công!" });
+            return Ok(new { message = "Xóa nhóm hàng thành công!" });
         }
     }
 }
