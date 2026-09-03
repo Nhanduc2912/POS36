@@ -543,11 +543,14 @@ namespace POS36.Api.Controllers
         }
 
         [HttpGet("notifications")]
-        public async Task<IActionResult> GetNotifications()
+        public async Task<IActionResult> GetNotifications([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
         {
-            var list = await _context.ThongBaoHeThongs
-                .OrderByDescending(t => t.NgayTao)
-                .Take(50)
+            var query = _context.ThongBaoHeThongs.OrderByDescending(t => t.NgayTao);
+            int total = await query.CountAsync();
+
+            var list = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(t => new
                 {
                     t.Id, t.TieuDe, t.NoiDung, t.LoaiThongBao, t.NgayTao, t.CuaHangId,
@@ -556,7 +559,29 @@ namespace POS36.Api.Controllers
                         : null
                 })
                 .ToListAsync();
-            return Ok(list);
+            return Ok(new { total, page, pageSize, data = list });
+        }
+
+        [HttpDelete("notifications/{id}")]
+        public async Task<IActionResult> DeleteNotification(int id)
+        {
+            var tb = await _context.ThongBaoHeThongs.FindAsync(id);
+            if (tb == null) return NotFound(new { message = "Không tìm thấy thông báo!" });
+
+            _context.ThongBaoHeThongs.Remove(tb);
+            await _context.SaveChangesAsync();
+            await GhiLog("XoaThongBao", $"Xóa thông báo #{id}: {tb.TieuDe}", "/super-admin/notifications");
+            return Ok(new { message = "Đã xóa thông báo!" });
+        }
+
+        [HttpDelete("notifications/clear-all")]
+        public async Task<IActionResult> ClearAllNotifications()
+        {
+            int count = await _context.ThongBaoHeThongs.CountAsync();
+            _context.ThongBaoHeThongs.RemoveRange(_context.ThongBaoHeThongs);
+            await _context.SaveChangesAsync();
+            await GhiLog("XoaTatCaThongBao", $"Xóa toàn bộ {count} thông báo hệ thống", "/super-admin/notifications");
+            return Ok(new { message = $"Đã xóa tất cả {count} thông báo!" });
         }
 
 
