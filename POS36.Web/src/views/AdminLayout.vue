@@ -141,14 +141,30 @@ const loadStoreNotifications = async () => {
   try {
     const res = await axios.get("/api/ThongBao");
     storeNotifications.value = res.data;
-    
-    // Tính số lượng chưa đọc (so sánh với thời gian xem cuối)
-    const lastRead = localStorage.getItem("pos36_last_read_notif") || "2000-01-01";
+
+    // Lần đầu đăng nhập (chưa có lastRead), khởi tạo mốc thời gian ngay bây giờ
+    // để thông báo cũ không hiện là "chưa đọc"
+    let lastRead = localStorage.getItem("pos36_last_read_notif");
+    if (!lastRead) {
+      lastRead = new Date().toISOString();
+      localStorage.setItem("pos36_last_read_notif", lastRead);
+    }
+
     unreadNotifCount.value = res.data.filter(n => new Date(n.ngayTao) > new Date(lastRead)).length;
   } catch (e) {
     console.error("Lỗi tải thông báo", e);
   }
 };
+
+// Tính badge color theo loại thông báo quan trọng nhất chưa đọc
+const urgentUnread = computed(() => {
+  if (unreadNotifCount.value === 0) return null;
+  const lastRead = localStorage.getItem("pos36_last_read_notif") || "2000-01-01";
+  const unread = storeNotifications.value.filter(n => new Date(n.ngayTao) > new Date(lastRead));
+  if (unread.some(n => n.loaiThongBao === 'KhanCap')) return 'danger';
+  if (unread.some(n => n.loaiThongBao === 'CanhBao')) return 'warning';
+  return 'primary';
+});
 
 const markNotifsAsRead = () => {
   unreadNotifCount.value = 0;
@@ -488,9 +504,12 @@ const userDisplayLabel = computed(() => {
               <!-- Nút Chuông Thông Báo -->
               <li class="nav-item dropdown ms-1">
                 <a class="nav-link text-white hide-caret p-0 position-relative me-3" href="#" role="button" data-bs-toggle="dropdown" @click="markNotifsAsRead">
-                  <i class="bi bi-bell-fill fs-5"></i>
-                  <span v-if="unreadNotifCount > 0" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
-                    {{ unreadNotifCount }}
+                  <i class="bi bi-bell-fill fs-5" :class="{ 'bell-shake': unreadNotifCount > 0 }"></i>
+                  <span v-if="unreadNotifCount > 0"
+                    class="position-absolute top-0 start-100 translate-middle badge rounded-pill"
+                    :class="urgentUnread === 'danger' ? 'bg-danger' : urgentUnread === 'warning' ? 'bg-warning text-dark' : 'bg-primary'"
+                    style="font-size: 0.6rem;">
+                    {{ unreadNotifCount > 9 ? '9+' : unreadNotifCount }}
                   </span>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-3 p-0" style="width: 320px; overflow: hidden;">
@@ -804,5 +823,22 @@ select:focus {
 .banner-btn:hover {
   background: rgba(255,255,255,0.35);
   color: white;
+}
+
+/* 9. CHUÔNG RUNG KHI CÓ THÔNG BÁO CHƯA ĐỌC */
+.bell-shake {
+  display: inline-block;
+  transform-origin: top center;
+  animation: bellRing 1.2s ease infinite;
+}
+@keyframes bellRing {
+  0%   { transform: rotate(0deg); }
+  10%  { transform: rotate(14deg); }
+  20%  { transform: rotate(-10deg); }
+  30%  { transform: rotate(14deg); }
+  40%  { transform: rotate(-4deg); }
+  50%  { transform: rotate(10deg); }
+  60%  { transform: rotate(0deg); }
+  100% { transform: rotate(0deg); }
 }
 </style>
