@@ -113,7 +113,7 @@ const handleAddEmployee = async () => {
     width: 800,
     showCancelButton: true,
     confirmButtonText: "Lưu Hệ Thống",
-    preConfirm: () => {
+    preConfirm: async () => {
       const ten = document.getElementById("swal-ten").value.trim();
       const email = document.getElementById("swal-email").value.trim();
       const sdt = document.getElementById("swal-sdt").value.trim();
@@ -150,7 +150,7 @@ const handleAddEmployee = async () => {
         return false;
       }
 
-      return {
+      const payload = {
         chiNhanhId: globalState.value.activeBranchId,
         maNhanVien: "", // Backend sẽ tự sinh
         tenNhanVien: ten,
@@ -173,27 +173,26 @@ const handleAddEmployee = async () => {
         tenDangNhap: user,
         matKhau: pass,
       };
+
+      try {
+        await axios.post("/api/NhanVien", payload);
+        return true;
+      } catch (e) {
+        swal.showValidationMessage(e.response?.data?.message || "Không thể lưu nhân viên");
+        return false; // Giữ modal mở
+      }
     },
   });
 
   if (formValues) {
-    try {
-      await axios.post("/api/NhanVien", formValues);
-      swal.fire({
-        icon: "success",
-        title: "Hoàn tất",
-        text: "Đã thêm nhân viên và cấp quyền thành công!",
-        timer: 1800,
-        showConfirmButton: false,
-      });
-      fetchEmployees();
-    } catch (e) {
-      swal.fire(
-        "Lỗi",
-        e.response?.data?.message || "Không thể lưu nhân viên",
-        "error",
-      );
-    }
+    swal.fire({
+      icon: "success",
+      title: "Hoàn tất",
+      text: "Đã thêm nhân viên và cấp quyền thành công!",
+      timer: 1800,
+      showConfirmButton: false,
+    });
+    fetchEmployees();
   }
 };
 
@@ -263,7 +262,7 @@ const handleEditEmployee = async (emp) => {
     width: 800,
     showCancelButton: true,
     confirmButtonText: "Cập nhật",
-    preConfirm: () => {
+    preConfirm: async () => {
       const ten = document.getElementById("swal-ten-edit").value.trim();
       const email = document.getElementById("swal-email-edit").value.trim();
       const sdt = document.getElementById("swal-sdt-edit").value.trim();
@@ -283,7 +282,7 @@ const handleEditEmployee = async (emp) => {
         swal.showValidationMessage("Vui lòng nhập đầy đủ các thông tin bắt buộc (*)");
         return false;
       }
-      return {
+      const payload = {
         chiNhanhId: globalState.value.activeBranchId,
         maNhanVien: emp.maNhanVien,
         tenNhanVien: ten,
@@ -301,26 +300,25 @@ const handleEditEmployee = async (emp) => {
         sdtKhanCap: sdtkhancap || null,
         moiQuanHeKhanCap: moiquanhe || null,
       };
+
+      try {
+        await axios.put(`/api/NhanVien/${emp.id}`, payload);
+        return true;
+      } catch (e) {
+        swal.showValidationMessage(e.response?.data?.message || "Không thể sửa nhân viên");
+        return false; // Giữ modal mở
+      }
     },
   });
 
   if (formValues) {
-    try {
-      await axios.put(`/api/NhanVien/${emp.id}`, formValues);
-      swal.fire({
-        icon: "success",
-        title: "Đã cập nhật",
-        timer: 1000,
-        showConfirmButton: false,
-      });
-      fetchEmployees();
-    } catch (e) {
-      swal.fire(
-        "Lỗi",
-        e.response?.data?.message || "Không thể sửa nhân viên",
-        "error",
-      );
-    }
+    swal.fire({
+      icon: "success",
+      title: "Đã cập nhật",
+      timer: 1000,
+      showConfirmButton: false,
+    });
+    fetchEmployees();
   }
 };
 
