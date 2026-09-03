@@ -75,7 +75,7 @@
           v-for="f in featureUsage"
           :key="f.name"
           class="feature-cell"
-          :style="{ background: heatColor(f.pct), color: f.pct > 50 ? '#fff' : 'var(--sa-text)' }"
+          :style="{ background: heatColor(f.pct), color: heatTextColor(f.pct) }"
           :title="f.name + ': ' + f.count + ' lần (' + f.pct + '%)'"
         >
           <i :class="'bi bi-' + f.icon + ' d-block mb-1 fs-5'"></i>
@@ -144,13 +144,20 @@ const barH = (v) => {
 };
 const hourH = (v) => Math.max((v / hourMax.value) * 100, 4);
 
-// Màu heatmap: từ sa-surface → accent
+// Màu nền heatmap: gradient từ tối → vàng đậm
 const heatColor = (pct) => {
-  if (pct >= 80) return "#d97706";
-  if (pct >= 60) return "#f59e0b";
-  if (pct >= 40) return "#fbbf24";
-  if (pct >= 20) return "#fde68a";
-  return "var(--sa-nav-hover-bg)";
+  if (pct >= 80) return "#b45309"; // amber đậm → chữ trắng
+  if (pct >= 60) return "#d97706"; // amber → chữ trắng
+  if (pct >= 40) return "#f59e0b"; // vàng trung → chữ tối
+  if (pct >= 20) return "#fcd34d"; // vàng nhạt → chữ tối
+  return "var(--sa-nav-hover-bg)"; // tối → chữ sáng
+};
+
+// Màu chữ: đảm bảo contrast với nền
+const heatTextColor = (pct) => {
+  if (pct >= 60) return "#fff";      // nền tối amber → chữ trắng
+  if (pct >= 20) return "#1f2937";   // nền vàng nhạt → chữ đen/tối
+  return "var(--sa-text)";           // nền dark mode mặc định → chữ theo theme
 };
 
 const load = async () => {

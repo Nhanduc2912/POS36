@@ -155,8 +155,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, inject } from 'vue';
 import axios from 'axios';
+const swal = inject('$swal');
 
 const prompt = ref('');
 const isLoading = ref(false);
@@ -220,7 +221,7 @@ const generateReport = async () => {
     prompt.value = '';
   } catch (error) {
     const msg = error.response?.data?.message || error.response?.data?.error || error.message;
-    alert('Lỗi tạo báo cáo: ' + msg);
+    swal.fire({ icon: 'error', title: 'Lỗi tạo báo cáo', text: msg || 'Vui lòng thử lại!' });
   } finally {
     isLoading.value = false;
     clearInterval(tipInterval);
@@ -256,11 +257,11 @@ const removeReport = (id) => {
   saveReports();
 };
 
-const clearAll = () => {
-  if (confirm('Xóa tất cả báo cáo?')) {
-    reports.value = [];
-    saveReports();
-  }
+const clearAll = async () => {
+  const r = await swal.fire({ title: 'Xóa tất cả báo cáo?', text: 'Không thể phục hồi!', icon: 'warning', showCancelButton: true, confirmButtonText: 'Xóa', cancelButtonText: 'Hủy', confirmButtonColor: '#ef4444' });
+  if (!r.isConfirmed) return;
+  reports.value = [];
+  saveReports();
 };
 
 const saveReports = () => {
