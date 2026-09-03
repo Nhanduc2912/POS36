@@ -357,13 +357,17 @@ namespace POS36.Api.Controllers
             int luotDangNhap = await _context.NhatKyHeThongs
                 .CountAsync(n => n.ThoiGian >= fromDate && n.HanhDong == "DangNhap");
 
-            // Lượt truy cập Landing Page theo ngày
-            var luotTheoNgay = await _context.LuotTruyCaps
+            // Lượt truy cập Landing Page theo ngày — pull raw data về rồi group trên C# (tránh lỗi SQL translation)
+            var rawLuot = await _context.LuotTruyCaps
                 .Where(l => l.ThoiGian >= fromDate)
-                .GroupBy(l => l.ThoiGian.Date)
+                .Select(l => l.ThoiGian)
+                .ToListAsync();
+
+            var luotTheoNgay = rawLuot
+                .GroupBy(t => t.Date)
                 .Select(g => new { label = g.Key.ToString("dd/MM"), value = g.Count() })
                 .OrderBy(x => x.label)
-                .ToListAsync();
+                .ToList();
 
             // Top trang Landing Page được xem nhiều nhất
             var topPages = await _context.LuotTruyCaps
@@ -374,26 +378,24 @@ namespace POS36.Api.Controllers
                 .Take(10)
                 .ToListAsync();
 
-            // Giờ cao điểm dựa trên NhatKyHeThongs (hoạt động thực tế của người dùng)
-            var rawHourly = await _context.NhatKyHeThongs
+            // Giờ cao điểm — pull raw về rồi group trên C# (SQL Server không dịch được .Hour)
+            var rawNhatKy = await _context.NhatKyHeThongs
                 .Where(n => n.ThoiGian >= fromDate)
-                .GroupBy(n => n.ThoiGian.Hour)
-                .Select(g => new { hour = g.Key, count = g.Count() })
+                .Select(n => new { n.ThoiGian, n.HanhDong })
                 .ToListAsync();
 
             var hourlyUsage = Enumerable.Range(0, 24).Select(h =>
             {
-                var found = rawHourly.FirstOrDefault(r => r.hour == h);
-                return new { hour = h < 10 ? "0" + h : h.ToString(), count = found?.count ?? 0 };
+                var count = rawNhatKy.Count(n => n.ThoiGian.Hour == h);
+                return new { hour = h < 10 ? "0" + h : h.ToString(), count };
             }).ToList<object>();
 
-            // Feature usage từ nhật ký hệ thống
-            var featureRaw = await _context.NhatKyHeThongs
-                .Where(n => n.ThoiGian >= fromDate)
+            // Feature usage từ nhật ký hệ thống — group trên client
+            var featureRaw = rawNhatKy
                 .GroupBy(n => n.HanhDong)
                 .Select(g => new { hanhDong = g.Key, count = g.Count() })
                 .OrderByDescending(g => g.count)
-                .ToListAsync();
+                .ToList();
 
             var maxFeature = featureRaw.Any() ? featureRaw.Max(f => f.count) : 1;
             var featureUsage = featureRaw.Select(f => new
@@ -404,20 +406,20 @@ namespace POS36.Api.Controllers
             }).ToList<object>();
 
             // Distinct log action types để dropdown lọc trong UI
-            var logActions = await _context.NhatKyHeThongs
+            var logActions = rawNhatKy
                 .Select(n => n.HanhDong)
                 .Distinct()
                 .OrderBy(a => a)
-                .ToListAsync();
+                .ToList();
 
             return Ok(new
             {
-                tongLuot = luotLandingPage,   // Chú ý: chỉ là lượt xem Landing Page
-                luotDangNhap,                  // Lượt đăng nhập thực tế
+                tongLuot = luotLandingPage,
+                luotDangNhap,
                 mobile, desktop,
                 luotTheoNgay, topPages,
                 hourlyUsage, featureUsage,
-                logActions                     // Dùng cho dropdown filter nhật ký
+                logActions
             });
         }
 
