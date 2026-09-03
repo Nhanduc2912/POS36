@@ -38,11 +38,8 @@ const handleAddEmployee = async () => {
         <div class="row">
           <div class="col-md-6 border-end pe-3">
             <div class="mb-3 fw-bold text-primary">1. Hồ sơ nhân sự & Pháp lý <span class="text-danger">*</span></div>
-            <label class="form-label small mb-1">Mã NV & Tên <span class="text-danger">*</span></label>
-            <div class="input-group mb-2">
-              <input id="swal-ma" class="form-control" placeholder="Mã NV">
-              <input id="swal-ten" class="form-control w-50" placeholder="Họ và tên">
-            </div>
+            <label class="form-label small mb-1">Họ và tên <span class="text-danger">*</span></label>
+            <input id="swal-ten" class="form-control mb-2" placeholder="Họ và tên">
             <label class="form-label small mb-1">Số CCCD / Ngày cấp <span class="text-danger">*</span></label>
             <div class="input-group mb-2">
               <input id="swal-cccd" class="form-control" placeholder="Số CCCD (12 số)">
@@ -117,7 +114,6 @@ const handleAddEmployee = async () => {
     showCancelButton: true,
     confirmButtonText: "Lưu Hệ Thống",
     preConfirm: () => {
-      const ma = document.getElementById("swal-ma").value.trim();
       const ten = document.getElementById("swal-ten").value.trim();
       const email = document.getElementById("swal-email").value.trim();
       const sdt = document.getElementById("swal-sdt").value.trim();
@@ -137,7 +133,7 @@ const handleAddEmployee = async () => {
       const user = document.getElementById("swal-user").value.trim();
       const pass = document.getElementById("swal-pass").value;
 
-      if (!ma || !ten || !sdt || !cccd || !ngaysinh || !gioitinh || !thuongtru || !tamtru) {
+      if (!ten || !sdt || !cccd || !ngaysinh || !gioitinh || !thuongtru || !tamtru) {
         swal.showValidationMessage("Vui lòng nhập đầy đủ các thông tin bắt buộc (*)");
         return false;
       }
@@ -156,7 +152,7 @@ const handleAddEmployee = async () => {
 
       return {
         chiNhanhId: globalState.value.activeBranchId,
-        maNhanVien: ma,
+        maNhanVien: "", // Backend sẽ tự sinh
         tenNhanVien: ten,
         email: email || null,
         soDienThoai: sdt,

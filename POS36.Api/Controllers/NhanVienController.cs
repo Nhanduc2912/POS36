@@ -91,11 +91,17 @@ namespace POS36.Api.Controllers
             if (!request.DongYXuLyDuLieu)
                 return BadRequest(new { message = "Nhân viên phải đồng ý cho phép xử lý dữ liệu cá nhân theo Nghị định 13/2023/NĐ-CP trước khi tạo hồ sơ!" });
 
-            // VALIDATION 2: Kiểm tra Mã Nhân viên trùng lặp
-            bool maNvTrung = await _context.NhanViens.AnyAsync(
-                nv => nv.CuaHangId == cuaHangId && nv.MaNhanVien == request.MaNhanVien);
-            if (maNvTrung)
-                return BadRequest(new { message = $"Mã nhân viên '{request.MaNhanVien}' đã tồn tại trên hệ thống!" });
+            // VALIDATION 2: Tự động sinh Mã Nhân viên
+            int countNv = await _context.NhanViens.CountAsync(nv => nv.CuaHangId == cuaHangId);
+            string generatedMaNv = $"NV{(countNv + 1):D4}";
+            
+            // Đảm bảo không trùng (phòng trường hợp đã xóa bớt)
+            while (await _context.NhanViens.AnyAsync(nv => nv.CuaHangId == cuaHangId && nv.MaNhanVien == generatedMaNv))
+            {
+                countNv++;
+                generatedMaNv = $"NV{(countNv + 1):D4}";
+            }
+            request.MaNhanVien = generatedMaNv;
 
             // VALIDATION 3: Kiểm tra Số Điện Thoại trùng lặp
             bool sdtTrung = await _context.NhanViens.AnyAsync(
