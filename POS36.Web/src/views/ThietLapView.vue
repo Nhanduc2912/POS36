@@ -59,14 +59,7 @@
                 <label class="form-label fw-semibold text-secondary small">Địa chỉ hoạt động</label>
                 <input v-model="info.diaChi" class="form-control form-control-lg bg-light border-0 text-dark fs-6" placeholder="123 Nguyễn Văn A, Q1..." />
               </div>
-              <div class="col-12">
-                <label class="form-label fw-semibold text-secondary small">Đường dẫn Logo (URL)</label>
-                <input v-model="info.logoUrl" class="form-control form-control-lg bg-light border-0 text-dark fs-6 mb-3" placeholder="https://abc.com/logo.png" />
-                <div v-if="info.logoUrl" class="logo-preview-card p-3 border rounded-3 bg-light d-inline-block">
-                  <span class="d-block text-secondary small fw-semibold mb-2">Xem trước Logo:</span>
-                  <img :src="info.logoUrl" class="img-thumbnail border-0 shadow-sm" style="max-height:80px; object-fit:contain;" />
-                </div>
-              </div>
+
             </div>
           </div>
         </div>
@@ -479,7 +472,7 @@ const tabs = [
   { key: 'loyalty', label: 'Tích điểm', icon: 'star' },
 ];
 
-const info = reactive({ tenCuaHang: '', soDienThoai: '', email: '', diaChi: '', logoUrl: '', trangThai: '', ngayHetHan: null, goiDichVu: '' });
+const info = reactive({ tenCuaHang: '', soDienThoai: '', email: '', diaChi: '', trangThai: '', ngayHetHan: null, goiDichVu: '' });
 
 const cfg = reactive({
   POS_GiamGiaMax: '20',
@@ -584,7 +577,7 @@ const saveAll = async () => {
     for (const k of boolKeys) batch[k] = String(cfgBool[k]);
 
     await Promise.all([
-      axios.put('/api/ThietLap/store-info', { tenCuaHang: info.tenCuaHang, email: info.email, diaChi: info.diaChi, logoUrl: info.logoUrl }),
+      axios.put('/api/ThietLap/store-info', { tenCuaHang: info.tenCuaHang, email: info.email, diaChi: info.diaChi }),
       axios.post('/api/ThietLap/batch', batch),
     ]);
     swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã lưu thiết lập thành công!', timer: 2000, showConfirmButton: false });

@@ -80,20 +80,11 @@
               </div>
             </div>
 
-            <div class="mb-3">
-              <label class="cfg-label">Màu chủ đề (PrimaryColor)</label>
-              <div class="d-flex gap-2 align-items-center">
-                <input type="color" v-model="cfg.General.PrimaryColor"
-                  style="width:44px;height:38px;border-radius:8px;border:1px solid var(--sa-border);background:var(--sa-surface);cursor:pointer;padding:2px" />
-                <input v-model="cfg.General.PrimaryColor" class="sa-input flex-fill" placeholder="#f59e0b" />
-              </div>
-            </div>
-            
-            <div class="preview-box" :style="{ borderColor: cfg.General.PrimaryColor || '#f59e0b' }">
+            <div class="preview-box">
               <div v-if="cfg.General.SiteLogo" class="mb-2">
                 <img :src="cfg.General.SiteLogo" alt="Logo Preview" style="max-height:60px;max-width:100%;border-radius:6px;object-fit:contain;" />
               </div>
-              <div class="fw-bold fs-5" :style="{ color: cfg.General.PrimaryColor || '#f59e0b' }">{{ cfg.General.SiteName || 'POS36' }}</div>
+              <div class="fw-bold fs-5">{{ cfg.General.SiteName || 'POS36' }}</div>
               <div style="font-size:.8rem;color:var(--sa-text-faint)">{{ cfg.General.Slogan }}</div>
             </div>
           </div>
@@ -237,7 +228,7 @@ const currentTabLabel = computed(() => NAV_LABELS[activeTab.value] || "Cấu hì
 
 // ===== CONFIG STATE =====
 const cfg = reactive({
-  General: { SiteName: "", Slogan: "", SupportEmail: "", SupportPhone: "", SiteLogo: "", HeroImage: "", LoginBgImage: "", PrimaryColor: "#f59e0b", TrialDays: 7, AuthorName: "", CopyrightYear: new Date().getFullYear().toString(), ContactFacebook: "", ContactZalo: "", AboutDescription: "" },
+  General: { SiteName: "", Slogan: "", SupportEmail: "", SupportPhone: "", SiteLogo: "", HeroImage: "", LoginBgImage: "", TrialDays: 7, AuthorName: "", CopyrightYear: new Date().getFullYear().toString(), ContactFacebook: "", ContactZalo: "", AboutDescription: "" },
 });
 
 const uploadingField = ref("");
@@ -319,10 +310,7 @@ const loadConfig = async () => {
         if (cfg[nhom][item.maKey] !== undefined) cfg[nhom][item.maKey] = item.giaTri;
       }
     }
-    // Ensure PrimaryColor is full 7-char hex
-    if (cfg.General.PrimaryColor && !cfg.General.PrimaryColor.match(/^#[0-9a-fA-F]{6}$/)) {
-      cfg.General.PrimaryColor = "#f59e0b";
-    }
+
   } catch (e) { console.error(e); }
 };
 
@@ -461,7 +449,7 @@ onMounted(() => {
 
 /* ===== MISC ===== */
 .preview-box {
-  border: 2px solid; border-radius: 10px;
+  border: 2px solid var(--sa-border); border-radius: 10px;
   padding: 16px; margin-top: 8px;
   background: var(--sa-nav-hover-bg); text-align: center;
 }
