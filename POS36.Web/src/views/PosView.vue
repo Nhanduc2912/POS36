@@ -444,7 +444,8 @@ const calculateTimeElapsed = (timeOpenString) => {
   if (!timeOpenString) return "00:00";
   const openTime = new Date(timeOpenString);
   const now = new Date();
-  const diffMins = Math.floor((now - openTime) / 60000);
+  let diffMins = Math.floor((now - openTime) / 60000);
+  if (diffMins < 0) diffMins = 0; // Fix clock skew causing negative time
   return `${Math.floor(diffMins / 60)
     .toString()
     .padStart(2, "0")}:${(diffMins % 60).toString().padStart(2, "0")}`;
