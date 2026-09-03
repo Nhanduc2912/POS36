@@ -1,3 +1,4 @@
+<template>
   <div>
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h6 class="fw-bold mb-0" style="color:var(--sa-text-faint);font-size:.75rem;text-transform:uppercase;letter-spacing:.5px">

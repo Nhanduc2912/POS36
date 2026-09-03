@@ -101,7 +101,12 @@ namespace POS36.Api
                         };
                     });
 
-                builder.Services.AddControllers();
+                builder.Services.AddControllers()
+                    .AddJsonOptions(options =>
+                    {
+                        // Đảm bảo API luôn trả về camelCase để Vue.js nhận đúng
+                        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+                    });
                 builder.Services.AddSignalR();
                 builder.Services.AddHttpContextAccessor();
                 builder.Services.AddHostedService<SubscriptionBackgroundService>();

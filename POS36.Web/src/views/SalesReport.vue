@@ -96,8 +96,7 @@ const formatPrice = (price) =>
 const fetchData = async () => {
   isLoading.value = true;
   try {
-    const token =
-      localStorage.getItem("token") || localStorage.getItem("pos36_token");
+    const token = localStorage.getItem("pos36_token") || localStorage.getItem("token");
     const res = await axios.get(
       `/api/Report/sales?fromDate=${tuNgay.value}&toDate=${denNgay.value}`,
       {
@@ -107,6 +106,7 @@ const fetchData = async () => {
     danhSachMon.value = res.data;
   } catch (error) {
     console.error("Lỗi lấy báo cáo:", error);
+    alert("Không thể tải dữ liệu báo cáo. Vui lòng thử lại!");
   } finally {
     isLoading.value = false;
   }

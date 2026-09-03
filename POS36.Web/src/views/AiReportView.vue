@@ -67,6 +67,13 @@
           >
             <i class="bi bi-file-earmark-word me-1"></i> Tải Word
           </button>
+          <button
+            @click="reportHtml = ''"
+            class="btn btn-sm btn-outline-secondary fw-bold"
+            title="Xóa kết quả, tạo báo cáo mới"
+          >
+            <i class="bi bi-trash me-1"></i> Xóa
+          </button>
         </div>
       </div>
 
@@ -80,8 +87,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, inject } from "vue";
 import axios from "axios";
+const swal = inject("$swal");
 
 const prompt = ref("");
 const reportHtml = ref("");
@@ -121,12 +129,26 @@ const generateReport = async () => {
       body: JSON.stringify({ Prompt: prompt.value }),
     });
 
-    if (!response.ok) throw new Error("Lỗi gọi AI");
+    if (!response.ok) {
+      let errMsg = "Lỗi tạo báo cáo. Vui lòng thử lại!";
+      try {
+        const errData = await response.json();
+        if (errData?.error) errMsg = errData.error;
+        else if (errData?.message) errMsg = errData.message;
+        else if (typeof errData === 'string') errMsg = errData;
+      } catch {}
+      throw new Error(errMsg);
+    }
 
     const data = await response.json();
     reportHtml.value = data.htmlReport;
   } catch (error) {
-    alert("Lỗi tạo báo cáo. Sếp kiểm tra lại kết nối mạng hoặc thử lại nhé!");
+    swal.fire({
+      icon: "error",
+      title: "Lỗi tạo báo cáo",
+      text: error.message || "Kiểm tra lại kết nối hoặc thử lại!",
+      confirmButtonColor: "var(--bs-primary)"
+    });
   } finally {
     isLoading.value = false;
   }
