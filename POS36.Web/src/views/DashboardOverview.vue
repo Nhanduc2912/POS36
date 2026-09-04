@@ -497,6 +497,18 @@
                     Không có lô hàng nào sắp hết hạn.
                   </div>
                   <div v-else class="table-responsive">
+                    <div class="d-flex justify-content-between align-items-center mb-3 px-1">
+                      <span class="text-muted small">Danh sách các lô hàng cận date hoặc đã quá hạn sử dụng.</span>
+                      <button 
+                        class="btn btn-sm btn-danger fw-bold shadow-sm" 
+                        v-if="warningDetails.sapHetHan.some(i => i.soNgayConLai <= 0)" 
+                        @click="xuatHuyNhanh"
+                        :disabled="isDiscarding"
+                      >
+                        <span v-if="isDiscarding" class="spinner-border spinner-border-sm me-1"></span>
+                        <i v-else class="bi bi-trash-fill me-1"></i>Xuất hủy lô đã hết hạn
+                      </button>
+                    </div>
                     <table class="table table-hover align-middle mb-0">
                       <thead class="table-light small text-muted">
                         <tr>
@@ -576,6 +588,39 @@ const warningDetails = ref({
   sapHetHang: [],
   sapHetHan: []
 });
+const isDiscarding = ref(false);
+
+const xuatHuyNhanh = async () => {
+  if (!globalState.value.activeBranchId) return;
+  
+  const confirm = await swal.fire({
+    title: "Xác nhận xuất hủy?",
+    text: "Hệ thống sẽ tự động tạo Phiếu kiểm kê để đưa tồn kho các lô hàng ĐÃ HẾT HẠN về 0. Bạn có thể xem lại trong Lịch sử kiểm kê. Hành động này không thể hoàn tác!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#dc3545",
+    cancelButtonColor: "#6c757d",
+    confirmButtonText: "Đồng ý, xuất hủy ngay!"
+  });
+
+  if (confirm.isConfirmed) {
+    isDiscarding.value = true;
+    try {
+      const res = await axios.post(`/api/KiemKe/xuat-huy-het-han?chiNhanhId=${globalState.value.activeBranchId}`);
+      swal.fire("Thành công", res.data.message, "success");
+      
+      // Load lại danh sách cảnh báo
+      await openWarningModal();
+      // Load lại data dashboard
+      fetchDashboardData();
+    } catch (error) {
+      console.error(error);
+      swal.fire("Lỗi", error.response?.data || "Không thể xuất hủy hàng hết hạn", "error");
+    } finally {
+      isDiscarding.value = false;
+    }
+  }
+};
 
 const openWarningModal = async () => {
   if (!globalState.value.activeBranchId) return;
