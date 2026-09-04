@@ -123,6 +123,7 @@ namespace POS36.Api.Controllers
                                 MaNguyenVatLieu = "SP" + s.Id,
                                 TenNguyenVatLieu = s.TenNguyenVatLieu,
                                 TenDanhMuc = s.DanhMucNguyenVatLieu != null ? s.DanhMucNguyenVatLieu.TenDanhMuc : "Khác",
+                                DonViTinh = s.DonViTinh,
                                 TonKho = t.SoLuong,
                                 NgayHetHan = t.NgayHetHan
                             });
@@ -136,6 +137,7 @@ namespace POS36.Api.Controllers
                             MaNguyenVatLieu = "SP" + s.Id,
                             TenNguyenVatLieu = s.TenNguyenVatLieu,
                             TenDanhMuc = s.DanhMucNguyenVatLieu != null ? s.DanhMucNguyenVatLieu.TenDanhMuc : "Khác",
+                            DonViTinh = s.DonViTinh,
                             TonKho = 0m,
                             NgayHetHan = (DateTime?)null
                         });
@@ -280,6 +282,7 @@ namespace POS36.Api.Controllers
                         c.NguyenVatLieuId,
                         MaNguyenVatLieu = "SP" + c.NguyenVatLieuId,
                         TenNguyenVatLieu = c.NguyenVatLieu!.TenNguyenVatLieu,
+                        DonViTinh = c.NguyenVatLieu.DonViTinh,
                         c.NgayHetHan,
                         c.TonKhoHienTai,
                         c.SoLuongKiemKe

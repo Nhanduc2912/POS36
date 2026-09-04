@@ -76,10 +76,12 @@
                   >
                 </td>
                 <td class="fw-bold">
-                  {{ item.tenNguyenVatLieu }}<br /><span
-                    class="text-muted small fst-italic"
-                    ><i class="bi bi-pencil"></i> Ghi chú</span
-                  >
+                  {{ item.tenNguyenVatLieu }}
+                  <span v-if="item.donViTinh" class="badge bg-secondary ms-1">{{ item.donViTinh }}</span>
+                  <br />
+                  <span class="text-muted small fst-italic">
+                    <i class="bi bi-pencil"></i> Ghi chú
+                  </span>
                 </td>
 
                 <td>
@@ -103,7 +105,7 @@
                   <div class="input-group input-group-sm">
                     <button
                       class="btn btn-outline-secondary"
-                      @click="item.soLuongKiemKe--"
+                      @click="item.soLuongKiemKe = Math.max(0, item.soLuongKiemKe - 1)"
                     >
                       -
                     </button>
@@ -283,6 +285,7 @@ const loadEditData = async (id) => {
       nguyenVatLieuId: c.nguyenVatLieuId,
       maNguyenVatLieu: c.maNguyenVatLieu,
       tenNguyenVatLieu: c.tenNguyenVatLieu,
+      donViTinh: c.donViTinh,
       ngayHetHan: c.ngayHetHan ? c.ngayHetHan.split('T')[0] : null,
       tonKhoHienTai: c.tonKhoHienTai,
       soLuongKiemKe: c.soLuongKiemKe
@@ -316,6 +319,7 @@ const addToCheckList = (prod) => {
       nguyenVatLieuId: prod.id,
       maNguyenVatLieu: prod.maNguyenVatLieu,
       tenNguyenVatLieu: prod.tenNguyenVatLieu,
+      donViTinh: prod.donViTinh,
       ngayHetHan: prodDate,
       tonKhoHienTai: prod.tonKho || 0,
       soLuongKiemKe: prod.tonKho || 0, // Mặc định gán bằng tồn kho hệ thống cho nhanh
@@ -432,6 +436,7 @@ const addByGroup = async () => {
           nguyenVatLieuId: prod.id,
           maNguyenVatLieu: prod.maNguyenVatLieu,
           tenNguyenVatLieu: prod.tenNguyenVatLieu,
+          donViTinh: prod.donViTinh,
           ngayHetHan: prodDate,
           tonKhoHienTai: prod.tonKho || 0,
           soLuongKiemKe: prod.tonKho || 0,

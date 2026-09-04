@@ -213,7 +213,10 @@
                             <td class="fw-bold text-danger">
                               {{ item.maNguyenVatLieu }}
                             </td>
-                            <td>{{ item.tenNguyenVatLieu }}</td>
+                            <td>
+                              {{ item.tenNguyenVatLieu }}
+                              <span v-if="item.donViTinh" class="badge bg-secondary ms-1">{{ item.donViTinh }}</span>
+                            </td>
                             <td class="text-muted">{{ item.ngayHetHan ? formatDate(item.ngayHetHan).split(' ')[0] : '---' }}</td>
                             <td class="text-end">{{ item.tonKhoHienTai }}</td>
                             <td class="text-end fw-bold text-primary">
@@ -342,6 +345,7 @@ const exportExcel = (voucher) => {
     STT: index + 1,
     "Mã NVL": item.maNguyenVatLieu,
     "Tên NVL": item.tenNguyenVatLieu,
+    "Đơn vị tính": item.donViTinh || "",
     "Hạn sử dụng": item.ngayHetHan ? formatDate(item.ngayHetHan).split(' ')[0] : '',
     "Tồn kho hệ thống": item.tonKhoHienTai,
     "SL Kiểm kê thực tế": item.soLuongKiemKe,
@@ -353,6 +357,7 @@ const exportExcel = (voucher) => {
     STT: "TỔNG",
     "Mã NVL": "",
     "Tên NVL": "",
+    "Đơn vị tính": "",
     "Hạn sử dụng": "",
     "Tồn kho hệ thống": totalDetailTonKho.value,
     "SL Kiểm kê thực tế": totalDetailKiemKe.value,
@@ -369,6 +374,7 @@ const exportExcel = (voucher) => {
     { wch: 5 }, // STT
     { wch: 15 }, // Mã HH
     { wch: 30 }, // Tên HH
+    { wch: 15 }, // Đơn vị tính
     { wch: 15 }, // HSD
     { wch: 20 }, // Tồn kho
     { wch: 20 }, // SL Kiểm kê
