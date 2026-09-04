@@ -262,10 +262,21 @@ namespace POS36.Api.Controllers
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
         {
-            // TÌM TÀI KHOẢN CHỦ CỬA HÀNG QUA EMAIL TRONG BẢNG NHANVIEN
+            if (string.IsNullOrWhiteSpace(request.Email))
+                return BadRequest("Email không được để trống!");
+
+            var emailLower = request.Email.Trim().ToLower();
+
+            // TÌM TÀI KHOẢN CHỦ CỬA HÀNG QUA EMAIL
             var user = await _context.TaiKhoans
                 .Include(t => t.NhanVien)
-                .FirstOrDefaultAsync(t => t.NhanVien != null && t.NhanVien.Email == request.Email && t.VaiTro == "ChuCuaHang");
+                .FirstOrDefaultAsync(t => 
+                    t.VaiTro == "ChuCuaHang" &&
+                    (
+                        (t.Email != null && t.Email.ToLower() == emailLower) ||
+                        (t.NhanVien != null && t.NhanVien.Email != null && t.NhanVien.Email.ToLower() == emailLower)
+                    )
+                );
 
             if (user == null)
             {

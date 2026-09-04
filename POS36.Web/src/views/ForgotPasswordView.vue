@@ -227,7 +227,7 @@ import axios from "axios";
 const router = useRouter();
 const swal = inject("$swal");
 
-const step = ref(1);
+const step = ref(parseInt(sessionStorage.getItem("fp_step")) || 1);
 const isLoading = ref(false);
 const isResending = ref(false);
 
@@ -238,12 +238,17 @@ let resendInterval = null;
 let expiryInterval = null;
 
 const form = ref({
-  email: "",
-  username: "",
+  email: sessionStorage.getItem("fp_email") || "",
+  username: sessionStorage.getItem("fp_username") || "",
   otp: "",
   newPassword: "",
   confirmPassword: "",
 });
+
+import { watch } from "vue";
+watch(step, (val) => sessionStorage.setItem("fp_step", val.toString()));
+watch(() => form.value.email, (val) => sessionStorage.setItem("fp_email", val));
+watch(() => form.value.username, (val) => sessionStorage.setItem("fp_username", val));
 
 const progressWidth = computed(() => {
   if (step.value === 1) return "0%";
@@ -324,6 +329,7 @@ const requestOtp = async () => {
 
     // Mã OTP đã được backend gửi tự động qua EmailJS bảo mật
     step.value = 2;
+    sessionStorage.setItem("fp_step", "2");
     
     // Bắt đầu countdown
     startResendCooldown(cooldownSeconds);
@@ -429,6 +435,7 @@ const verifyOtp = () => {
   if (expiryInterval) clearInterval(expiryInterval);
   
   step.value = 3;
+  sessionStorage.setItem("fp_step", "3");
 };
 
 // ==========================================
@@ -449,6 +456,9 @@ const resetPassword = async () => {
     });
 
     step.value = 4;
+    sessionStorage.removeItem("fp_step");
+    sessionStorage.removeItem("fp_email");
+    sessionStorage.removeItem("fp_username");
   } catch (error) {
     swal
       .fire({
