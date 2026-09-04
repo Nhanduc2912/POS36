@@ -447,10 +447,10 @@ namespace POS36.Api.Controllers
         {
             try
             {
-                var serviceId = _configuration["EmailJS:ServiceId"] ?? "service_65xya5u";
+                var serviceId = _configuration["EmailJS:ServiceId"] ?? "service_fb8hmnp";
                 var templateId = _configuration["EmailJS:TemplateId"] ?? "template_a63e1vv";
                 var publicKey = _configuration["EmailJS:PublicKey"] ?? "Zjm65dyIcuEbthcT3";
-                var privateKey = _configuration["EmailJS:PrivateKey"];
+                var privateKey = _configuration["EmailJS:PrivateKey"] ?? "fsxBeviVWFc34g9nCe2Tk";
 
                 using var client = new HttpClient();
                 var payload = new Dictionary<string, object>
