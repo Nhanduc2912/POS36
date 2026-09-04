@@ -140,32 +140,30 @@
     </main>
 
     <!-- AI Navigation Confirmation Dialog -->
-    <Teleport to="body">
-      <div class="sa-nav-confirm-overlay" v-if="navConfirm" @click.self="denyNavigation">
-        <div class="sa-nav-confirm-modal">
-          <div class="sa-nav-confirm-icon">
-            <i class="bi bi-robot"></i>
-          </div>
-          <h5 class="sa-nav-confirm-title">AI đã tạo báo cáo!</h5>
-          <p class="sa-nav-confirm-desc">
-            Báo cáo đã được tạo thành công. Bạn có muốn AI chuyển bạn sang
-            <strong>{{ navConfirm.label }}</strong> ngay bây giờ không?
-          </p>
-          <div class="sa-nav-confirm-prompt" v-if="navConfirm.prompt">
-            <i class="bi bi-chat-dots me-2"></i>
-            <em>{{ navConfirm.prompt }}</em>
-          </div>
-          <div class="sa-nav-confirm-btns">
-            <button class="sa-nav-btn-yes" @click="acceptNavigation">
-              <i class="bi bi-arrow-right-circle-fill me-2"></i>Có, chuyển trang
-            </button>
-            <button class="sa-nav-btn-no" @click="denyNavigation">
-              <i class="bi bi-x-circle me-2"></i>Không, ở lại đây
-            </button>
-          </div>
+    <div class="sa-nav-confirm-overlay" v-if="navConfirm" @click.self="denyNavigation">
+      <div class="sa-nav-confirm-modal">
+        <div class="sa-nav-confirm-icon">
+          <i class="bi bi-robot"></i>
+        </div>
+        <h5 class="sa-nav-confirm-title">AI đã tạo báo cáo!</h5>
+        <p class="sa-nav-confirm-desc">
+          Báo cáo đã được tạo thành công. Bạn có muốn AI chuyển bạn sang
+          <strong>{{ navConfirm.label }}</strong> ngay bây giờ không?
+        </p>
+        <div class="sa-nav-confirm-prompt" v-if="navConfirm.prompt">
+          <i class="bi bi-chat-dots me-2"></i>
+          <em>{{ navConfirm.prompt }}</em>
+        </div>
+        <div class="sa-nav-confirm-btns">
+          <button class="sa-nav-btn-yes" @click="acceptNavigation">
+            <i class="bi bi-arrow-right-circle-fill me-2"></i>Có, chuyển trang
+          </button>
+          <button class="sa-nav-btn-no" @click="denyNavigation">
+            <i class="bi bi-x-circle me-2"></i>Không, ở lại đây
+          </button>
         </div>
       </div>
-    </Teleport>
+    </div>
   </div>
 </template>
 
